@@ -43,8 +43,8 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -on
 
 The app is in early development. Current structure:
 
-- **`PactApp.swift`** — App entry point. Uses `@AppStorage("hasCompletedOnboarding")` to gate between `WelcomeView` (first launch) and `ContentView` (main app). Initializes the SwiftData `ModelContainer`. On every launch, displays `SplashVideoView` as an overlay that fades out when the video finishes.
-- **`SplashVideoView.swift`** — Plays `startup_animation.mp4` fullscreen on app launch using `AVPlayer` via `UIViewRepresentable`. Calls `onFinished` when playback completes, triggering a fade-out transition. Gracefully handles missing video file.
+- **`PactApp.swift`** — App entry point. Uses `@AppStorage("hasCompletedOnboarding")` to gate between `WelcomeView` (first launch) and `ContentView` (main app). Initializes the SwiftData `ModelContainer`. On every launch, displays `SplashView` as an overlay that fades out when the animation finishes.
+- **`SplashView.swift`** — Pure SwiftUI animated splash screen. Displays `SplashLogo` on a white-to-purple diagonal gradient with a scale-and-lift animation (~2s). Calls `onFinished` to trigger crossfade transition to the main app.
 - **`WelcomeView.swift`** — Onboarding splash screen. Calls `onGetStarted` closure to set `hasCompletedOnboarding = true` and transition to the main app.
 - **`ContentView.swift`** — Placeholder main view (Xcode default list/detail). Will be replaced with the real app UI.
 - **`Item.swift`** — Placeholder SwiftData `@Model`. Replace with real domain models as features are built.

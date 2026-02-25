@@ -40,7 +40,7 @@ struct PactApp: App {
                 }
 
                 if showingSplash {
-                    SplashVideoView(onFinished: {
+                    SplashView(onFinished: {
                         withAnimation(.easeOut(duration: 0.5)) {
                             showingSplash = false
                         }
