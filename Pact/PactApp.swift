@@ -11,6 +11,7 @@ import SwiftData
 @main
 struct PactApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var showingSplash = true
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -27,14 +28,26 @@ struct PactApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                ContentView()
-            } else {
-                WelcomeView(onGetStarted: {
-                    withAnimation {
-                        hasCompletedOnboarding = true
-                    }
-                })
+            ZStack {
+                if hasCompletedOnboarding {
+                    ContentView()
+                } else {
+                    WelcomeView(onGetStarted: {
+                        withAnimation {
+                            hasCompletedOnboarding = true
+                        }
+                    })
+                }
+
+                if showingSplash {
+                    SplashVideoView(onFinished: {
+                        withAnimation(.easeOut(duration: 0.5)) {
+                            showingSplash = false
+                        }
+                    })
+                    .transition(.opacity)
+                    .zIndex(1)
+                }
             }
         }
         .modelContainer(sharedModelContainer)
