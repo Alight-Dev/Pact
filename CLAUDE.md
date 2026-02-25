@@ -63,6 +63,17 @@ Pact is a social accountability app (see `Pact-PRD.md` for the full spec). Key c
 
 - **Always use regular git branches** (`git checkout -b feature/...`) for feature work, not worktrees.
 
+## How Claude Should Work on New Features
+
+For any task that involves planning or building a new feature or flow, **ask a few clarifying questions before writing code**. Focus on:
+
+- **Goal**: what user outcome or story we’re aiming for.
+- **Scope**: what’s in/out for this iteration and what to optimize for (e.g. speed vs polish).
+- **UX**: key entry points, empty/error states, and how it should fit Pact’s existing UI.
+- **Constraints**: relevant data model, Screen Time/API, performance, or policy limits.
+
+If the request is ambiguous, ask 3–5 of the most important questions and make any assumptions explicit.
+
 ## UI Design Language
 
 Per the PRD, the target aesthetic is:
