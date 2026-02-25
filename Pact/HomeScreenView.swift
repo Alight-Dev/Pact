@@ -19,14 +19,14 @@ struct HomeScreenView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color.black.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // Header
                     Text("Daily\nActivities")
                         .font(.system(size: 38, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black)
                         .lineSpacing(2)
                         .padding(.horizontal, 24)
                         .padding(.top, 64)
@@ -37,13 +37,13 @@ struct HomeScreenView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "list.bullet.rectangle")
                                 .font(.system(size: 44))
-                                .foregroundStyle(Color(white: 0.3))
+                                .foregroundStyle(Color(white: 0.75))
                             Text("No activities yet")
                                 .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(Color(white: 0.55))
+                                .foregroundStyle(Color(white: 0.5))
                             Text("Add your first daily activity below")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color(white: 0.38))
+                                .foregroundStyle(Color(white: 0.65))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.top, 60)
@@ -72,24 +72,25 @@ struct HomeScreenView: View {
                     Text("Add Activity")
                         .font(.system(size: 17, weight: .semibold))
                 }
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.white)
+                        .fill(Color.black)
                 )
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
         }
         .sheet(isPresented: $showingAddActivity) {
-            AddActivitySheet { name, description, iconName in
+            AddActivitySheet { name, description, iconName, repeatDays in
                 let activity = Activity(
                     name: name,
                     activityDescription: description,
                     iconName: iconName,
-                    order: activities.count
+                    order: activities.count,
+                    repeatDays: repeatDays
                 )
                 modelContext.insert(activity)
                 showingAddActivity = false
@@ -107,7 +108,7 @@ struct ActivityRowView: View {
         HStack(spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(red: 0.94, green: 0.94, blue: 0.96))
+                    .fill(Color(white: 0.90))
                     .frame(width: 48, height: 48)
                 Image(systemName: activity.iconName)
                     .font(.system(size: 22))
@@ -131,7 +132,7 @@ struct ActivityRowView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
+                .fill(Color(red: 0.96, green: 0.96, blue: 0.98))
         )
     }
 }
@@ -139,12 +140,15 @@ struct ActivityRowView: View {
 // MARK: - AddActivitySheet
 
 struct AddActivitySheet: View {
-    var onSave: (String, String, String) -> Void
+    var onSave: (String, String, String, [Int]) -> Void
 
     @State private var name = ""
     @State private var activityDescription = ""
     @State private var selectedIcon = "figure.run"
+    @State private var selectedDays: Set<Int> = []
     @Environment(\.dismiss) private var dismiss
+
+    private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
 
     private let icons = [
         "figure.run", "figure.walk", "figure.hiking",
@@ -165,30 +169,35 @@ struct AddActivitySheet: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
                 // Navigation bar
                 HStack {
                     Button("Cancel") { dismiss() }
                         .font(.system(size: 16))
-                        .foregroundStyle(Color(white: 0.5))
+                        .foregroundStyle(Color(white: 0.6))
 
                     Spacer()
 
                     Text("New Activity")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black)
 
                     Spacer()
 
                     Button("Save") {
                         if !trimmedName.isEmpty {
-                            onSave(trimmedName, activityDescription.trimmingCharacters(in: .whitespaces), selectedIcon)
+                            onSave(
+                                trimmedName,
+                                activityDescription.trimmingCharacters(in: .whitespaces),
+                                selectedIcon,
+                                selectedDays.sorted()
+                            )
                         }
                     }
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(trimmedName.isEmpty ? Color(white: 0.32) : .white)
+                    .foregroundStyle(trimmedName.isEmpty ? Color(white: 0.75) : .black)
                     .disabled(trimmedName.isEmpty)
                 }
                 .padding(.horizontal, 24)
@@ -201,17 +210,17 @@ struct AddActivitySheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("NAME")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color(white: 0.42))
+                                .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
                             TextField("e.g. Morning Run", text: $name)
                                 .font(.system(size: 16))
-                                .foregroundStyle(.white)
-                                .tint(.white)
+                                .foregroundStyle(.black)
+                                .tint(.black)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(white: 0.1))
+                                        .fill(Color(white: 0.94))
                                 )
                         }
 
@@ -219,17 +228,17 @@ struct AddActivitySheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("DESCRIPTION")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color(white: 0.42))
+                                .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
                             TextField("e.g. Run at least 3km", text: $activityDescription)
                                 .font(.system(size: 16))
-                                .foregroundStyle(.white)
-                                .tint(.white)
+                                .foregroundStyle(.black)
+                                .tint(.black)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color(white: 0.1))
+                                        .fill(Color(white: 0.94))
                                 )
                         }
 
@@ -237,7 +246,7 @@ struct AddActivitySheet: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("ICON")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color(white: 0.42))
+                                .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
                             LazyVGrid(columns: columns, spacing: 12) {
@@ -247,13 +256,43 @@ struct AddActivitySheet: View {
                                     } label: {
                                         Image(systemName: icon)
                                             .font(.system(size: 20))
-                                            .foregroundStyle(selectedIcon == icon ? .black : Color(white: 0.65))
+                                            .foregroundStyle(selectedIcon == icon ? .white : Color(white: 0.45))
                                             .frame(width: 48, height: 48)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 10)
-                                                    .fill(selectedIcon == icon ? Color.white : Color(white: 0.12))
+                                                    .fill(selectedIcon == icon ? Color.black : Color(white: 0.92))
                                             )
                                     }
+                                }
+                            }
+                        }
+
+                        // Repeat Days picker
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Repeat Days")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundStyle(.black)
+
+                            HStack(spacing: 0) {
+                                ForEach(0..<7, id: \.self) { index in
+                                    let isSelected = selectedDays.contains(index)
+                                    Button {
+                                        if isSelected {
+                                            selectedDays.remove(index)
+                                        } else {
+                                            selectedDays.insert(index)
+                                        }
+                                    } label: {
+                                        Text(dayLabels[index])
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(isSelected ? .white : Color(white: 0.55))
+                                            .frame(width: 44, height: 44)
+                                            .background(
+                                                Circle()
+                                                    .fill(isSelected ? Color.black : Color(white: 0.88))
+                                            )
+                                    }
+                                    .frame(maxWidth: .infinity)
                                 }
                             }
                         }

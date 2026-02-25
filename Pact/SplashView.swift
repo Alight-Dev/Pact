@@ -42,12 +42,12 @@ struct SplashView: View {
                     Button(action: onFinished) {
                         Text("Get Started")
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
                                 RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color(red: 0.93, green: 0.92, blue: 0.87))
+                                    .fill(Color.black)
                             )
                     }
                     .padding(.horizontal, 24)
