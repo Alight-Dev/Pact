@@ -81,3 +81,11 @@ Per the PRD, the target aesthetic is:
 - Gem-forged shield fragments as the primary visual motif
 - Gemstone textures on interactive elements, subtle inner glow on active states
 - Clean sans-serif typography, white and light grey text
+
+### Color Palette
+
+- **Main colors**
+  - `#000000` — black (primary background and main text)
+  - `#FFFFFF` — white (surfaces like buttons and cards)
+  - `#F9F8FD` — grey (smaller text, contextual elements)
+  - The app should feel **minimalist**: use black for main text, grey for secondary text/context, and white for primary surfaces.
