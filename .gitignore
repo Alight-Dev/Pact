@@ -18,3 +18,5 @@ build/
 
 # CocoaPods
 Pods/
+
+.claude/
