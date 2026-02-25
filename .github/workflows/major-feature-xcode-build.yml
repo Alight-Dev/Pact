@@ -1,0 +1,27 @@
+name: Major feature Xcode build
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  build_major_feature:
+    # Run only when the PR was merged and is marked as a major feature via label
+    if: >
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'major-feature')
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build Pact iOS app (major feature)
+        run: |
+          xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' build
+
