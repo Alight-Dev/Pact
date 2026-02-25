@@ -43,7 +43,8 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -on
 
 The app is in early development. Current structure:
 
-- **`PactApp.swift`** — App entry point. Uses `@AppStorage("hasCompletedOnboarding")` to gate between `WelcomeView` (first launch) and `ContentView` (main app). Initializes the SwiftData `ModelContainer`.
+- **`PactApp.swift`** — App entry point. Uses `@AppStorage("hasCompletedOnboarding")` to gate between `WelcomeView` (first launch) and `ContentView` (main app). Initializes the SwiftData `ModelContainer`. On every launch, displays `SplashVideoView` as an overlay that fades out when the video finishes.
+- **`SplashVideoView.swift`** — Plays `startup_animation.mp4` fullscreen on app launch using `AVPlayer` via `UIViewRepresentable`. Calls `onFinished` when playback completes, triggering a fade-out transition. Gracefully handles missing video file.
 - **`WelcomeView.swift`** — Onboarding splash screen. Calls `onGetStarted` closure to set `hasCompletedOnboarding = true` and transition to the main app.
 - **`ContentView.swift`** — Placeholder main view (Xcode default list/detail). Will be replaced with the real app UI.
 - **`Item.swift`** — Placeholder SwiftData `@Model`. Replace with real domain models as features are built.
@@ -57,6 +58,10 @@ Pact is a social accountability app (see `Pact-PRD.md` for the full spec). Key c
 - **AI fallback:** Claude Vision API or GPT-4o used to auto-verify after ~2–3 hours of peer inactivity.
 - **Shield progression:** Each team shares a visual "shield" that upgrades through 7 material tiers (Bronze → Platinum) based on streak consistency.
 - **Backend:** Firebase or Supabase (not yet integrated).
+
+## Project Conventions
+
+- **Always use regular git branches** (`git checkout -b feature/...`) for feature work, not worktrees.
 
 ## UI Design Language
 
