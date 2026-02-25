@@ -15,16 +15,19 @@ open Pact.xcodeproj
 ```
 
 To build from the command line:
+
 ```bash
 xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' build
 ```
 
 To run tests:
+
 ```bash
 xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 
 To run a single test class:
+
 ```bash
 xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:PactTests/PactTests test
 ```
@@ -43,11 +46,13 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -on
 
 The app is in early development. Current structure:
 
-- **`PactApp.swift`** — App entry point. Uses `@AppStorage("hasCompletedOnboarding")` to gate between `WelcomeView` (first launch) and `ContentView` (main app). Initializes the SwiftData `ModelContainer`. On every launch, displays `SplashView` as an overlay that fades out when the animation finishes.
-- **`SplashView.swift`** — Pure SwiftUI animated splash screen. Displays `SplashLogo` on a white-to-purple diagonal gradient with a scale-and-lift animation (~2s). Calls `onFinished` to trigger crossfade transition to the main app.
-- **`WelcomeView.swift`** — Onboarding splash screen. Calls `onGetStarted` closure to set `hasCompletedOnboarding = true` and transition to the main app.
-- **`ContentView.swift`** — Placeholder main view (Xcode default list/detail). Will be replaced with the real app UI.
-- **`Item.swift`** — Placeholder SwiftData `@Model`. Replace with real domain models as features are built.
+- **`PactApp.swift`** — App entry point. Uses `@AppStorage("hasCompletedOnboarding")` to gate between `SplashView` (first launch) and `HomeScreenView` (main app). Initializes the SwiftData `ModelContainer` with `Item` and `Activity` models.
+- **`SplashView.swift`** — Animated splash screen with logo animation (~1.6s) followed by a "Get Started" button. Calls `onFinished` to set `hasCompletedOnboarding = true` and transition to `HomeScreenView`.
+- **`WelcomeView.swift`** — Alternate onboarding view (currently unused). Calls `onGetStarted` closure.
+- **`HomeScreenView.swift`** — Main app screen. Displays a list of `Activity` items on a black background with white cards. Includes an "Add Activity" button that opens `AddActivitySheet` (a full-screen sheet with name, description, and icon picker). `ActivityRowView` renders each activity card.
+- **`Activity.swift`** — SwiftData `@Model` for user-created daily activities. Fields: `name`, `activityDescription`, `iconName` (SF Symbol), `order`, `createdAt`.
+- **`ContentView.swift`** — Unused placeholder (Xcode default). Can be removed.
+- **`Item.swift`** — Unused placeholder SwiftData `@Model`. Can be removed.
 
 ## Product Vision
 
@@ -77,6 +82,7 @@ If the request is ambiguous, ask 3–5 of the most important questions and make 
 ## UI Design Language
 
 Per the PRD, the target aesthetic is:
+
 - **Dark mode only** — black to deep charcoal backgrounds
 - Gem-forged shield fragments as the primary visual motif
 - Gemstone textures on interactive elements, subtle inner glow on active states
@@ -85,7 +91,7 @@ Per the PRD, the target aesthetic is:
 ### Color Palette
 
 - **Main colors**
-  - `#000000` — black (primary background and main text)
-  - `#FFFFFF` — white (surfaces like buttons and cards)
+  - `#000000` — black (surfaces like buttons and cards)
+  - `#FFFFFF` — white (primary background and main text)
   - `#F9F8FD` — grey (smaller text, contextual elements)
   - The app should feel **minimalist**: use black for main text, grey for secondary text/context, and white for primary surfaces.

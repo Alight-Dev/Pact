@@ -10,11 +10,12 @@ import SwiftData
 
 @main
 struct PactApp: App {
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var showHomeScreen = false
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
+            Activity.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -27,12 +28,12 @@ struct PactApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                ContentView()
+            if showHomeScreen {
+                HomeScreenView()
             } else {
                 SplashView(onFinished: {
                     withAnimation {
-                        hasCompletedOnboarding = true
+                        showHomeScreen = true
                     }
                 })
             }
