@@ -22,7 +22,19 @@ struct PactApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // Schema changed without a migration plan (common during development).
+            // Destroy the old store files and recreate from scratch.
+            let storeURL = modelConfiguration.url
+            for suffix in ["", "-wal", "-shm"] {
+                let fileURL = URL(fileURLWithPath: storeURL.path + suffix)
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+            do {
+                let freshConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+                return try ModelContainer(for: schema, configurations: [freshConfig])
+            } catch {
+                fatalError("Could not create ModelContainer after store reset: \(error)")
+            }
         }
     }()
 
