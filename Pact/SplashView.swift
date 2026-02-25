@@ -12,7 +12,7 @@ struct SplashView: View {
 
     @State private var logoScale: CGFloat = 0.3
     @State private var logoOffsetY: CGFloat = 300
-    @State private var hasFinished = false
+    @State private var showOnboardingContent = false
 
     var body: some View {
         ZStack {
@@ -26,12 +26,44 @@ struct SplashView: View {
             )
             .ignoresSafeArea()
 
-            Image("SplashLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 150, height: 150)
-                .scaleEffect(logoScale)
-                .offset(y: logoOffsetY)
+            VStack(spacing: 0) {
+                Spacer()
+
+                Image("SplashLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 150, height: 150)
+                    .scaleEffect(logoScale)
+                    .offset(y: logoOffsetY)
+                    .padding(.bottom, showOnboardingContent ? 24 : 0)
+
+                if showOnboardingContent {
+                    Text("Where you and your team will\nmake the most of your goals")
+                        .font(.system(size: 17, weight: .regular))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                        .padding(.horizontal, 32)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+                    Spacer()
+
+                    Button(action: onFinished) {
+                        Text("Get Started")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color(red: 0.93, green: 0.92, blue: 0.87))
+                            )
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 48)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+            }
         }
         .onAppear {
             startAnimationSequence()
@@ -49,15 +81,15 @@ struct SplashView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             withAnimation(.easeInOut(duration: 0.6)) {
                 logoScale = 1.0
-                logoOffsetY = 0
+                logoOffsetY = -20
             }
         }
 
-        // Transition out after animation completes
+        // Reveal onboarding text and button after animation completes
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            guard !hasFinished else { return }
-            hasFinished = true
-            onFinished()
+            withAnimation(.easeInOut(duration: 0.4)) {
+                showOnboardingContent = true
+            }
         }
     }
 }
