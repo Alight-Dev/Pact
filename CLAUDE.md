@@ -49,7 +49,7 @@ The app is in early development. Current structure:
 - **`PactApp.swift`** — App entry point. Uses `@AppStorage("hasCompletedOnboarding")` to gate between `SplashView` (first launch) and `HomeScreenView` (main app). Initializes the SwiftData `ModelContainer` with `Item` and `Activity` models.
 - **`SplashView.swift`** — Animated splash screen with logo animation (~1.6s) followed by a "Get Started" button. Calls `onFinished` to set `hasCompletedOnboarding = true` and transition to `HomeScreenView`.
 - **`WelcomeView.swift`** — Alternate onboarding view (currently unused). Calls `onGetStarted` closure.
-- **`HomeScreenView.swift`** — Main app screen. Displays a list of `Activity` items on a black background with white cards. Includes an "Add Activity" button that opens `AddActivitySheet` (a full-screen sheet with name, description, and icon picker). `ActivityRowView` renders each activity card.
+- **`HomeScreenView.swift`** — Main app screen. Displays a list of `Activity` items on a white background with light grey cards. Includes a black "Add Activity" button that opens `AddActivitySheet` (a full-screen light-themed sheet with name, description, and icon picker). `ActivityRowView` renders each activity card.
 - **`Activity.swift`** — SwiftData `@Model` for user-created daily activities. Fields: `name`, `activityDescription`, `iconName` (SF Symbol), `order`, `createdAt`.
 - **`ContentView.swift`** — Unused placeholder (Xcode default). Can be removed.
 - **`Item.swift`** — Unused placeholder SwiftData `@Model`. Can be removed.
@@ -81,17 +81,27 @@ If the request is ambiguous, ask 3–5 of the most important questions and make 
 
 ## UI Design Language
 
-Per the PRD, the target aesthetic is:
+The app uses a **light theme** — clean, minimal, and high-contrast.
 
-- **Dark mode only** — black to deep charcoal backgrounds
-- Gem-forged shield fragments as the primary visual motif
-- Gemstone textures on interactive elements, subtle inner glow on active states
-- Clean sans-serif typography, white and light grey text
+- **Light mode only** — white primary backgrounds throughout
+- Clean sans-serif typography (SF Pro / system font)
+- Black for headings, primary actions, and CTA buttons
+- Grey for secondary text, labels, and contextual info
+- Light grey (`#F4F4F7` range) for card and input field surfaces
 
 ### Color Palette
 
 - **Main colors**
-  - `#000000` — black (surfaces like buttons and cards)
-  - `#FFFFFF` — white (primary background and main text)
-  - `#F9F8FD` — grey (smaller text, contextual elements)
-  - The app should feel **minimalist**: use black for main text, grey for secondary text/context, and white for primary surfaces.
+  - `#FFFFFF` — white (primary background of all screens)
+  - `#000000` — black (main text, headings, and primary buttons with white label)
+  - `#F9F8FD` — light grey (card backgrounds, input fields, icon containers)
+  - Mid grey (`Color(white: 0.55)` range) — secondary text, placeholders, labels
+  - The app should feel **minimalist**: white backgrounds, black for emphasis, grey for everything secondary.
+
+### Key UI Rules
+- **Backgrounds:** `Color.white` for all screens and sheets
+- **Cards / rows:** Light grey fill (`Color(white: 0.96)` or `#F4F4F6`) so they lift off the white background
+- **Primary CTA buttons:** Black fill (`Color.black`) with white label text
+- **Icon containers:** Light grey rounded rectangle (`Color(white: 0.90)`)
+- **Input fields:** Light grey fill (`Color(white: 0.94)`), black text, black tint cursor
+- **Selected states:** Black fill, white icon/text (e.g. icon picker selection)
