@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct PactApp: App {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
@@ -25,7 +27,15 @@ struct PactApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if hasCompletedOnboarding {
+                ContentView()
+            } else {
+                WelcomeView(onGetStarted: {
+                    withAnimation {
+                        hasCompletedOnboarding = true
+                    }
+                })
+            }
         }
         .modelContainer(sharedModelContainer)
     }
