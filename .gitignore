@@ -1,0 +1,20 @@
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+
+# Build artifacts
+DerivedData/
+build/
+*.xcarchive
+*.ipa
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.build/
+
+# CocoaPods
+Pods/
