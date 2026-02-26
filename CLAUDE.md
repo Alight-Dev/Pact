@@ -79,6 +79,8 @@ For any task that involves planning or building a new feature or flow, **ask a f
 
 If the request is ambiguous, ask 3–5 of the most important questions and make any assumptions explicit.
 
+When working in **Plan mode**, always start by asking these clarifying questions (and any other critical design questions) before proposing an architecture, flow, or UI design, so the resulting plan is as high‑quality and aligned with the product vision as possible.
+
 ## UI Design Language
 
 The app uses a **light theme** — clean, minimal, and high-contrast.
