@@ -11,6 +11,7 @@ import SwiftData
 @main
 struct PactApp: App {
     @State private var showOnboarding = false
+    @State private var showSignupDirect = false
     @State private var showShieldSelection = false
     @State private var showHomeScreen = false
 
@@ -66,12 +67,33 @@ struct PactApp: App {
                         showShieldSelection = true
                     }
                 })
-            } else {
-                SplashView(onFinished: {
-                    withAnimation {
-                        showOnboarding = true
+            } else if showSignupDirect {
+                OnboardingSignupView(
+                    onBack: {
+                        withAnimation {
+                            showSignupDirect = false
+                        }
+                    },
+                    onContinue: {
+                        withAnimation {
+                            showSignupDirect = false
+                            showShieldSelection = true
+                        }
                     }
-                })
+                )
+            } else {
+                SplashView(
+                    onFinished: {
+                        withAnimation {
+                            showOnboarding = true
+                        }
+                    },
+                    onSkipToSignup: {
+                        withAnimation {
+                            showSignupDirect = true
+                        }
+                    }
+                )
             }
         }
         .modelContainer(sharedModelContainer)

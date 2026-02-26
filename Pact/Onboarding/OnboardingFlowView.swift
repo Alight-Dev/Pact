@@ -24,7 +24,7 @@ struct OnboardingFlowView: View {
     @State private var selectedAge: AgeOption?
     @State private var selectedScreenTime: ScreenTimeOption?
     @State private var selectedSmartphoneYears: Int = 5
-    @State private var selectedCategory: AppCategoryOption?
+    @State private var selectedCategories: Set<AppCategoryOption> = []
     @State private var profileNickname: String = ""
     @State private var profileAvatarID: Int = 0
 
@@ -95,9 +95,9 @@ struct OnboardingFlowView: View {
                             step = .screenTime
                         }
                     },
-                    onContinue: { years, category in
+                    onContinue: { years, categories in
                         selectedSmartphoneYears = years
-                        selectedCategory = category
+                        selectedCategories = categories
                         isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .projectionResult
@@ -111,7 +111,7 @@ struct OnboardingFlowView: View {
                     age: selectedAge!,
                     screenTime: selectedScreenTime!,
                     years: selectedSmartphoneYears,
-                    category: selectedCategory!,
+                    categories: selectedCategories,
                     onBack: {
                         isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
