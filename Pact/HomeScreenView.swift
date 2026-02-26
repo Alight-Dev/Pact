@@ -229,6 +229,10 @@ struct AddActivitySheet: View {
         name.trimmingCharacters(in: .whitespaces)
     }
 
+    private var canSave: Bool {
+        !trimmedName.isEmpty && !selectedDays.isEmpty
+    }
+
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
@@ -249,7 +253,7 @@ struct AddActivitySheet: View {
                     Spacer()
 
                     Button("Save") {
-                        if !trimmedName.isEmpty {
+                        if canSave {
                             onSave(
                                 trimmedName,
                                 activityDescription.trimmingCharacters(in: .whitespaces),
@@ -259,8 +263,8 @@ struct AddActivitySheet: View {
                         }
                     }
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(trimmedName.isEmpty ? Color(white: 0.75) : .black)
-                    .disabled(trimmedName.isEmpty)
+                    .foregroundStyle(canSave ? .black : Color(white: 0.75))
+                    .disabled(!canSave)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 24)
@@ -275,10 +279,11 @@ struct AddActivitySheet: View {
                                 .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
-                            TextField("e.g. Morning Run", text: $name)
+                            TextField("e.g. Morning run", text: $name)
                                 .font(.system(size: 16))
                                 .foregroundStyle(.black)
                                 .tint(.black)
+                                .textInputAutocapitalization(.never)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
@@ -293,10 +298,11 @@ struct AddActivitySheet: View {
                                 .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
-                            TextField("e.g. Run at least 3km", text: $activityDescription)
+                            TextField("e.g. run at least 3km", text: $activityDescription)
                                 .font(.system(size: 16))
                                 .foregroundStyle(.black)
                                 .tint(.black)
+                                .textInputAutocapitalization(.never)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
