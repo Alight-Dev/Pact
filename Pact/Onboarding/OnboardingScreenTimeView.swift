@@ -38,7 +38,7 @@ struct OnboardingScreenTimeView: View {
         self.onContinue = onContinue
     }
 
-    private let totalSteps = 5
+    private let totalSteps = 7
     private let currentStep = 2
 
     var body: some View {

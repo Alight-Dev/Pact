@@ -16,8 +16,8 @@ struct OnboardingSignupView: View {
     @State private var showContent: Bool = false
     @State private var screenHeight: CGFloat = 1000
 
-    private let totalSteps = 5
-    private let currentStep = 2
+    private let totalSteps = 7
+    private let currentStep = 5
 
     var body: some View {
         ZStack {
