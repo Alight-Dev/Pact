@@ -12,20 +12,17 @@ import SwiftUI
 struct SelectablePillButton: View {
     let title: String
     let isSelected: Bool
-    let showCheckbox: Bool
     let verticalPadding: CGFloat
     let action: () -> Void
 
     init(
         title: String,
         isSelected: Bool,
-        showCheckbox: Bool = false,
         verticalPadding: CGFloat = 22,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.isSelected = isSelected
-        self.showCheckbox = showCheckbox
         self.verticalPadding = verticalPadding
         self.action = action
     }
@@ -48,19 +45,6 @@ struct SelectablePillButton: View {
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(Color.black)
                 Spacer()
-                if showCheckbox {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(isSelected ? Color.black : Color(white: 0.82))
-                            .frame(width: 22, height: 22)
-                        if isSelected {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(.white)
-                        }
-                    }
-                    .padding(.trailing, 4)
-                }
             }
             .padding(.vertical, verticalPadding)
             .background(
