@@ -7,10 +7,9 @@
 
 import SwiftUI
 
-struct OnboardingCreateOrJoinSheildView: View {
+struct OnboardingCreateOrJoinShieldView: View {
     var onCreateShield: () -> Void
     var onJoinShield: () -> Void
-    var onNoAccount: () -> Void
 
     @State private var logoScale: CGFloat = 0.4
     @State private var logoOffsetY: CGFloat = 260
@@ -111,10 +110,9 @@ struct OnboardingCreateOrJoinSheildView: View {
 }
 
 #Preview {
-    OnboardingCreateOrJoinSheildView(
+    OnboardingCreateOrJoinShieldView(
         onCreateShield: {},
-        onJoinShield: {},
-        onNoAccount: {}
+        onJoinShield: {}
     )
 }
 
