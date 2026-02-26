@@ -79,6 +79,7 @@ struct OnboardingProjectionView: View {
 
     @State private var displayedMonths: Double = 0
     @State private var displayedReclaimDays: Double = 0
+    @State private var animationDone = false
 
     private let totalSteps = 8
     private let currentStep = 4
@@ -238,13 +239,21 @@ struct OnboardingProjectionView: View {
                 Button(action: onContinue) {
                     Text("Continue")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(animationDone ? .white : Color.black.opacity(0.30))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
-                        .background(Capsule().fill(Color.black))
+                        .background(
+                            Capsule().fill(
+                                animationDone
+                                    ? Color.black
+                                    : Color(red: 0.88, green: 0.88, blue: 0.90)
+                            )
+                        )
                 }
+                .disabled(!animationDone)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 48)
+                .animation(.easeInOut(duration: 0.2), value: animationDone)
             }
         }
         .preferredColorScheme(.light)
@@ -259,6 +268,7 @@ struct OnboardingProjectionView: View {
             }
             displayedMonths      = targetMonths
             displayedReclaimDays = targetDays
+            animationDone        = true
         }
     }
 

@@ -21,7 +21,8 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 | `Pact/Onboarding/OnboardingAgeView.swift` | Step 2 of 8 (`currentStep = 1`). Age range selection. |
 | `Pact/Onboarding/OnboardingScreenTimeView.swift` | Step 3 of 8 (`currentStep = 2`). Daily screen time estimate. |
 | `Pact/Onboarding/OnboardingProjectionInputsView.swift` | Step 4 of 8 (`currentStep = 3`). Slider for years with smartphone and app category selection. |
-| `Pact/Onboarding/OnboardingProjectionView.swift` | Step 5 of 8 (`currentStep = 4`). Animated display of projected lifetime screen time and reclaim stats. |
+| `Pact/Onboarding/OnboardingLoadingView.swift` | Transient loading screen between ProjectionInputs and ProjectionView. 5 pulsing dots + "Loading..." text; auto-advances after ~2.2s. Not counted as a numbered step — no progress bar. |
+| `Pact/Onboarding/OnboardingProjectionView.swift` | Step 5 of 8 (`currentStep = 4`). Animated display of projected lifetime screen time and reclaim stats. Continue button is disabled until the counting animation finishes (~0.8s). |
 | `Pact/Onboarding/OnboardingRequestNotificationsView.swift` | Step 6 of 8 (`currentStep = 5`). Notification permission screen — social notification preview, requests iOS push notification permission via `UNUserNotificationCenter`. |
 | `Pact/Onboarding/OnboardingSignupView.swift` | Step 7 of 8 (`currentStep = 6`). Sign-in screen: “Continue with Apple” / “Continue with Google”; logo animates to upper-middle. |
 | `Pact/Onboarding/OnboardingProfileSetupView.swift` | Step 8 of 8 (`currentStep = 7`). Nickname (suggested gamertag + manual) and avatar picker (4×3 grid + full sheet). |
