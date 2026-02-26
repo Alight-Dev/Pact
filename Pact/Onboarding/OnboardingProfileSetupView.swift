@@ -38,8 +38,8 @@ struct OnboardingProfileSetupView: View {
     @State private var selectedAvatarID: Int? = nil
     @FocusState private var nicknameFieldFocused: Bool
 
-    private let totalSteps = 5
-    private let currentStep = 3
+    private let totalSteps = 7
+    private let currentStep = 6
 
     private var continueEnabled: Bool {
         !nickname.trimmingCharacters(in: .whitespaces).isEmpty && selectedAvatarID != nil
