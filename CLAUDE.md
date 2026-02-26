@@ -71,7 +71,48 @@ Pact is a social accountability app (see `Pact-PRD.md` for the full spec). Key c
 - **Proof submission:** Live camera only (no gallery uploads). Teammates vote to approve submissions; majority approval unlocks apps.
 - **AI fallback:** Claude Vision API or GPT-4o used to auto-verify after ~2–3 hours of peer inactivity.
 - **Shield progression:** Each team shares a visual "shield" that upgrades through 7 material tiers (Bronze → Platinum) based on streak consistency.
-- **Backend:** Firebase or Supabase (not yet integrated).
+- **Backend:** Firebase (chosen — see Backend Architecture section below). Not yet integrated.
+
+## Backend Architecture
+
+**Stack: Firebase**
+- **Firestore** — real-time data (teams, members, activities, votes)
+- **Firebase Storage** — proof photo uploads
+- **Firebase Auth** — anonymous auth at launch, upgradeable to named account
+- **FCM (Firebase Cloud Messaging)** — push notifications for votes and approvals
+- **Cloud Functions** — AI fallback verification pipeline (Claude Vision / GPT-4o)
+
+Firebase was chosen over Supabase because:
+1. FCM is required for vote/approval push notifications regardless of backend
+2. Firestore real-time listeners are best-in-class for live vote counts on iOS
+3. Firebase Storage + Cloud Functions simplify the AI verification pipeline
+4. More mature iOS Swift SDK
+
+### Firestore Data Model
+
+```
+/teams/{teamId}
+  - name: String
+  - creatorId: String
+  - inviteCode: String        ← short unique code, e.g. "X7K2P"
+  - createdAt: Timestamp
+
+/teams/{teamId}/activities/{activityId}
+  - name: String
+  - description: String
+  - iconName: String          ← SF Symbol name
+  - repeatDays: [Int]         ← 0 = Sunday … 6 = Saturday
+  - order: Int
+
+/teams/{teamId}/members/{userId}
+  - displayName: String
+  - joinedAt: Timestamp
+  - optedInActivityIds: [String]   ← IDs of activities they committed to
+```
+
+### Deep Linking
+- Custom URL scheme: `pact://join/{inviteCode}`
+- Handled in `PactApp.swift` via `.onOpenURL` — looks up team by `inviteCode`
 
 ## Project Conventions
 
