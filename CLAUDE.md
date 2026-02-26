@@ -48,7 +48,7 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -on
 
 Current structure:
 
-- **`PactApp.swift`** — App entry point. Uses `@State` booleans (`showOnboarding`, `showHomeScreen`) to gate between `SplashView` → `OnboardingFlowView` → `HomeScreenView`. Initializes the SwiftData `ModelContainer` with `Item` and `Activity` models.
+- **`PactApp.swift`** — App entry point. Uses `@State` booleans (`showOnboarding`, `showHomeScreen`) to gate between `SplashView` → `OnboardingFlowView` → `ActivityListView`. Initializes the SwiftData `ModelContainer` with `Item` and `Activity` models.
 - **`SplashView.swift`** — Animated splash screen with logo spring animation. "Get Started" calls `onFinished` which transitions to `OnboardingFlowView`.
 - **`Onboarding/OnboardingFlowView.swift`** — Step coordinator for the full onboarding sequence. Uses a private `OnboardingStep` enum and slide transitions between screens.
 - **`Onboarding/OnboardingGenderView.swift`** — Step 0 of 5. Gender selection.
@@ -57,7 +57,7 @@ Current structure:
 - **`Onboarding/OnboardingSignupView.swift`** — Step 3 of 5. Apple / Google sign-in wireframe. Animated logo rises to upper-middle.
 - **`Onboarding/OnboardingProfileSetupView.swift`** — Step 4 of 5. Nickname (Xbox-style gamertag generator + manual entry) and avatar selection (3×3 emoji grid).
 - **`Onboarding/OnboardingComponents.swift`** — Shared components: `SelectablePillButton`, `OnboardingProgressBar`.
-- **`HomeScreenView.swift`** — Main app screen. SwiftData `Activity` list with "Add Activity" sheet.
+- **`ActivityListView.swift`** — Main app screen. SwiftData `Activity` list with "Add Activity" sheet.
 - **`Activity.swift`** — SwiftData `@Model` for user-created daily activities.
 - **`WelcomeView.swift`** — Unused placeholder. Can be removed.
 - **`ContentView.swift`** — Unused placeholder (Xcode default). Can be removed.

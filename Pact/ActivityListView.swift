@@ -1,5 +1,5 @@
 //
-//  HomeScreenView.swift
+//  ActivityListView.swift
 //  Pact
 //
 //  Created by Yaw Snr Owusu on 2/25/26.
@@ -8,9 +8,9 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - HomeScreenView
+// MARK: - ActivityListView
 
-struct HomeScreenView: View {
+struct ActivityListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Activity.order), SortDescriptor(\Activity.createdAt)])
     private var activities: [Activity]
@@ -110,13 +110,14 @@ struct HomeScreenView: View {
         }
         // Add sheet
         .sheet(isPresented: $showingAddActivity) {
-            AddActivitySheet { name, description, iconName, repeatDays in
+            AddActivitySheet { name, description, iconName, repeatDays, isOptional in
                 let activity = Activity(
                     name: name,
                     activityDescription: description,
                     iconName: iconName,
                     order: activities.count,
-                    repeatDays: repeatDays
+                    repeatDays: repeatDays,
+                    isOptional: isOptional
                 )
                 modelContext.insert(activity)
                 showingAddActivity = false
@@ -124,11 +125,12 @@ struct HomeScreenView: View {
         }
         // Edit sheet — pre-fills form with the tapped activity's current values
         .sheet(item: $activityToEdit) { activity in
-            AddActivitySheet(existingActivity: activity) { name, description, iconName, repeatDays in
+            AddActivitySheet(existingActivity: activity) { name, description, iconName, repeatDays, isOptional in
                 activity.name = name
                 activity.activityDescription = description
                 activity.iconName = iconName
                 activity.repeatDays = repeatDays
+                activity.isOptional = isOptional
                 activityToEdit = nil
             }
         }
@@ -178,13 +180,26 @@ struct ActivityRowView: View {
         )
         // "X Days" label pinned to the bottom-right of the card
         .overlay(alignment: .bottomTrailing) {
-            if let text = daysText {
-                Text(text)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color(white: 0.55))
-                    .padding(.trailing, 16)
-                    .padding(.bottom, 14)
+            HStack(spacing: 6) {
+                if activity.isOptional {
+                    Text("Optional")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color(white: 0.55))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(Color(white: 0.88))
+                        )
+                }
+                if let text = daysText {
+                    Text(text)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color(white: 0.55))
+                }
             }
+            .padding(.trailing, 16)
+            .padding(.bottom, 14)
         }
     }
 }
@@ -193,21 +208,23 @@ struct ActivityRowView: View {
 
 struct AddActivitySheet: View {
     var existingActivity: Activity? = nil
-    var onSave: (String, String, String, [Int]) -> Void
+    var onSave: (String, String, String, [Int], Bool) -> Void
 
     @State private var name: String
     @State private var activityDescription: String
     @State private var selectedIcon: String
     @State private var selectedDays: Set<Int>
+    @State private var isOptional: Bool
     @Environment(\.dismiss) private var dismiss
 
-    init(existingActivity: Activity? = nil, onSave: @escaping (String, String, String, [Int]) -> Void) {
+    init(existingActivity: Activity? = nil, onSave: @escaping (String, String, String, [Int], Bool) -> Void) {
         self.existingActivity = existingActivity
         self.onSave = onSave
         _name = State(initialValue: existingActivity?.name ?? "")
         _activityDescription = State(initialValue: existingActivity?.activityDescription ?? "")
         _selectedIcon = State(initialValue: existingActivity?.iconName ?? "figure.run")
         _selectedDays = State(initialValue: Set(existingActivity?.repeatDays ?? []))
+        _isOptional = State(initialValue: existingActivity?.isOptional ?? false)
     }
 
     private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
@@ -258,7 +275,8 @@ struct AddActivitySheet: View {
                                 trimmedName,
                                 activityDescription.trimmingCharacters(in: .whitespaces),
                                 selectedIcon,
-                                selectedDays.sorted()
+                                selectedDays.sorted(),
+                                isOptional
                             )
                         }
                     }
@@ -364,6 +382,28 @@ struct AddActivitySheet: View {
                                 }
                             }
                         }
+
+                        // Optional toggle
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("OPTIONAL")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Color(white: 0.55))
+                                    .kerning(0.6)
+                                Text("Members can choose whether to opt in")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color(white: 0.55))
+                            }
+                            Spacer()
+                            Toggle("", isOn: $isOptional)
+                                .labelsHidden()
+                                .tint(.black)
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(white: 0.94))
+                        )
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 48)
@@ -377,6 +417,6 @@ struct AddActivitySheet: View {
 // MARK: - Preview
 
 #Preview {
-    HomeScreenView()
+    ActivityListView()
         .modelContainer(for: Activity.self, inMemory: true)
 }

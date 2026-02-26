@@ -29,8 +29,8 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 
 | File | Purpose |
 |------|--------|
-| `Pact/HomeScreenView.swift` | Main app screen. List of SwiftData activities; “Add Activity” opens `AddActivitySheet`. |
-| `Pact/HomeScreenView.swift` → `AddActivitySheet` | Full-screen sheet to create an activity: name, description, icon picker. |
+| `Pact/ActivityListView.swift` | Main app screen. List of SwiftData activities; “Add Activity” opens `AddActivitySheet`. |
+| `Pact/ActivityListView.swift` → `AddActivitySheet` | Full-screen sheet to create an activity: name, description, icon picker. |
 
 ---
 
