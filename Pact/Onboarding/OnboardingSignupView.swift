@@ -16,9 +16,6 @@ struct OnboardingSignupView: View {
     @State private var showContent: Bool = false
     @State private var screenHeight: CGFloat = 1000
 
-    private let totalSteps = 7
-    private let currentStep = 5
-
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
@@ -52,9 +49,7 @@ struct OnboardingSignupView: View {
                         }
                         .accessibilityLabel("Go back")
 
-                        OnboardingProgressBar(totalSteps: totalSteps, currentStep: currentStep)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 12)
+                        Spacer()
 
                         HStack(spacing: 4) {
                             Text("🇺🇸")
