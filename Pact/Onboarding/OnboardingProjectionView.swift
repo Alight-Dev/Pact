@@ -13,7 +13,7 @@ struct ScreenTimeProjectionEngine {
     let age: AgeOption
     let screenTime: ScreenTimeOption
     let years: Int
-    let category: AppCategoryOption
+    let categories: Set<AppCategoryOption>
 
     private var ageNumeric: Int {
         switch age {
@@ -73,7 +73,7 @@ struct OnboardingProjectionView: View {
     let age: AgeOption
     let screenTime: ScreenTimeOption
     let years: Int
-    let category: AppCategoryOption
+    let categories: Set<AppCategoryOption>
     var onBack: () -> Void
     var onContinue: () -> Void
 
@@ -88,7 +88,7 @@ struct OnboardingProjectionView: View {
             age: age,
             screenTime: screenTime,
             years: years,
-            category: category
+            categories: categories
         )
     }
 
@@ -276,7 +276,7 @@ struct OnboardingProjectionView: View {
         age: .twentyFiveTo34,
         screenTime: .threeToFour,
         years: 8,
-        category: .socialMedia,
+        categories: [.socialMedia],
         onBack: {},
         onContinue: {}
     )
