@@ -16,53 +16,78 @@ struct HomeScreenView: View {
     private var activities: [Activity]
 
     @State private var showingAddActivity = false
+    @State private var activityToEdit: Activity? = nil
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.white.ignoresSafeArea()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header
-                    Text("Daily\nActivities")
-                        .font(.system(size: 38, weight: .bold))
-                        .foregroundStyle(.black)
-                        .lineSpacing(2)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 64)
-                        .padding(.bottom, 36)
+            List {
+                // Scrollable header row
+                Text("Daily\nActivities")
+                    .font(.system(size: 38, weight: .bold))
+                    .foregroundStyle(.black)
+                    .lineSpacing(2)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 64, leading: 24, bottom: 36, trailing: 24))
 
-                    if activities.isEmpty {
-                        // Empty state
-                        VStack(spacing: 12) {
-                            Image(systemName: "list.bullet.rectangle")
-                                .font(.system(size: 44))
-                                .foregroundStyle(Color(white: 0.75))
-                            Text("No activities yet")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(Color(white: 0.5))
-                            Text("Add your first daily activity below")
-                                .font(.system(size: 14))
-                                .foregroundStyle(Color(white: 0.65))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
-                    } else {
-                        // Activity list
-                        VStack(spacing: 12) {
-                            ForEach(activities) { activity in
-                                ActivityRowView(activity: activity)
-                            }
-                        }
-                        .padding(.horizontal, 20)
+                if activities.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "list.bullet.rectangle")
+                            .font(.system(size: 44))
+                            .foregroundStyle(Color(white: 0.75))
+                        Text("No activities yet")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.5))
+                        Text("Add your first daily activity below")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(white: 0.65))
                     }
-
-                    // Bottom spacing for the fixed button
-                    Spacer().frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 60)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
+                } else {
+                    ForEach(activities) { activity in
+                        ActivityRowView(activity: activity)
+                            // Swipe right → reveal Delete button
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    modelContext.delete(activity)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                        .foregroundStyle(.black)
+                                }
+                            }
+                            // Swipe left → reveal Edit button
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button {
+                                    activityToEdit = activity
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                        .foregroundStyle(.black)
+                                }
+                                .tint(Color(white: 0.55))
+                            }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                    }
                 }
-            }
 
-            // Add Activity button (fixed at bottom)
+                // Bottom padding so the last card isn't hidden behind the Add button
+                Color.clear
+                    .frame(height: 90)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+
+            // Fixed Add Activity button
             Button {
                 showingAddActivity = true
             } label: {
@@ -83,6 +108,7 @@ struct HomeScreenView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
         }
+        // Add sheet
         .sheet(isPresented: $showingAddActivity) {
             AddActivitySheet { name, description, iconName, repeatDays in
                 let activity = Activity(
@@ -96,6 +122,16 @@ struct HomeScreenView: View {
                 showingAddActivity = false
             }
         }
+        // Edit sheet — pre-fills form with the tapped activity's current values
+        .sheet(item: $activityToEdit) { activity in
+            AddActivitySheet(existingActivity: activity) { name, description, iconName, repeatDays in
+                activity.name = name
+                activity.activityDescription = description
+                activity.iconName = iconName
+                activity.repeatDays = repeatDays
+                activityToEdit = nil
+            }
+        }
     }
 }
 
@@ -103,6 +139,12 @@ struct HomeScreenView: View {
 
 struct ActivityRowView: View {
     let activity: Activity
+
+    private var daysText: String? {
+        let count = activity.repeatDays.count
+        guard count > 0 else { return nil }
+        return "\(count) \(count == 1 ? "Day" : "Days")"
+    }
 
     var body: some View {
         HStack(spacing: 16) {
@@ -134,25 +176,45 @@ struct ActivityRowView: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(red: 0.96, green: 0.96, blue: 0.98))
         )
+        // "X Days" label pinned to the bottom-right of the card
+        .overlay(alignment: .bottomTrailing) {
+            if let text = daysText {
+                Text(text)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color(white: 0.55))
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 14)
+            }
+        }
     }
 }
 
 // MARK: - AddActivitySheet
 
 struct AddActivitySheet: View {
+    var existingActivity: Activity? = nil
     var onSave: (String, String, String, [Int]) -> Void
 
-    @State private var name = ""
-    @State private var activityDescription = ""
-    @State private var selectedIcon = "figure.run"
-    @State private var selectedDays: Set<Int> = []
+    @State private var name: String
+    @State private var activityDescription: String
+    @State private var selectedIcon: String
+    @State private var selectedDays: Set<Int>
     @Environment(\.dismiss) private var dismiss
+
+    init(existingActivity: Activity? = nil, onSave: @escaping (String, String, String, [Int]) -> Void) {
+        self.existingActivity = existingActivity
+        self.onSave = onSave
+        _name = State(initialValue: existingActivity?.name ?? "")
+        _activityDescription = State(initialValue: existingActivity?.activityDescription ?? "")
+        _selectedIcon = State(initialValue: existingActivity?.iconName ?? "figure.run")
+        _selectedDays = State(initialValue: Set(existingActivity?.repeatDays ?? []))
+    }
 
     private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
 
     private let icons = [
         "figure.run", "figure.walk", "figure.hiking",
-        "dumbbell.fill", "bicycle", "figure.swimming",
+        "dumbbell.fill", "bicycle", "sun.min",
         "book.fill", "pencil", "brain.head.profile",
         "fork.knife", "drop.fill", "moon.fill",
         "heart.fill", "flame.fill", "music.note",
@@ -180,7 +242,7 @@ struct AddActivitySheet: View {
 
                     Spacer()
 
-                    Text("New Activity")
+                    Text(existingActivity == nil ? "New Activity" : "Edit Activity")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.black)
 
