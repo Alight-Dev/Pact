@@ -31,6 +31,14 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 
 ---
 
+## Auth
+
+| File | Purpose |
+|------|--------|
+| `Pact/Auth/AuthManager.swift` | `@MainActor ObservableObject` that owns Firebase Auth state. Exposes `currentUser`, `signInWithGoogle()` (async/throws), and `signOut()`. Injected as an `@EnvironmentObject` from `PactApp`. |
+
+---
+
 ## Main app
 
 | File | Purpose |

@@ -11,10 +11,14 @@ struct OnboardingSignupView: View {
     var onBack: () -> Void
     var onContinue: () -> Void
 
+    @EnvironmentObject var authManager: AuthManager
+
     @State private var logoOffsetY: CGFloat = 0
     @State private var logoSize: CGFloat = 210      // 150 × 1.4
     @State private var showContent: Bool = false
     @State private var screenHeight: CGFloat = 1000
+    @State private var isLoading = false
+    @State private var errorMessage: String? = nil
 
     private let totalSteps = 8
     private let currentStep = 6
@@ -94,7 +98,7 @@ struct OnboardingSignupView: View {
                     // MARK: Signup buttons
                     VStack(spacing: 14) {
 
-                        // Continue with Apple
+                        // Continue with Apple (placeholder — not yet functional)
                         Button(action: onContinue) {
                             HStack(spacing: 10) {
                                 Image(systemName: "apple.logo")
@@ -107,9 +111,22 @@ struct OnboardingSignupView: View {
                             .padding(.vertical, 17)
                             .background(Capsule().fill(Color.black))
                         }
+                        .disabled(isLoading)
 
                         // Continue with Google
-                        Button(action: onContinue) {
+                        Button {
+                            Task {
+                                isLoading = true
+                                errorMessage = nil
+                                do {
+                                    try await authManager.signInWithGoogle()
+                                    onContinue()
+                                } catch {
+                                    errorMessage = error.localizedDescription
+                                }
+                                isLoading = false
+                            }
+                        } label: {
                             HStack(spacing: 10) {
                                 Image("GoogleLogo")
                                     .resizable()
@@ -123,6 +140,22 @@ struct OnboardingSignupView: View {
                             .padding(.vertical, 17)
                             .background(Capsule().fill(Color.white))
                             .overlay(Capsule().stroke(Color(white: 0.82), lineWidth: 1.5))
+                        }
+                        .disabled(isLoading)
+
+                        if isLoading {
+                            ProgressView()
+                                .tint(.black)
+                                .padding(.top, 8)
+                        }
+
+                        if let msg = errorMessage {
+                            Text(msg)
+                                .font(.system(size: 13))
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 28)
+                                .padding(.top, 4)
                         }
                     }
                     .padding(.horizontal, 28)
@@ -167,4 +200,5 @@ struct OnboardingSignupView: View {
 
 #Preview("OnboardingSignupView") {
     OnboardingSignupView(onBack: {}, onContinue: {})
+        .environmentObject(AuthManager())
 }
