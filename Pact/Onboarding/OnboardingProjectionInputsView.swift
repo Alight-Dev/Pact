@@ -148,7 +148,6 @@ struct OnboardingProjectionInputsView: View {
                             SelectablePillButton(
                                 title: option.rawValue,
                                 isSelected: selectedCategories.contains(option),
-                                showCheckbox: true,
                                 verticalPadding: 16
                             ) {
                                 if selectedCategories.contains(option) {
