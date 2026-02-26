@@ -10,7 +10,7 @@ import SwiftUI
 // MARK: - Flow Steps
 
 private enum OnboardingStep {
-    case gender, age, screenTime, projectionInputs, projectionResult, signup, profileSetup
+    case gender, age, screenTime, projectionInputs, projectionResult, requestNotifications, signup, profileSetup
 }
 
 // MARK: - Flow Coordinator
@@ -116,6 +116,24 @@ struct OnboardingFlowView: View {
                     },
                     onContinue: {
                         withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .requestNotifications
+                        }
+                    }
+                )
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing),
+                    removal: .move(edge: .leading)
+                ))
+
+            case .requestNotifications:
+                OnboardingRequestNotificationsView(
+                    onBack: {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .projectionResult
+                        }
+                    },
+                    onContinue: {
+                        withAnimation(.easeInOut(duration: 0.35)) {
                             step = .signup
                         }
                     }
@@ -129,7 +147,7 @@ struct OnboardingFlowView: View {
                 OnboardingSignupView(
                     onBack: {
                         withAnimation(.easeInOut(duration: 0.35)) {
-                            step = .projectionResult
+                            step = .requestNotifications
                         }
                     },
                     onContinue: {
