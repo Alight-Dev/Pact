@@ -7,14 +7,21 @@
 
 import SwiftUI
 import SwiftData
+import FirebaseCore
+import GoogleSignIn
 
 @main
 struct PactApp: App {
+    @StateObject private var authManager = AuthManager()
     @State private var showOnboarding = false
     @State private var showSignupDirect = false
     @State private var showShieldSelection = false
     @State private var showJoinShield = false
     @State private var showHomeScreen = false
+
+    init() {
+        FirebaseApp.configure()
+    }
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -44,59 +51,70 @@ struct PactApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if showHomeScreen {
-                ActivityListView()
-            } else if showJoinShield {
-                JoinShieldView()
-            } else if showShieldSelection {
-                OnboardingCreateOrJoinShieldView(
-                    onCreateShield: {
-                        withAnimation {
-                            showShieldSelection = false
-                            showHomeScreen = true
+            Group {
+                if showHomeScreen {
+                    ActivityListView()
+                } else if showJoinShield {
+                    JoinShieldView()
+                } else if showShieldSelection {
+                    OnboardingCreateOrJoinShieldView(
+                        onCreateShield: {
+                            withAnimation {
+                                showShieldSelection = false
+                                showHomeScreen = true
+                            }
+                        },
+                        onJoinShield: {
+                            withAnimation {
+                                showShieldSelection = false
+                                showJoinShield = true
+                            }
                         }
-                    },
-                    onJoinShield: {
+                    )
+                } else if showOnboarding {
+                    OnboardingFlowView(onFinished: {
                         withAnimation {
-                            showShieldSelection = false
-                            showJoinShield = true
-                        }
-                    }
-                )
-            } else if showOnboarding {
-                OnboardingFlowView(onFinished: {
-                    withAnimation {
-                        showOnboarding = false
-                        showShieldSelection = true
-                    }
-                })
-            } else if showSignupDirect {
-                OnboardingSignupView(
-                    onBack: {
-                        withAnimation {
-                            showSignupDirect = false
-                        }
-                    },
-                    onContinue: {
-                        withAnimation {
-                            showSignupDirect = false
+                            showOnboarding = false
                             showShieldSelection = true
                         }
-                    }
-                )
-            } else {
-                SplashView(
-                    onFinished: {
-                        withAnimation {
-                            showOnboarding = true
+                    })
+                } else if showSignupDirect {
+                    OnboardingSignupView(
+                        onBack: {
+                            withAnimation {
+                                showSignupDirect = false
+                            }
+                        },
+                        onContinue: {
+                            withAnimation {
+                                showSignupDirect = false
+                                showShieldSelection = true
+                            }
                         }
-                    },
-                    onSkipToSignup: {
-                        withAnimation {
-                            showSignupDirect = true
+                    )
+                } else {
+                    SplashView(
+                        onFinished: {
+                            withAnimation {
+                                if authManager.currentUser != nil {
+                                    // Already signed in — skip onboarding
+                                    showShieldSelection = true
+                                } else {
+                                    showOnboarding = true
+                                }
+                            }
+                        },
+                        onSkipToSignup: {
+                            withAnimation {
+                                showSignupDirect = true
+                            }
                         }
-                    }
-                )
+                    )
+                }
+            }
+            .environmentObject(authManager)
+            .onOpenURL { url in
+                GIDSignIn.sharedInstance.handle(url)
             }
         }
         .modelContainer(sharedModelContainer)

@@ -1,5 +1,7 @@
 // Copy this file to Development.xcconfig and set your Apple Developer Team ID.
 // Find it in Xcode: Signing & Capabilities → Team, or at https://developer.apple.com/account
-// This keeps DEVELOPMENT_TEAM out of project.pbxproj so everyone can test on their own device without merge conflicts.
+//
+// Only DEVELOPMENT_TEAM is per-developer. PRODUCT_BUNDLE_IDENTIFIER is shared across
+// the team and is set to cmc.Pact in project.pbxproj — do not override it here.
 
 DEVELOPMENT_TEAM = YOUR_TEAM_ID_HERE
