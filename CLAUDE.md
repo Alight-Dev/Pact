@@ -73,8 +73,8 @@ Pact is a social accountability app (see `Pact-PRD.md` for the full spec). Key c
 
 ## Project Conventions
 
-- **Always use regular git branches** (`git checkout -b feature/...`) for feature work, not worktrees.
-- **Onboarding screen naming** — All screens inside `Pact/Onboarding/` must be prefixed with `Onboarding` (e.g. `OnboardingGenderView`, `OnboardingSignupView`, `OnboardingProfileSetupView`). This applies to any new onboarding screen added in the future.
+- **Always use regular git branches** for feature work, not worktrees.
+- **Branch naming for new features:** when starting a new feature, assume you should create a new branch with the pattern `<github-username>/<feature-name>`, e.g. `owusuys/carousel`, via `git checkout -b owusuys/feature-name`.
 
 ## How Claude Should Work on New Features
 
@@ -86,6 +86,8 @@ For any task that involves planning or building a new feature or flow, **ask a f
 - **Constraints**: relevant data model, Screen Time/API, performance, or policy limits.
 
 If the request is ambiguous, ask 3–5 of the most important questions and make any assumptions explicit.
+
+When working in **Plan mode**, always start by asking these clarifying questions (and any other critical design questions) before proposing an architecture, flow, or UI design, so the resulting plan is as high‑quality and aligned with the product vision as possible.
 
 ## UI Design Language
 
