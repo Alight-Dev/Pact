@@ -44,13 +44,20 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -on
 
 ## Architecture
 
-The app is in early development. Current structure:
+Current structure:
 
-- **`PactApp.swift`** — App entry point. Uses `@AppStorage("hasCompletedOnboarding")` to gate between `SplashView` (first launch) and `HomeScreenView` (main app). Initializes the SwiftData `ModelContainer` with `Item` and `Activity` models.
-- **`SplashView.swift`** — Animated splash screen with logo animation (~1.6s) followed by a "Get Started" button. Calls `onFinished` to set `hasCompletedOnboarding = true` and transition to `HomeScreenView`.
-- **`WelcomeView.swift`** — Alternate onboarding view (currently unused). Calls `onGetStarted` closure.
-- **`HomeScreenView.swift`** — Main app screen. Displays a list of `Activity` items on a white background with light grey cards. Includes a black "Add Activity" button that opens `AddActivitySheet` (a full-screen light-themed sheet with name, description, and icon picker). `ActivityRowView` renders each activity card.
-- **`Activity.swift`** — SwiftData `@Model` for user-created daily activities. Fields: `name`, `activityDescription`, `iconName` (SF Symbol), `order`, `createdAt`.
+- **`PactApp.swift`** — App entry point. Uses `@State` booleans (`showOnboarding`, `showHomeScreen`) to gate between `SplashView` → `OnboardingFlowView` → `HomeScreenView`. Initializes the SwiftData `ModelContainer` with `Item` and `Activity` models.
+- **`SplashView.swift`** — Animated splash screen with logo spring animation. "Get Started" calls `onFinished` which transitions to `OnboardingFlowView`.
+- **`Onboarding/OnboardingFlowView.swift`** — Step coordinator for the full onboarding sequence. Uses a private `OnboardingStep` enum and slide transitions between screens.
+- **`Onboarding/OnboardingGenderView.swift`** — Step 0 of 5. Gender selection.
+- **`Onboarding/OnboardingAgeView.swift`** — Step 1 of 5. Age selection.
+- **`Onboarding/OnboardingScreenTimeView.swift`** — Step 2 of 5. Daily screen time estimate.
+- **`Onboarding/OnboardingSignupView.swift`** — Step 3 of 5. Apple / Google sign-in wireframe. Animated logo rises to upper-middle.
+- **`Onboarding/OnboardingProfileSetupView.swift`** — Step 4 of 5. Nickname (Xbox-style gamertag generator + manual entry) and avatar selection (3×3 emoji grid).
+- **`Onboarding/OnboardingComponents.swift`** — Shared components: `SelectablePillButton`, `OnboardingProgressBar`.
+- **`HomeScreenView.swift`** — Main app screen. SwiftData `Activity` list with "Add Activity" sheet.
+- **`Activity.swift`** — SwiftData `@Model` for user-created daily activities.
+- **`WelcomeView.swift`** — Unused placeholder. Can be removed.
 - **`ContentView.swift`** — Unused placeholder (Xcode default). Can be removed.
 - **`Item.swift`** — Unused placeholder SwiftData `@Model`. Can be removed.
 
@@ -67,6 +74,7 @@ Pact is a social accountability app (see `Pact-PRD.md` for the full spec). Key c
 ## Project Conventions
 
 - **Always use regular git branches** (`git checkout -b feature/...`) for feature work, not worktrees.
+- **Onboarding screen naming** — All screens inside `Pact/Onboarding/` must be prefixed with `Onboarding` (e.g. `OnboardingGenderView`, `OnboardingSignupView`, `OnboardingProfileSetupView`). This applies to any new onboarding screen added in the future.
 
 ## How Claude Should Work on New Features
 
