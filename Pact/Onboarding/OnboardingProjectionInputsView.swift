@@ -23,15 +23,15 @@ enum AppCategoryOption: String, CaseIterable, Identifiable {
 
 struct OnboardingProjectionInputsView: View {
     var onBack: () -> Void
-    var onContinue: (Int, AppCategoryOption) -> Void
+    var onContinue: (Int, Set<AppCategoryOption>) -> Void
 
     @State private var smartphoneYears: Double = 5
-    @State private var selectedCategory: AppCategoryOption?
+    @State private var selectedCategories: Set<AppCategoryOption> = []
 
     private let totalSteps = 8
     private let currentStep = 3
 
-    private var continueEnabled: Bool { selectedCategory != nil }
+    private var continueEnabled: Bool { !selectedCategories.isEmpty }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -147,10 +147,15 @@ struct OnboardingProjectionInputsView: View {
                         ForEach(AppCategoryOption.allCases) { option in
                             SelectablePillButton(
                                 title: option.rawValue,
-                                isSelected: selectedCategory == option,
+                                isSelected: selectedCategories.contains(option),
+                                showCheckbox: true,
                                 verticalPadding: 16
                             ) {
-                                selectedCategory = option
+                                if selectedCategories.contains(option) {
+                                    selectedCategories.remove(option)
+                                } else {
+                                    selectedCategories.insert(option)
+                                }
                             }
                         }
                     }
@@ -161,9 +166,7 @@ struct OnboardingProjectionInputsView: View {
 
                 // MARK: Continue button
                 Button {
-                    if let category = selectedCategory {
-                        onContinue(Int(smartphoneYears), category)
-                    }
+                    onContinue(Int(smartphoneYears), selectedCategories)
                 } label: {
                     Text("Continue")
                         .font(.system(size: 17, weight: .semibold))
@@ -194,8 +197,8 @@ struct OnboardingProjectionInputsView: View {
 #Preview("No selection") {
     OnboardingProjectionInputsView(
         onBack: {},
-        onContinue: { years, category in
-            print("Years: \(years), Category: \(category.rawValue)")
+        onContinue: { years, categories in
+            print("Years: \(years), Categories: \(categories.map(\.rawValue))")
         }
     )
 }

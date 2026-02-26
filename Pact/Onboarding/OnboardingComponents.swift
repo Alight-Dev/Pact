@@ -12,17 +12,20 @@ import SwiftUI
 struct SelectablePillButton: View {
     let title: String
     let isSelected: Bool
+    let showCheckbox: Bool
     let verticalPadding: CGFloat
     let action: () -> Void
 
     init(
         title: String,
         isSelected: Bool,
+        showCheckbox: Bool = false,
         verticalPadding: CGFloat = 22,
         action: @escaping () -> Void
     ) {
         self.title = title
         self.isSelected = isSelected
+        self.showCheckbox = showCheckbox
         self.verticalPadding = verticalPadding
         self.action = action
     }
@@ -39,23 +42,39 @@ struct SelectablePillButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(Color.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, verticalPadding)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(cardFill)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .strokeBorder(borderColor, lineWidth: isSelected ? 1.5 : 1)
-                        )
-                        .shadow(
-                            color: isSelected ? Color.black.opacity(0.08) : .clear,
-                            radius: 12, x: 0, y: 4
-                        )
-                )
+            HStack {
+                Spacer()
+                Text(title)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Color.black)
+                Spacer()
+                if showCheckbox {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(isSelected ? Color.black : Color(white: 0.82))
+                            .frame(width: 22, height: 22)
+                        if isSelected {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .padding(.trailing, 4)
+                }
+            }
+            .padding(.vertical, verticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(cardFill)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .strokeBorder(borderColor, lineWidth: isSelected ? 1.5 : 1)
+                    )
+                    .shadow(
+                        color: isSelected ? Color.black.opacity(0.08) : .clear,
+                        radius: 12, x: 0, y: 4
+                    )
+            )
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: isSelected)
