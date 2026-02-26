@@ -10,7 +10,7 @@ import SwiftUI
 // MARK: - Flow Steps
 
 private enum OnboardingStep {
-    case gender, age, screenTime, signup, profileSetup
+    case gender, age, screenTime, projectionInputs, projectionResult, signup, profileSetup
 }
 
 // MARK: - Flow Coordinator
@@ -22,6 +22,8 @@ struct OnboardingFlowView: View {
     @State private var selectedGender: GenderOption?
     @State private var selectedAge: AgeOption?
     @State private var selectedScreenTime: ScreenTimeOption?
+    @State private var selectedSmartphoneYears: Int = 5
+    @State private var selectedCategory: AppCategoryOption?
     @State private var profileNickname: String = ""
     @State private var profileAvatarID: Int = 0
 
@@ -72,6 +74,48 @@ struct OnboardingFlowView: View {
                     onContinue: { screenTime in
                         selectedScreenTime = screenTime
                         withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .projectionInputs
+                        }
+                    }
+                )
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing),
+                    removal: .move(edge: .leading)
+                ))
+
+            case .projectionInputs:
+                OnboardingProjectionInputsView(
+                    onBack: {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .screenTime
+                        }
+                    },
+                    onContinue: { years, category in
+                        selectedSmartphoneYears = years
+                        selectedCategory = category
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .projectionResult
+                        }
+                    }
+                )
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing),
+                    removal: .move(edge: .leading)
+                ))
+
+            case .projectionResult:
+                OnboardingProjectionView(
+                    age: selectedAge!,
+                    screenTime: selectedScreenTime!,
+                    years: selectedSmartphoneYears,
+                    category: selectedCategory!,
+                    onBack: {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .projectionInputs
+                        }
+                    },
+                    onContinue: {
+                        withAnimation(.easeInOut(duration: 0.35)) {
                             step = .signup
                         }
                     }
@@ -85,7 +129,7 @@ struct OnboardingFlowView: View {
                 OnboardingSignupView(
                     onBack: {
                         withAnimation(.easeInOut(duration: 0.35)) {
-                            step = .screenTime
+                            step = .projectionResult
                         }
                     },
                     onContinue: {

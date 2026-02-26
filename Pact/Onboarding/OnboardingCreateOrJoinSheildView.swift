@@ -14,6 +14,7 @@ struct OnboardingCreateOrJoinSheildView: View {
 
     @State private var logoScale: CGFloat = 0.4
     @State private var logoOffsetY: CGFloat = 260
+    @State private var showOptions: Bool = false
 
     var body: some View {
         ZStack {
@@ -30,47 +31,50 @@ struct OnboardingCreateOrJoinSheildView: View {
                     .scaleEffect(logoScale)
                     .offset(y: logoOffsetY)
 
-                VStack(spacing: 24) {
-                    HStack(spacing: 16) {
-                        Button(action: onCreateShield) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Create a Shield")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(.black)
+                if showOptions {
+                    VStack(spacing: 24) {
+                        HStack(spacing: 16) {
+                            Button(action: onCreateShield) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Create a Shield")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(.black)
 
-                                Text("Start a new team")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Color(white: 0.55))
+                                    Text("Start a new team")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Color(white: 0.55))
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
+                                .padding(20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 24)
+                                        .fill(Color(white: 0.96))
+                                )
                             }
-                            .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
-                            .padding(20)
-                            .background(
-                                RoundedRectangle(cornerRadius: 24)
-                                    .fill(Color(white: 0.96))
-                            )
-                        }
-                        .buttonStyle(.plain)
+                            .buttonStyle(.plain)
 
-                        Button(action: onJoinShield) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Join a Shield")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(.black)
+                            Button(action: onJoinShield) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Join a Shield")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(.black)
 
-                                Text("Use an invite link")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Color(white: 0.55))
+                                    Text("Use an invite link")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Color(white: 0.55))
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
+                                .padding(20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 24)
+                                        .fill(Color(white: 0.96))
+                                )
                             }
-                            .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
-                            .padding(20)
-                            .background(
-                                RoundedRectangle(cornerRadius: 24)
-                                    .fill(Color(white: 0.96))
-                            )
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                        .padding(.horizontal, 24)
                     }
-                    .padding(.horizontal, 24)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
 
                 Spacer()
@@ -84,6 +88,7 @@ struct OnboardingCreateOrJoinSheildView: View {
     private func startAnimation() {
         logoScale = 0.4
         logoOffsetY = 260
+        showOptions = false
 
         withAnimation(.interpolatingSpring(stiffness: 180, damping: 14)) {
             logoScale = 1.1
@@ -94,6 +99,12 @@ struct OnboardingCreateOrJoinSheildView: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.85, blendDuration: 0.2)) {
                 logoScale = 1.0
                 logoOffsetY = 0
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showOptions = true
+                }
             }
         }
     }

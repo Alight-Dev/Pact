@@ -16,8 +16,8 @@ struct OnboardingSignupView: View {
     @State private var showContent: Bool = false
     @State private var screenHeight: CGFloat = 1000
 
-    private let totalSteps = 5
-    private let currentStep = 2
+    private let totalSteps = 7
+    private let currentStep = 5
 
     var body: some View {
         ZStack {
@@ -113,7 +113,14 @@ struct OnboardingSignupView: View {
                         // Continue with Google
                         Button(action: onContinue) {
                             HStack(spacing: 10) {
-                                GoogleLogoView(size: 22)
+                                AsyncImage(url: URL(string: "https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png")) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                } placeholder: {
+                                    Color.clear
+                                }
+                                .frame(width: 22, height: 22)
                                 Text("Continue with Google")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(.black)
@@ -162,57 +169,8 @@ struct OnboardingSignupView: View {
     }
 }
 
-// MARK: - Google Logo
-
-private struct GoogleLogoView: View {
-    let size: CGFloat
-
-    private let blue   = Color(red: 0.259, green: 0.522, blue: 0.957)  // #4285F4
-    private let red    = Color(red: 0.918, green: 0.263, blue: 0.208)  // #EA4335
-    private let yellow = Color(red: 0.984, green: 0.737, blue: 0.020)  // #FBBC05
-    private let green  = Color(red: 0.204, green: 0.659, blue: 0.325)  // #34A853
-
-    private var lw: CGFloat { size * 0.22 }
-
-    var body: some View {
-        ZStack {
-            // Four coloured arc segments (clockwise from 12 o'clock)
-            arc(from: 0.000, to: 0.250, color: red)      // top
-            arc(from: 0.250, to: 0.375, color: yellow)    // upper-right
-            arc(from: 0.375, to: 0.556, color: green)     // lower-right
-            arc(from: 0.556, to: 1.000, color: blue)      // bottom-left
-
-            // White mask — opens the right side of the ring to form the G gap
-            Rectangle()
-                .fill(Color.white)
-                .frame(width: size * 0.50, height: lw)
-                .offset(x: size * 0.25)
-
-            // Blue crossbar — horizontal stroke of the G
-            Rectangle()
-                .fill(blue)
-                .frame(width: size * 0.50, height: lw)
-                .offset(x: size * 0.25)
-        }
-        .frame(width: size, height: size)
-    }
-
-    private func arc(from start: CGFloat, to end: CGFloat, color: Color) -> some View {
-        Circle()
-            .trim(from: start, to: end)
-            .stroke(color, style: StrokeStyle(lineWidth: lw, lineCap: .butt))
-            .rotationEffect(.degrees(-90))
-            .frame(width: size - lw, height: size - lw)
-    }
-}
-
 // MARK: - Previews
 
 #Preview("OnboardingSignupView") {
     OnboardingSignupView(onBack: {}, onContinue: {})
-}
-
-#Preview("Google Logo") {
-    GoogleLogoView(size: 80)
-        .padding()
 }

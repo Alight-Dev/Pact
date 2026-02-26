@@ -1,5 +1,5 @@
 //
-//  OnboardingAgeView.swift
+//  OnboardingProjectionInputsView.swift
 //  Pact
 //
 //  Created by Yaw Snr Owusu on 2/25/26.
@@ -9,38 +9,29 @@ import SwiftUI
 
 // MARK: - Data Model
 
-enum AgeOption: String, CaseIterable, Identifiable {
-    case underEighteen  = "Under 18"
-    case eighteenTo24   = "18–24"
-    case twentyFiveTo34 = "25–34"
-    case thirtyFiveTo44 = "35–44"
-    case fortyFiveTo55  = "45–55"
-    case fiftyFiveTo64  = "55–64"
-    case overSixtyFour  = "Over 64"
+enum AppCategoryOption: String, CaseIterable, Identifiable {
+    case socialMedia = "Social Media"
+    case streaming   = "Streaming"
+    case gaming      = "Gaming"
+    case messaging   = "Messaging"
+    case other       = "Other"
 
     var id: String { rawValue }
 }
 
 // MARK: - Main View
 
-struct OnboardingAgeView: View {
+struct OnboardingProjectionInputsView: View {
     var onBack: () -> Void
-    var onContinue: (AgeOption) -> Void
+    var onContinue: (Int, AppCategoryOption) -> Void
 
-    @State private var selectedOption: AgeOption?
-
-    init(
-        initialSelection: AgeOption? = nil,
-        onBack: @escaping () -> Void,
-        onContinue: @escaping (AgeOption) -> Void
-    ) {
-        _selectedOption = State(initialValue: initialSelection)
-        self.onBack = onBack
-        self.onContinue = onContinue
-    }
+    @State private var smartphoneYears: Double = 5
+    @State private var selectedCategory: AppCategoryOption?
 
     private let totalSteps = 7
-    private let currentStep = 1
+    private let currentStep = 3
+
+    private var continueEnabled: Bool { selectedCategory != nil }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -93,12 +84,12 @@ struct OnboardingAgeView: View {
 
                 // MARK: Header
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("How old are you?")
+                    Text("What eats most of your time?")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.black)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("So we can suggest the best setup for you.")
+                    Text("We'll use this to personalize your stats.")
                         .font(.system(size: 16, weight: .regular))
                         .foregroundStyle(Color(red: 0.45, green: 0.45, blue: 0.48))
                         .fixedSize(horizontal: false, vertical: true)
@@ -110,46 +101,88 @@ struct OnboardingAgeView: View {
 
                 Spacer()
 
-                // MARK: Option buttons
-                VStack(spacing: 12) {
-                    ForEach(AgeOption.allCases) { option in
-                        SelectablePillButton(
-                            title: option.rawValue,
-                            isSelected: selectedOption == option,
-                            verticalPadding: 16
-                        ) {
-                            selectedOption = option
+                // MARK: Slider section
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("YEARS WITH A SMARTPHONE")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color(white: 0.55))
+                        .tracking(0.5)
+                        .padding(.horizontal, 24)
+
+                    VStack(spacing: 10) {
+                        // Current value label
+                        Text("\(Int(smartphoneYears)) \(Int(smartphoneYears) == 1 ? "year" : "years")")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity, alignment: .center)
+
+                        // Slider with end labels
+                        HStack(spacing: 12) {
+                            Text("1")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Color(white: 0.55))
+
+                            Slider(value: $smartphoneYears, in: 1...15, step: 1)
+                                .tint(.black)
+
+                            Text("15")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Color(white: 0.55))
                         }
+                        .padding(.horizontal, 24)
                     }
                 }
-                .padding(.horizontal, 24)
+
+                Spacer()
+
+                // MARK: Category section
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("YOUR BIGGEST TIME SINK")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color(white: 0.55))
+                        .tracking(0.5)
+                        .padding(.horizontal, 24)
+
+                    VStack(spacing: 12) {
+                        ForEach(AppCategoryOption.allCases) { option in
+                            SelectablePillButton(
+                                title: option.rawValue,
+                                isSelected: selectedCategory == option,
+                                verticalPadding: 16
+                            ) {
+                                selectedCategory = option
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
 
                 Spacer()
 
                 // MARK: Continue button
                 Button {
-                    if let option = selectedOption {
-                        onContinue(option)
+                    if let category = selectedCategory {
+                        onContinue(Int(smartphoneYears), category)
                     }
                 } label: {
                     Text("Continue")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(selectedOption != nil ? .white : Color.black.opacity(0.30))
+                        .foregroundStyle(continueEnabled ? .white : Color.black.opacity(0.30))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                         .background(
                             Capsule()
                                 .fill(
-                                    selectedOption != nil
+                                    continueEnabled
                                         ? Color.black
                                         : Color(red: 0.88, green: 0.88, blue: 0.90)
                                 )
                         )
                 }
-                .disabled(selectedOption == nil)
+                .disabled(!continueEnabled)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 48)
-                .animation(.easeInOut(duration: 0.2), value: selectedOption)
+                .animation(.easeInOut(duration: 0.2), value: continueEnabled)
             }
         }
         .preferredColorScheme(.light)
@@ -159,18 +192,17 @@ struct OnboardingAgeView: View {
 // MARK: - Previews
 
 #Preview("No selection") {
-    OnboardingAgeView(
+    OnboardingProjectionInputsView(
         onBack: {},
-        onContinue: { option in
-            print("Continuing with \(option.rawValue)")
+        onContinue: { years, category in
+            print("Years: \(years), Category: \(category.rawValue)")
         }
     )
 }
 
-#Preview("25–34 selected") {
-    OnboardingAgeView(
-        initialSelection: .twentyFiveTo34,
+#Preview("Social Media selected") {
+    OnboardingProjectionInputsView(
         onBack: {},
-        onContinue: { _ in }
+        onContinue: { _, _ in }
     )
 }
