@@ -51,24 +51,29 @@ struct PactApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if showHomeScreen {
-                    ActivityListView()
-                } else if showJoinShield {
-                    JoinShieldView()
-                } else if showShieldSelection {
-                    OnboardingCreateOrJoinShieldView(
-                        onCreateShield: {
-                            withAnimation {
-                                showShieldSelection = false
-                                showHomeScreen = true
-                            }
-                        },
-                        onJoinShield: {
-                            withAnimation {
-                                showShieldSelection = false
-                                showJoinShield = true
-                            }
+            if showHomeScreen {
+                ActivityListView()
+            } else if showJoinShield {
+                JoinShieldView(
+                    onBack: {
+                        withAnimation {
+                            showJoinShield = false
+                            showShieldSelection = true
+                        }
+                    }
+                )
+            } else if showShieldSelection {
+                OnboardingCreateOrJoinShieldView(
+                    onCreateShield: {
+                        withAnimation {
+                            showShieldSelection = false
+                            showHomeScreen = true
+                        }
+                    },
+                    onJoinShield: {
+                        withAnimation {
+                            showShieldSelection = false
+                            showJoinShield = true
                         }
                     )
                 } else if showOnboarding {

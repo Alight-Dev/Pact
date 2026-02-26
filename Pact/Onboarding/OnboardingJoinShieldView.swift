@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct JoinShieldView: View {
+    var onBack: () -> Void
+
     @State private var code: String = ""
     @FocusState private var isFieldFocused: Bool
 
@@ -20,7 +22,27 @@ struct JoinShieldView: View {
             Color.white
                 .ignoresSafeArea()
 
-            VStack(spacing: 32) {
+            VStack(spacing: 0) {
+                // Top back button
+                HStack(spacing: 8) {
+                    Button(action: {
+                        onBack()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Back")
+                                .font(.system(size: 16))
+                        }
+                        .foregroundStyle(.black)
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+
                 Spacer()
 
                 VStack(spacing: 24) {
@@ -70,25 +92,31 @@ struct JoinShieldView: View {
                 }
 
                 // Primary button
-                Button(action: {
-                    // Hook up join action here (e.g., API call)
-                }) {
-                    Text("Join Shield")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white.opacity(isComplete ? 1.0 : 0.6))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(isComplete ? Color.black : Color(white: 0.9))
-                        )
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        // Hook up join action here (e.g., API call)
+                    }) {
+                        Text("Join Shield")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(isComplete ? .white : .black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(isComplete ? Color.black : Color(white: 0.9))
+                            )
+                    }
+                    .frame(maxWidth: 320)
+                    .buttonStyle(.plain)
+                    .disabled(!isComplete)
+                    Spacer()
                 }
-                .buttonStyle(.plain)
-                .disabled(!isComplete)
+                .padding(.top, 32)
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 0)
             .padding(.bottom, 40)
         }
         .onAppear {
@@ -144,6 +172,6 @@ struct JoinShieldView: View {
 }
 
 #Preview {
-    JoinShieldView()
+    JoinShieldView(onBack: {})
 }
 
