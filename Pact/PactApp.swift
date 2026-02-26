@@ -13,6 +13,7 @@ struct PactApp: App {
     @State private var showOnboarding = false
     @State private var showSignupDirect = false
     @State private var showShieldSelection = false
+    @State private var showJoinShield = false
     @State private var showHomeScreen = false
 
     var sharedModelContainer: ModelContainer = {
@@ -45,6 +46,8 @@ struct PactApp: App {
         WindowGroup {
             if showHomeScreen {
                 ActivityListView()
+            } else if showJoinShield {
+                JoinShieldView()
             } else if showShieldSelection {
                 OnboardingCreateOrJoinShieldView(
                     onCreateShield: {
@@ -56,7 +59,7 @@ struct PactApp: App {
                     onJoinShield: {
                         withAnimation {
                             showShieldSelection = false
-                            showHomeScreen = true
+                            showJoinShield = true
                         }
                     }
                 )
