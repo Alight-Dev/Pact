@@ -24,13 +24,22 @@ struct ActivityListView: View {
 
             List {
                 // Scrollable header row
-                Text("Daily\nActivities")
-                    .font(.system(size: 38, weight: .bold))
-                    .foregroundStyle(.black)
-                    .lineSpacing(2)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 64, leading: 24, bottom: 36, trailing: 24))
+                HStack(spacing: 10) {
+                    Text("Activities")
+                        .font(.system(size: 38, weight: .bold))
+                        .foregroundStyle(.black)
+                        .lineSpacing(2)
+
+                    Spacer()
+
+                    Image("SplashLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 56, height: 56)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 64, leading: 24, bottom: 36, trailing: 24))
 
                 if activities.isEmpty {
                     VStack(spacing: 12) {
@@ -51,29 +60,35 @@ struct ActivityListView: View {
                     .listRowInsets(EdgeInsets())
                 } else {
                     ForEach(activities) { activity in
-                        ActivityRowView(activity: activity)
-                            // Swipe right → reveal Delete button
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    modelContext.delete(activity)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                        .foregroundStyle(.black)
-                                }
+                        Button {
+                            activityToEdit = activity
+                        } label: {
+                            ActivityRowView(activity: activity)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        // Swipe right → reveal Delete button
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                modelContext.delete(activity)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                                    .foregroundStyle(.black)
                             }
-                            // Swipe left → reveal Edit button
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button {
-                                    activityToEdit = activity
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                        .foregroundStyle(.black)
-                                }
-                                .tint(Color(white: 0.55))
+                        }
+                        // Swipe left → reveal Edit button
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button {
+                                activityToEdit = activity
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                                    .foregroundStyle(.black)
                             }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                            .tint(Color(white: 0.55))
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                     }
                 }
 
@@ -217,6 +232,13 @@ struct AddActivitySheet: View {
     @State private var isOptional: Bool
     @Environment(\.dismiss) private var dismiss
 
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable {
+        case name
+        case description
+    }
+
     init(existingActivity: Activity? = nil, onSave: @escaping (String, String, String, [Int], Bool) -> Void) {
         self.existingActivity = existingActivity
         self.onSave = onSave
@@ -307,6 +329,13 @@ struct AddActivitySheet: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .fill(Color(white: 0.94))
                                 )
+                                .focused($focusedField, equals: .name)
+                                .submitLabel(.done)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            focusedField = .name
                         }
 
                         // Description field
@@ -326,6 +355,13 @@ struct AddActivitySheet: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .fill(Color(white: 0.94))
                                 )
+                                .focused($focusedField, equals: .description)
+                                .submitLabel(.done)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            focusedField = .description
                         }
 
                         // Icon picker
@@ -407,6 +443,13 @@ struct AddActivitySheet: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 48)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .onTapGesture {
+                    focusedField = nil
+                }
+                .onSubmit {
+                    focusedField = nil
                 }
             }
         }
