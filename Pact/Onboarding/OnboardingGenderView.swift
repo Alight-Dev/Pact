@@ -32,7 +32,7 @@ struct OnboardingGenderView: View {
         self.onContinue = onContinue
     }
 
-    private let totalSteps = 5
+    private let totalSteps = 7
     private let currentStep = 0
 
     var body: some View {
