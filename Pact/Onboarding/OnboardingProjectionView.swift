@@ -197,7 +197,7 @@ struct OnboardingProjectionView: View {
 
                     // Reclaim card
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("If you cut your screen time in half")
+                        Text("You could save")
                             .font(.system(size: 13))
                             .foregroundStyle(Color(white: 0.55))
                             .padding(.bottom, 10)
@@ -221,13 +221,27 @@ struct OnboardingProjectionView: View {
                     }
                     .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.white)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .strokeBorder(Color.black, lineWidth: 1)
-                            )
+                    .background(RoundedRectangle(cornerRadius: 20).fill(Color.white))
+                    .overlay(
+                        TimelineView(.animation) { context in
+                            let cycle = 6.0
+                            let t     = context.date.timeIntervalSinceReferenceDate
+                            let angle = (t.truncatingRemainder(dividingBy: cycle) / cycle) * 2 * .pi + (.pi / 4)
+                            let sp    = UnitPoint(x: 0.5 - cos(angle) * 0.5, y: 0.5 - sin(angle) * 0.5)
+                            let ep    = UnitPoint(x: 0.5 + cos(angle) * 0.5, y: 0.5 + sin(angle) * 0.5)
+                            RoundedRectangle(cornerRadius: 20)
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0, green: 0.835, blue: 0.612), // #00D59C
+                                            Color(red: 0, green: 0.553, blue: 0.192), // #008D31
+                                        ],
+                                        startPoint: sp,
+                                        endPoint: ep
+                                    ),
+                                    lineWidth: 2
+                                )
+                        }
                     )
                 }
                 .padding(.horizontal, 24)
