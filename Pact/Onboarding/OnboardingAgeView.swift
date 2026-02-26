@@ -39,7 +39,7 @@ struct OnboardingAgeView: View {
         self.onContinue = onContinue
     }
 
-    private let totalSteps = 7
+    private let totalSteps = 8
     private let currentStep = 1
 
     var body: some View {

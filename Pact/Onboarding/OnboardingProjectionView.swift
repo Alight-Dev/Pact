@@ -80,7 +80,7 @@ struct OnboardingProjectionView: View {
     @State private var displayedMonths: Double = 0
     @State private var displayedReclaimDays: Double = 0
 
-    private let totalSteps = 7
+    private let totalSteps = 8
     private let currentStep = 4
 
     private var engine: ScreenTimeProjectionEngine {
