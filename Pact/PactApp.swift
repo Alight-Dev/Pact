@@ -47,7 +47,14 @@ struct PactApp: App {
             if showHomeScreen {
                 ActivityListView()
             } else if showJoinShield {
-                JoinShieldView()
+                JoinShieldView(
+                    onBack: {
+                        withAnimation {
+                            showJoinShield = false
+                            showShieldSelection = true
+                        }
+                    }
+                )
             } else if showShieldSelection {
                 OnboardingCreateOrJoinShieldView(
                     onCreateShield: {
