@@ -11,6 +11,7 @@ import SwiftData
 @main
 struct PactApp: App {
     @State private var showOnboarding = false
+    @State private var showShieldSelection = false
     @State private var showHomeScreen = false
 
     var sharedModelContainer: ModelContainer = {
@@ -43,11 +44,32 @@ struct PactApp: App {
         WindowGroup {
             if showHomeScreen {
                 HomeScreenView()
+            } else if showShieldSelection {
+                CreateOrJoinShieldView(
+                    onCreateShield: {
+                        withAnimation {
+                            showShieldSelection = false
+                            showHomeScreen = true
+                        }
+                    },
+                    onJoinShield: {
+                        withAnimation {
+                            showShieldSelection = false
+                            showHomeScreen = true
+                        }
+                    },
+                    onNoAccount: {
+                        withAnimation {
+                            showShieldSelection = false
+                            showHomeScreen = true
+                        }
+                    }
+                )
             } else if showOnboarding {
                 OnboardingFlowView(onFinished: {
                     withAnimation {
                         showOnboarding = false
-                        showHomeScreen = true
+                        showShieldSelection = true
                     }
                 })
             } else {

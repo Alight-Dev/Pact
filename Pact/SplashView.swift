@@ -17,6 +17,8 @@ struct SplashView: View {
 
     var body: some View {
         ZStack {
+            Color.white
+                .ignoresSafeArea()
 
             // Centered logo that animates independently of the text/button
             Image("SplashLogo")
