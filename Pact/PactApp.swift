@@ -10,6 +10,7 @@ import SwiftData
 
 @main
 struct PactApp: App {
+    @State private var showOnboarding = false
     @State private var showHomeScreen = false
 
     var sharedModelContainer: ModelContainer = {
@@ -42,10 +43,17 @@ struct PactApp: App {
         WindowGroup {
             if showHomeScreen {
                 HomeScreenView()
+            } else if showOnboarding {
+                OnboardingFlowView(onFinished: {
+                    withAnimation {
+                        showOnboarding = false
+                        showHomeScreen = true
+                    }
+                })
             } else {
                 SplashView(onFinished: {
                     withAnimation {
-                        showHomeScreen = true
+                        showOnboarding = true
                     }
                 })
             }
