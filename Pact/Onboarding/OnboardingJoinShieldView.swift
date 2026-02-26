@@ -75,7 +75,7 @@ struct JoinShieldView: View {
                 }) {
                     Text("Join Shield")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white.opacity(isComplete ? 1.0 : 0.6))
+                        .foregroundStyle(isComplete ? .white : .black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                         .background(
