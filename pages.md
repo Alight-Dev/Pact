@@ -16,12 +16,16 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 
 | File | Purpose |
 |------|--------|
-| `Pact/Onboarding/OnboardingFlowView.swift` | Coordinates the 5-step onboarding flow. Owns step state and slide transitions between steps. |
-| `Pact/Onboarding/OnboardingGenderView.swift` | Step 0 of 5. Gender selection (e.g. selectable pills). |
-| `Pact/Onboarding/OnboardingAgeView.swift` | Step 1 of 5. Age selection. |
-| `Pact/Onboarding/OnboardingScreenTimeView.swift` | Step 2 of 5. Daily screen time estimate. |
-| `Pact/Onboarding/OnboardingSignupView.swift` | Step 3 of 5. Sign-in wireframe: “Continue with Apple” / “Continue with Google”; logo animates to upper-middle. |
-| `Pact/Onboarding/OnboardingProfileSetupView.swift` | Step 4 of 5. Nickname (suggested gamertag + manual) and avatar (emoji grid). |
+| `Pact/Onboarding/OnboardingFlowView.swift` | Coordinates the 7-step onboarding flow. Owns step state and slide transitions between steps. |
+| `Pact/Onboarding/OnboardingGenderView.swift` | Step 0 of 6. Gender selection (selectable pills). |
+| `Pact/Onboarding/OnboardingAgeView.swift` | Step 1 of 6. Age range selection. |
+| `Pact/Onboarding/OnboardingScreenTimeView.swift` | Step 2 of 6. Daily screen time estimate. |
+| `Pact/Onboarding/OnboardingProjectionInputsView.swift` | Step 3 of 6. Slider for years with smartphone and app category selection. |
+| `Pact/Onboarding/OnboardingProjectionView.swift` | Step 4 of 6. Animated display of projected lifetime screen time and reclaim stats. |
+| `Pact/Onboarding/OnboardingSignupView.swift` | Step 5 of 6. Sign-in wireframe: “Continue with Apple” / “Continue with Google”; logo animates to upper-middle. |
+| `Pact/Onboarding/OnboardingProfileSetupView.swift` | Step 6 of 6. Nickname (suggested gamertag + manual) and avatar (emoji grid). |
+| `Pact/Onboarding/OnboardingCreateOrJoinShieldView.swift` | Post-onboarding: “Create a Shield” or “Join a Shield” selection screen. |
+| `Pact/Onboarding/OnboardingComponents.swift` | Shared onboarding UI components: `SelectablePillButton` and `OnboardingProgressBar`. |
 
 ---
 
