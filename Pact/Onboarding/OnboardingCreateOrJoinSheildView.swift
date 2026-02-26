@@ -1,5 +1,5 @@
 //
-//  CreateOrJoinShieldView.swift
+//  OnboardingCreateOrJoinSheildView.swift
 //  Pact
 //
 //  Created by Cursor on 2/25/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct CreateOrJoinShieldView: View {
+struct OnboardingCreateOrJoinSheildView: View {
     var onCreateShield: () -> Void
     var onJoinShield: () -> Void
     var onNoAccount: () -> Void
@@ -115,7 +115,7 @@ struct CreateOrJoinShieldView: View {
 }
 
 #Preview {
-    CreateOrJoinShieldView(
+    OnboardingCreateOrJoinSheildView(
         onCreateShield: {},
         onJoinShield: {},
         onNoAccount: {}
