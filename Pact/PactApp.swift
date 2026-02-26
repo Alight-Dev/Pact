@@ -43,7 +43,7 @@ struct PactApp: App {
     var body: some Scene {
         WindowGroup {
             if showHomeScreen {
-                HomeScreenView()
+                ActivityListView()
             } else if showShieldSelection {
                 OnboardingCreateOrJoinShieldView(
                     onCreateShield: {

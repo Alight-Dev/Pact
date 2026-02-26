@@ -60,7 +60,7 @@ Current structure:
 - **`Onboarding/OnboardingProfileSetupView.swift`** — Step 6 of 6. Nickname (Xbox-style gamertag generator + manual entry) and avatar selection (3×3 emoji grid).
 - **`Onboarding/OnboardingCreateOrJoinShieldView.swift`** — Post-onboarding screen. "Create a Shield" or "Join a Shield" selection with animated logo entrance.
 - **`Onboarding/OnboardingComponents.swift`** — Shared components: `SelectablePillButton`, `OnboardingProgressBar`.
-- **`HomeScreenView.swift`** — Main app screen. SwiftData `Activity` list with "Add Activity" sheet.
+- **`ActivityListView.swift`** — Main app screen. SwiftData `Activity` list with "Add Activity" sheet.
 - **`Activity.swift`** — SwiftData `@Model` for user-created daily activities.
 - **`ContentView.swift`** — Unused placeholder (Xcode default). Can be removed.
 - **`Item.swift`** — Unused placeholder SwiftData `@Model`. Can be removed.
