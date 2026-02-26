@@ -28,7 +28,7 @@ struct OnboardingProjectionInputsView: View {
     @State private var smartphoneYears: Double = 5
     @State private var selectedCategories: Set<AppCategoryOption> = []
 
-    private let totalSteps = 7
+    private let totalSteps = 8
     private let currentStep = 3
 
     private var continueEnabled: Bool { !selectedCategories.isEmpty }
