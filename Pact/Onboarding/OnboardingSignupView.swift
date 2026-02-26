@@ -52,9 +52,7 @@ struct OnboardingSignupView: View {
                         }
                         .accessibilityLabel("Go back")
 
-                        OnboardingProgressBar(totalSteps: totalSteps, currentStep: currentStep)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 12)
+                        Spacer()
 
                         HStack(spacing: 4) {
                             Text("🇺🇸")
@@ -113,14 +111,10 @@ struct OnboardingSignupView: View {
                         // Continue with Google
                         Button(action: onContinue) {
                             HStack(spacing: 10) {
-                                AsyncImage(url: URL(string: "https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png")) { image in
-                                    image
-                                        .resizable()
-                                        .scaledToFit()
-                                } placeholder: {
-                                    Color.clear
-                                }
-                                .frame(width: 22, height: 22)
+                                Image("GoogleLogo")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 22, height: 22)
                                 Text("Continue with Google")
                                     .font(.system(size: 17, weight: .semibold))
                                     .foregroundStyle(.black)

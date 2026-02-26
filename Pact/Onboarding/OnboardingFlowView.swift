@@ -19,6 +19,7 @@ struct OnboardingFlowView: View {
     var onFinished: () -> Void
 
     @State private var step: OnboardingStep = .gender
+    @State private var isGoingForward = true
     @State private var selectedGender: GenderOption?
     @State private var selectedAge: AgeOption?
     @State private var selectedScreenTime: ScreenTimeOption?
@@ -27,6 +28,13 @@ struct OnboardingFlowView: View {
     @State private var profileNickname: String = ""
     @State private var profileAvatarID: Int = 0
 
+    private var slideTransition: AnyTransition {
+        .asymmetric(
+            insertion: .move(edge: isGoingForward ? .trailing : .leading),
+            removal:   .move(edge: isGoingForward ? .leading  : .trailing)
+        )
+    }
+
     var body: some View {
         ZStack {
             switch step {
@@ -34,58 +42,55 @@ struct OnboardingFlowView: View {
                 OnboardingGenderView(
                     onContinue: { gender in
                         selectedGender = gender
+                        isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .age
                         }
                     }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(slideTransition)
 
             case .age:
                 OnboardingAgeView(
                     initialSelection: selectedAge,
                     onBack: {
+                        isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .gender
                         }
                     },
                     onContinue: { age in
                         selectedAge = age
+                        isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .screenTime
                         }
                     }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(slideTransition)
 
             case .screenTime:
                 OnboardingScreenTimeView(
                     onBack: {
+                        isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .age
                         }
                     },
                     onContinue: { screenTime in
                         selectedScreenTime = screenTime
+                        isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .projectionInputs
                         }
                     }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(slideTransition)
 
             case .projectionInputs:
                 OnboardingProjectionInputsView(
                     onBack: {
+                        isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .screenTime
                         }
@@ -93,15 +98,13 @@ struct OnboardingFlowView: View {
                     onContinue: { years, category in
                         selectedSmartphoneYears = years
                         selectedCategory = category
+                        isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .projectionResult
                         }
                     }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(slideTransition)
 
             case .projectionResult:
                 OnboardingProjectionView(
@@ -110,11 +113,13 @@ struct OnboardingFlowView: View {
                     years: selectedSmartphoneYears,
                     category: selectedCategory!,
                     onBack: {
+                        isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .projectionInputs
                         }
                     },
                     onContinue: {
+                        isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .requestNotifications
                         }
@@ -138,32 +143,29 @@ struct OnboardingFlowView: View {
                         }
                     }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(slideTransition)
 
             case .signup:
                 OnboardingSignupView(
                     onBack: {
+                        isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .requestNotifications
                         }
                     },
                     onContinue: {
+                        isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .profileSetup
                         }
                     }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(slideTransition)
 
             case .profileSetup:
                 OnboardingProfileSetupView(
                     onBack: {
+                        isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .signup
                         }
@@ -174,10 +176,7 @@ struct OnboardingFlowView: View {
                         onFinished()
                     }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(slideTransition)
             }
         }
     }
