@@ -51,29 +51,31 @@ struct PactApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if showHomeScreen {
-                ActivityListView()
-            } else if showJoinShield {
-                JoinShieldView(
-                    onBack: {
-                        withAnimation {
-                            showJoinShield = false
-                            showShieldSelection = true
+            Group {
+                if showHomeScreen {
+                    ActivityListView()
+                } else if showJoinShield {
+                    JoinShieldView(
+                        onBack: {
+                            withAnimation {
+                                showJoinShield = false
+                                showShieldSelection = true
+                            }
                         }
-                    }
-                )
-            } else if showShieldSelection {
-                OnboardingCreateOrJoinShieldView(
-                    onCreateShield: {
-                        withAnimation {
-                            showShieldSelection = false
-                            showHomeScreen = true
-                        }
-                    },
-                    onJoinShield: {
-                        withAnimation {
-                            showShieldSelection = false
-                            showJoinShield = true
+                    )
+                } else if showShieldSelection {
+                    OnboardingCreateOrJoinShieldView(
+                        onCreateShield: {
+                            withAnimation {
+                                showShieldSelection = false
+                                showHomeScreen = true
+                            }
+                        },
+                        onJoinShield: {
+                            withAnimation {
+                                showShieldSelection = false
+                                showJoinShield = true
+                            }
                         }
                     )
                 } else if showOnboarding {
@@ -125,3 +127,4 @@ struct PactApp: App {
         .modelContainer(sharedModelContainer)
     }
 }
+

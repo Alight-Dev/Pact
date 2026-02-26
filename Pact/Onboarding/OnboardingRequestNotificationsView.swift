@@ -115,8 +115,10 @@ struct OnboardingRequestNotificationsView: View {
                 // Allow notifications
                 Button {
                     Task {
-                        try? await UNUserNotificationCenter.current()
-                            .requestAuthorization(options: [.alert, .badge, .sound])
+                        let granted = (try? await UNUserNotificationCenter.current()
+                            .requestAuthorization(options: [.alert, .badge, .sound])) ?? false
+                        // Optionally, you could branch on `granted` if needed.
+                        _ = granted
                         await MainActor.run { onContinue() }
                     }
                 } label: {
@@ -194,3 +196,4 @@ private struct NotificationPreviewCard: View {
 #Preview {
     OnboardingRequestNotificationsView(onBack: {}, onContinue: {})
 }
+
