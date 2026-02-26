@@ -50,14 +50,15 @@ Current structure:
 
 - **`PactApp.swift`** — App entry point. Uses `@State` booleans (`showOnboarding`, `showShieldSelection`, `showHomeScreen`) to gate between `SplashView` → `OnboardingFlowView` → `OnboardingCreateOrJoinShieldView` → `HomeScreenView`. Initializes the SwiftData `ModelContainer` with `Item` and `Activity` models.
 - **`SplashView.swift`** — Animated splash screen with logo spring animation. "Get Started" calls `onFinished` which transitions to `OnboardingFlowView`.
-- **`Onboarding/OnboardingFlowView.swift`** — Step coordinator for the full onboarding sequence. Uses a private `OnboardingStep` enum (7 steps) and slide transitions between screens.
-- **`Onboarding/OnboardingGenderView.swift`** — Step 0 of 6. Gender selection.
-- **`Onboarding/OnboardingAgeView.swift`** — Step 1 of 6. Age selection.
-- **`Onboarding/OnboardingScreenTimeView.swift`** — Step 2 of 6. Daily screen time estimate.
-- **`Onboarding/OnboardingProjectionInputsView.swift`** — Step 3 of 6. Slider for years with smartphone and app category selection.
-- **`Onboarding/OnboardingProjectionView.swift`** — Step 4 of 6. Animated display of projected lifetime screen time and days to reclaim. Uses `ScreenTimeProjectionEngine` for calculations.
-- **`Onboarding/OnboardingSignupView.swift`** — Step 5 of 6. Apple / Google sign-in wireframe. Animated logo rises to upper-middle.
-- **`Onboarding/OnboardingProfileSetupView.swift`** — Step 6 of 6. Nickname (Xbox-style gamertag generator + manual entry) and avatar selection (3×3 emoji grid).
+- **`Onboarding/OnboardingFlowView.swift`** — Step coordinator for the full onboarding sequence. Uses a private `OnboardingStep` enum (8 steps) and slide transitions between screens.
+- **`Onboarding/OnboardingGenderView.swift`** — Step 0 of 7. Gender selection.
+- **`Onboarding/OnboardingAgeView.swift`** — Step 1 of 7. Age selection.
+- **`Onboarding/OnboardingScreenTimeView.swift`** — Step 2 of 7. Daily screen time estimate.
+- **`Onboarding/OnboardingProjectionInputsView.swift`** — Step 3 of 7. Slider for years with smartphone and app category selection.
+- **`Onboarding/OnboardingProjectionView.swift`** — Step 4 of 7. Animated display of projected lifetime screen time and days to reclaim. Uses `ScreenTimeProjectionEngine` for calculations.
+- **`Onboarding/OnboardingRequestNotificationsView.swift`** — Step 5 of 7. Notification permission screen. Shows a social notification preview and requests iOS push notification permission via `UNUserNotificationCenter`.
+- **`Onboarding/OnboardingSignupView.swift`** — Step 6 of 7. Apple / Google sign-in wireframe. Animated logo rises to upper-middle.
+- **`Onboarding/OnboardingProfileSetupView.swift`** — Step 7 of 7. Nickname (Xbox-style gamertag generator + manual entry) and avatar selection (3×3 emoji grid).
 - **`Onboarding/OnboardingCreateOrJoinShieldView.swift`** — Post-onboarding screen. "Create a Shield" or "Join a Shield" selection with animated logo entrance.
 - **`Onboarding/OnboardingComponents.swift`** — Shared components: `SelectablePillButton`, `OnboardingProgressBar`.
 - **`ActivityListView.swift`** — Main app screen. SwiftData `Activity` list with "Add Activity" sheet.

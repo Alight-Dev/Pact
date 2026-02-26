@@ -16,6 +16,9 @@ struct OnboardingSignupView: View {
     @State private var showContent: Bool = false
     @State private var screenHeight: CGFloat = 1000
 
+    private let totalSteps = 8
+    private let currentStep = 6
+
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
