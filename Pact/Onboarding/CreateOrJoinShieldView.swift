@@ -26,7 +26,7 @@ struct CreateOrJoinShieldView: View {
                 Image("SplashLogo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 90, height: 90)
+                    .frame(width: 150, height: 150)
                     .scaleEffect(logoScale)
                     .offset(y: logoOffsetY)
 
