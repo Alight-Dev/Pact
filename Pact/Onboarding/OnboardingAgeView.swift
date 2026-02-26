@@ -1,5 +1,5 @@
 //
-//  OnboardingScreenTimeView.swift
+//  OnboardingAgeView.swift
 //  Pact
 //
 //  Created by Yaw Snr Owusu on 2/25/26.
@@ -9,29 +9,30 @@ import SwiftUI
 
 // MARK: - Data Model
 
-enum ScreenTimeOption: String, CaseIterable, Identifiable {
-    case underOne    = "Under 1 hour"
-    case oneToThree  = "1–3 hours"
-    case threeToFour = "3–4 hours"
-    case fourToFive  = "4–5 hours"
-    case fiveToSeven = "5–7 hours"
-    case moreThanSeven = "More than 7 hours"
+enum AgeOption: String, CaseIterable, Identifiable {
+    case underEighteen  = "Under 18"
+    case eighteenTo24   = "18–24"
+    case twentyFiveTo34 = "25–34"
+    case thirtyFiveTo44 = "35–44"
+    case fortyFiveTo55  = "45–55"
+    case fiftyFiveTo64  = "55–64"
+    case overSixtyFour  = "Over 64"
 
     var id: String { rawValue }
 }
 
 // MARK: - Main View
 
-struct OnboardingScreenTimeView: View {
+struct OnboardingAgeView: View {
     var onBack: () -> Void
-    var onContinue: (ScreenTimeOption) -> Void
+    var onContinue: (AgeOption) -> Void
 
-    @State private var selectedOption: ScreenTimeOption?
+    @State private var selectedOption: AgeOption?
 
     init(
-        initialSelection: ScreenTimeOption? = nil,
+        initialSelection: AgeOption? = nil,
         onBack: @escaping () -> Void,
-        onContinue: @escaping (ScreenTimeOption) -> Void
+        onContinue: @escaping (AgeOption) -> Void
     ) {
         _selectedOption = State(initialValue: initialSelection)
         self.onBack = onBack
@@ -39,7 +40,7 @@ struct OnboardingScreenTimeView: View {
     }
 
     private let totalSteps = 5
-    private let currentStep = 2
+    private let currentStep = 1
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -92,12 +93,12 @@ struct OnboardingScreenTimeView: View {
 
                 // MARK: Header
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("What is your daily average Screen Time?")
+                    Text("How old are you?")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(.black)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("On your phone only. Your best guess is ok.")
+                    Text("So we can suggest the best setup for you.")
                         .font(.system(size: 16, weight: .regular))
                         .foregroundStyle(Color(red: 0.45, green: 0.45, blue: 0.48))
                         .fixedSize(horizontal: false, vertical: true)
@@ -111,7 +112,7 @@ struct OnboardingScreenTimeView: View {
 
                 // MARK: Option buttons
                 VStack(spacing: 12) {
-                    ForEach(ScreenTimeOption.allCases) { option in
+                    ForEach(AgeOption.allCases) { option in
                         SelectablePillButton(
                             title: option.rawValue,
                             isSelected: selectedOption == option,
@@ -158,7 +159,7 @@ struct OnboardingScreenTimeView: View {
 // MARK: - Previews
 
 #Preview("No selection") {
-    OnboardingScreenTimeView(
+    OnboardingAgeView(
         onBack: {},
         onContinue: { option in
             print("Continuing with \(option.rawValue)")
@@ -166,9 +167,9 @@ struct OnboardingScreenTimeView: View {
     )
 }
 
-#Preview("1–3 hours selected") {
-    OnboardingScreenTimeView(
-        initialSelection: .oneToThree,
+#Preview("25–34 selected") {
+    OnboardingAgeView(
+        initialSelection: .twentyFiveTo34,
         onBack: {},
         onContinue: { _ in }
     )
