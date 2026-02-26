@@ -10,7 +10,7 @@ import SwiftUI
 // MARK: - Flow Steps
 
 private enum OnboardingStep {
-    case gender, screenTime, age, signup
+    case gender, age, screenTime, signup, profileSetup
 }
 
 // MARK: - Flow Coordinator
@@ -20,8 +20,10 @@ struct OnboardingFlowView: View {
 
     @State private var step: OnboardingStep = .gender
     @State private var selectedGender: GenderOption?
-    @State private var selectedScreenTime: ScreenTimeOption?
     @State private var selectedAge: AgeOption?
+    @State private var selectedScreenTime: ScreenTimeOption?
+    @State private var profileNickname: String = ""
+    @State private var profileAvatarID: Int = 0
 
     var body: some View {
         ZStack {
@@ -80,13 +82,34 @@ struct OnboardingFlowView: View {
                 ))
 
             case .signup:
-                SignupView(
+                OnboardingSignupView(
                     onBack: {
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .screenTime
                         }
                     },
                     onContinue: {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .profileSetup
+                        }
+                    }
+                )
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing),
+                    removal: .move(edge: .leading)
+                ))
+
+            case .profileSetup:
+                OnboardingProfileSetupView(
+                    firstName: "Ethan",
+                    onBack: {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .signup
+                        }
+                    },
+                    onContinue: { nickname, avatarID in
+                        profileNickname = nickname
+                        profileAvatarID = avatarID
                         onFinished()
                     }
                 )

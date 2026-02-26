@@ -1,5 +1,5 @@
 //
-//  SignupView.swift
+//  OnboardingSignupView.swift
 //  Pact
 //
 //  Created by Yaw Snr Owusu on 2/25/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SignupView: View {
+struct OnboardingSignupView: View {
     var onBack: () -> Void
     var onContinue: () -> Void
 
@@ -206,10 +206,10 @@ private struct GoogleLogoView: View {
     }
 }
 
-// MARK: - Preview
+// MARK: - Previews
 
-#Preview {
-    SignupView(onBack: {}, onContinue: {})
+#Preview("OnboardingSignupView") {
+    OnboardingSignupView(onBack: {}, onContinue: {})
 }
 
 #Preview("Google Logo") {
