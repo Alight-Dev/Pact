@@ -36,7 +36,7 @@ struct SplashView: View {
 
                     Text("Where you and your team will\nmake the most of your goals")
                         .font(.system(size: 17, weight: .regular))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(white: 0.22))
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
                         .padding(.horizontal, 32)
