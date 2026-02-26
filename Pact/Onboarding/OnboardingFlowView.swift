@@ -59,7 +59,7 @@ struct OnboardingFlowView: View {
                 ))
 
             case .signup:
-                SignupView(
+                OnboardingSignupView(
                     onBack: {
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .screenTime
