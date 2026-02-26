@@ -66,7 +66,8 @@ Pact is a social accountability app (see `Pact-PRD.md` for the full spec). Key c
 
 ## Project Conventions
 
-- **Always use regular git branches** (`git checkout -b feature/...`) for feature work, not worktrees.
+- **Always use regular git branches** for feature work, not worktrees.
+- **Branch naming for new features:** when starting a new feature, assume you should create a new branch with the pattern `<github-username>/<feature-name>`, e.g. `owusuys/carousel`, via `git checkout -b owusuys/feature-name`.
 
 ## How Claude Should Work on New Features
 
