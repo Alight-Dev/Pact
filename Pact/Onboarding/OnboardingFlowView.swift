@@ -145,7 +145,6 @@ struct OnboardingFlowView: View {
 
             case .profileSetup:
                 OnboardingProfileSetupView(
-                    firstName: "Ethan",
                     onBack: {
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .signup

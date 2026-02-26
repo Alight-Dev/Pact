@@ -30,7 +30,7 @@ private let avatarOptions: [AvatarOption] = [
 // MARK: - Main View
 
 struct OnboardingProfileSetupView: View {
-    var firstName: String = "Ethan"
+    var firstName: String? = nil
     var onBack: () -> Void
     var onContinue: (String, Int) -> Void   // (nickname, avatarID)
 
@@ -100,13 +100,18 @@ struct OnboardingProfileSetupView: View {
 
                         // MARK: Header
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Welcome to Pact,")
-                                .font(.system(size: 17, weight: .light))
-                                .foregroundStyle(Color(white: 0.55))
-
-                            Text(firstName)
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundStyle(.black)
+                            if let name = firstName {
+                                Text("Welcome to Pact,")
+                                    .font(.system(size: 17, weight: .light))
+                                    .foregroundStyle(Color(white: 0.55))
+                                Text(name)
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundStyle(.black)
+                            } else {
+                                Text("Welcome to Pact!")
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundStyle(.black)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 24)
@@ -271,9 +276,9 @@ private struct AvatarCell: View {
     OnboardingProfileSetupView(onBack: {}, onContinue: { _, _ in })
 }
 
-#Preview("All filled") {
+#Preview("With name") {
     OnboardingProfileSetupView(
-        firstName: "Ethan",
+        firstName: "Alex",
         onBack: {},
         onContinue: { _, _ in }
     )
