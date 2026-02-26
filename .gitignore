@@ -20,3 +20,6 @@ build/
 Pods/
 
 .claude/
+
+# Xcode project file (generated/synced)
+**/project.pbxproj
