@@ -8,15 +8,11 @@
 import SwiftUI
 
 struct JoinShieldView: View {
-    enum CodeField: Int, CaseIterable {
-        case box0, box1, box2, box3, box4, box5
-    }
-
-    @State private var code: [String] = Array(repeating: "", count: 6)
-    @FocusState private var focusedField: CodeField?
+    @State private var code: String = ""
+    @FocusState private var isFieldFocused: Bool
 
     private var isComplete: Bool {
-        code.allSatisfy { $0.count == 1 }
+        code.count == 6
     }
 
     var body: some View {
@@ -25,27 +21,53 @@ struct JoinShieldView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 32) {
-                // Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Enter Invite Code")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(.black)
+                Spacer()
 
-                    Text("Ask your team admin for the 6-digit code.")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Color(white: 0.55))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(alignment: .center, spacing: 8) {
+                        Text("Enter Invite Code")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(.black)
 
-                // Code input boxes
-                HStack(spacing: 12) {
-                    ForEach(0..<6, id: \.self) { index in
-                        codeBox(at: index)
+                        Text("Ask your team admin for the 6-digit code.")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color(white: 0.55))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                    // Code input boxes (driven by a single hidden TextField)
+                    ZStack {
+                        // Invisible text field capturing all input
+                        TextField("", text: Binding(
+                            get: { code },
+                            set: { newValue in
+                                handleCodeChange(newValue)
+                            }
+                        ))
+                        .keyboardType(.numberPad)
+                        .textContentType(.oneTimeCode)
+                        .textInputAutocapitalization(.characters)
+                        .disableAutocorrection(true)
+                        .foregroundColor(.clear)
+                        .accentColor(.clear)
+                        .focused($isFieldFocused)
+                        .frame(width: 0, height: 0)
+                        .opacity(0.05)
+
+                        // Visual boxes
+                        HStack(spacing: 12) {
+                            ForEach(0..<6, id: \.self) { index in
+                                codeBox(at: index)
+                            }
+                        }
                     }
                 }
                 .padding(.top, 8)
-
-                Spacer()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isFieldFocused = true
+                }
 
                 // Primary button
                 Button(action: {
@@ -63,14 +85,15 @@ struct JoinShieldView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!isComplete)
+
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 24)
-            .padding(.top, 32)
             .padding(.bottom, 40)
         }
         .onAppear {
             DispatchQueue.main.async {
-                focusedField = .box0
+                isFieldFocused = true
             }
         }
     }
@@ -78,66 +101,45 @@ struct JoinShieldView: View {
     // MARK: - Subviews
 
     private func codeBox(at index: Int) -> some View {
-        let field = CodeField(rawValue: index)
+        let characters = Array(code)
+        let character: String = index < characters.count ? String(characters[index]) : ""
+        let isActive = isFieldFocused && index == min(code.count, 5)
 
-        return TextField("", text: Binding(
-            get: { code[index] },
-            set: { newValue in
-                handleInputChange(newValue, at: index)
-            }
-        ))
-        .keyboardType(.numberPad)
-        .textContentType(.oneTimeCode)
-        .textInputAutocapitalization(.characters)
-        .disableAutocorrection(true)
-        .multilineTextAlignment(.center)
-        .font(.system(size: 24, weight: .semibold, design: .monospaced))
-        .foregroundColor(.black)
-        .frame(width: 48, height: 56)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(white: 0.96))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(
-                    focusedField == field ? Color.black : Color.clear,
-                    lineWidth: 1.5
-                )
-        )
-        .focused($focusedField, equals: field)
+        return Text(character)
+            .font(.system(size: 24, weight: .semibold, design: .monospaced))
+            .foregroundColor(.black)
+            .frame(width: 48, height: 56)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(white: 0.96))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isActive ? Color.black : Color.clear, lineWidth: 1.5)
+            )
     }
 
     // MARK: - Input Handling
 
-    private func handleInputChange(_ newValue: String, at index: Int) {
-        let previous = code[index]
+    private func handleCodeChange(_ newValue: String) {
+        // Allow only numeric digits 0–9
+        let filtered = newValue.filter { $0.isASCII && $0.isNumber }
 
-        // Keep only the last allowed character (0–9 or '-')
-        let filtered = newValue
-            .filter { $0.isASCII && ($0.isNumber || $0 == "-") }
+        // Enforce max length 6
+        let limited = String(filtered.prefix(6))
 
-        if let last = filtered.last {
-            code[index] = String(last)
-            moveFocusForward(from: index)
+        // Detect backspace (shorter than current) and simply assign
+        if limited.count <= code.count {
+            code = limited
         } else {
-            code[index] = ""
-
-            // If user cleared a non-empty box, optionally move focus back
-            if !previous.isEmpty {
-                moveFocusBackward(from: index)
-            }
+            // User added characters; only keep up to 6
+            code = limited
         }
-    }
 
-    private func moveFocusForward(from index: Int) {
-        guard index < 5, let nextField = CodeField(rawValue: index + 1) else { return }
-        focusedField = nextField
-    }
-
-    private func moveFocusBackward(from index: Int) {
-        guard index > 0, let previousField = CodeField(rawValue: index - 1) else { return }
-        focusedField = previousField
+        // Dismiss keyboard when complete
+        if code.count == 6 {
+            isFieldFocused = false
+        }
     }
 }
 
