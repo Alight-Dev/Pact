@@ -34,6 +34,8 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -on
 
 > Features using `FamilyControls` and `ManagedSettings` (app blocking) require a **physical device** with a provisioning profile that includes the Family Controls entitlement. They cannot be tested in the simulator.
 
+> **Device signing:** Copy `Config/Development.xcconfig.example` to `Config/Development.xcconfig` and set your Apple Developer Team ID so you can run on your device without changing the project file.
+
 ## Project Details
 
 - **Language:** Swift 5.0
@@ -75,6 +77,7 @@ Pact is a social accountability app (see `Pact-PRD.md` for the full spec). Key c
 
 - **Always use regular git branches** for feature work, not worktrees.
 - **Branch naming for new features:** when starting a new feature, assume you should create a new branch with the pattern `<github-username>/<feature-name>`, e.g. `owusuys/carousel`, via `git checkout -b owusuys/feature-name`.
+- **New screens:** When you add a new screen or full-screen sheet, add an entry to `pages.md` with the file path and a short description of what that file does.
 
 ## How Claude Should Work on New Features
 

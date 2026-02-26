@@ -1,0 +1,5 @@
+// Copy this file to Development.xcconfig and set your Apple Developer Team ID.
+// Find it in Xcode: Signing & Capabilities → Team, or at https://developer.apple.com/account
+// This keeps DEVELOPMENT_TEAM out of project.pbxproj so everyone can test on their own device without merge conflicts.
+
+DEVELOPMENT_TEAM = YOUR_TEAM_ID_HERE
