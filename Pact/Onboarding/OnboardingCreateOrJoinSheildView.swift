@@ -71,21 +71,6 @@ struct OnboardingCreateOrJoinSheildView: View {
                         .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 24)
-
-                    Button(action: onNoAccount) {
-                        Text("I don’t have an account")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.55))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                Capsule()
-                                    .fill(Color(white: 0.94))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 48)
-                    .padding(.bottom, 16)
                 }
 
                 Spacer()
