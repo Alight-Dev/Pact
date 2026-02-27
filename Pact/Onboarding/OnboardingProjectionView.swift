@@ -225,7 +225,7 @@ struct OnboardingProjectionView: View {
                     .background(RoundedRectangle(cornerRadius: 20).fill(Color.white))
                     .overlay(
                         TimelineView(.animation) { context in
-                            let cycle = 6.0
+                            let cycle = 3.0
                             let t     = context.date.timeIntervalSinceReferenceDate
                             let angle = (t.truncatingRemainder(dividingBy: cycle) / cycle) * 2 * .pi + (.pi / 4)
                             let sp    = UnitPoint(x: 0.5 - cos(angle) * 0.5, y: 0.5 - sin(angle) * 0.5)
@@ -240,7 +240,7 @@ struct OnboardingProjectionView: View {
                                         startPoint: sp,
                                         endPoint: ep
                                     ),
-                                    lineWidth: 2
+                                    lineWidth: 3
                                 )
                         }
                     )
