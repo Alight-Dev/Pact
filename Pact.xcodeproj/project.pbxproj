@@ -449,11 +449,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-<<<<<<< HEAD
 				DEVELOPMENT_TEAM = 78A9M963Z9;
-=======
-				DEVELOPMENT_TEAM = 5G3V6Z5MJ3;
->>>>>>> 731ad5d (Implement upload proof flow with camera picker and activity selection)
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pact/Info.plist;
@@ -467,7 +463,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "cmc.Pact-";
+				PRODUCT_BUNDLE_IDENTIFIER = cmc.Pact;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
