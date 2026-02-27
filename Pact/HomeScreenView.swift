@@ -51,9 +51,6 @@ private struct FloatingTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
-<<<<<<< HEAD
-            tabButton(tab: .upload, icon: "plus", selectedIcon: "plus", weight: .medium)
-=======
 
             // Upload (center raised button)
             Button {
@@ -74,7 +71,6 @@ private struct FloatingTabBar: View {
             .buttonStyle(.plain)
 
             // Team
->>>>>>> 731ad5d (Implement upload proof flow with camera picker and activity selection)
             tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
         }
         .padding(.horizontal, 6)
