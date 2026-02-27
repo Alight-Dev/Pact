@@ -8,13 +8,14 @@ import SwiftUI
 // MARK: - Tab Definition
 
 enum AppTab {
-    case home, upload, team
+    case home, team
 }
 
 // MARK: - Root Container
 
 struct HomeScreenView: View {
     @State private var selectedTab: AppTab = .home
+    @State private var showUpload: Bool = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -26,16 +27,21 @@ struct HomeScreenView: View {
                             selectedTab = .team
                         }
                     })
-                case .upload: UploadView()
-                case .team:   TeamView()
+                case .team:
+                    TeamView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            FloatingTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 24)
+            FloatingTabBar(selectedTab: $selectedTab, onUploadTapped: {
+                showUpload = true
+            })
+            .padding(.bottom, 24)
         }
         .ignoresSafeArea(edges: .bottom)
+        .fullScreenCover(isPresented: $showUpload) {
+            UploadProofView()
+        }
     }
 }
 
@@ -43,6 +49,7 @@ struct HomeScreenView: View {
 
 private struct FloatingTabBar: View {
     @Binding var selectedTab: AppTab
+    var onUploadTapped: () -> Void
 
     var body: some View {
         GeometryReader { proxy in
@@ -51,11 +58,26 @@ private struct FloatingTabBar: View {
 
                 HStack(spacing: 0) {
                     tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
-                    tabButton(tab: .upload, icon: "plus", selectedIcon: "plus", weight: .medium)
+
+                    // Upload — same style as the tab buttons, no selected state
+                    Button {
+                        onUploadTapped()
+                    } label: {
+                        ZStack {
+                            Image(systemName: "plus")
+                                .font(.system(size: 22, weight: .medium))
+                                .foregroundStyle(Color(white: 0.50))
+                        }
+                        .frame(width: 94, height: 54)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
                     tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
                 }
                 .padding(.horizontal, 6)
-                .frame(width: proxy.size.width * (2.3 / 3.0), height: 70)
+                .frame(width: proxy.size.width * (2.0 / 3.0), height: 70)
                 // Outer liquid glass pill
                 .glassEffect(in: Capsule())
                 .shadow(color: .black.opacity(0.14), radius: 28, x: 0, y: 10)
@@ -88,7 +110,6 @@ private struct FloatingTabBar: View {
                         .frame(width: 80, height: 52)
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
                 }
-
                 Image(systemName: selectedTab == tab ? selectedIcon : icon)
                     .font(.system(size: 22, weight: weight))
                     .foregroundStyle(selectedTab == tab ? Color.black : Color(white: 0.50))
@@ -106,4 +127,3 @@ private struct FloatingTabBar: View {
 #Preview {
     HomeScreenView()
 }
-
