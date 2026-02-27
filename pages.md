@@ -43,8 +43,11 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 
 | File | Purpose |
 |------|--------|
-| `Pact/ActivityListView.swift` | Main app screen. List of SwiftData activities; “Add Activity” opens `AddActivitySheet`. |
-| `Pact/ActivityListView.swift` → `AddActivitySheet` | Full-screen sheet to create an activity: name, description, icon picker. |
+| `Pact/HomeScreenView.swift` | Root tab container. Owns `selectedTab` state and renders `HomeView`, `UploadView`, or `TeamView`. Contains `FloatingTabBar` — a liquid-glass pill with Home, Upload (+), and Team tabs. |
+| `Pact/Home/HomeView.swift` | Home tab. Currently an empty stub with a “Home” label. |
+| `Pact/Upload/UploadView.swift` | Upload tab (center “+” button). Currently an empty stub with an “Upload” label. |
+| `Pact/Team/TeamView.swift` | Team tab. Currently an empty stub with a “Team” label. |
+| `Pact/ActivityListView.swift` | Legacy activity list screen (pre-tab-bar era). Kept for reference; not currently wired into navigation. |
 
 ---
 
