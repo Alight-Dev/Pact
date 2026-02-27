@@ -8,37 +8,19 @@ struct UploadProofView: View {
     @State private var showImagePicker = false
     @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
     @State private var selectedImage: UIImage? = nil
-    @State private var selectedActivityID: UUID? = nil
+    @State private var selectedActivityID: String? = nil
     @State private var pickerErrorMessage: String? = nil
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Color.white.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // Custom top bar with Back button
-                HStack(spacing: 8) {
-                    Button(action: { dismiss() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .semibold))
-                            Text("Back")
-                                .font(.system(size: 16))
-                        }
-                        .foregroundStyle(.black)
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 16)
-
-                if let image = selectedImage {
-                    // Post-photo selection state
-                    postPhotoContent(image: image)
-                } else {
-                    // Pre-photo state: prompt user to upload proof
+            // Content layer — post-photo or pre-photo
+            if let image = selectedImage {
+                postPhotoContent(image: image)
+            } else {
+                // Pre-photo state: prompt user to upload proof
+                VStack(spacing: 0) {
                     Spacer()
 
                     VStack(spacing: 10) {
@@ -73,7 +55,34 @@ struct UploadProofView: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 40)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+
+            // Back button always on top — rendered last in ZStack so it’s never blocked
+            HStack(spacing: 8) {
+                Button(action: {
+                    if selectedImage != nil {
+                        // Step back: clear photo, return to pre-photo state
+                        selectedImage = nil
+                        selectedActivityID = nil
+                    } else {
+                        dismiss()
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Back")
+                            .font(.system(size: 16))
+                    }
+                    .foregroundStyle(.black)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
         }
         // Image picker sheet (camera only)
         .sheet(isPresented: $showImagePicker) {
@@ -121,7 +130,7 @@ struct UploadProofView: View {
 
 extension UploadProofView {
     private struct ActivityOption: Identifiable, Hashable {
-        let id = UUID()
+        var id: String { name }   // stable across re-renders
         let name: String
         let iconName: String
     }
@@ -145,7 +154,8 @@ extension UploadProofView {
     @ViewBuilder
     private func postPhotoContent(image: UIImage) -> some View {
         VStack(spacing: 24) {
-            Spacer(minLength: 24)
+            // Space for the Back button overlay (always 54pt tall)
+            Color.clear.frame(height: 54)
 
             // Image preview
             Image(uiImage: image)
@@ -158,29 +168,26 @@ extension UploadProofView {
                 .padding(.horizontal, 24)
 
             // Activity selection grid
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(spacing: 16) {
                 Text("Choose Activity")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 let columns = [
-                    GridItem(.adaptive(minimum: 80), spacing: 20)
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
                 ]
 
-                LazyVGrid(columns: columns, alignment: .leading, spacing: 20) {
+                LazyVGrid(columns: columns, spacing: 20) {
                     ForEach(activityOptions) { activity in
                         let isSelected = selectedActivityID == activity.id
 
-                        VStack(spacing: 8) {
-                            Text(activity.name)
-                                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                                .foregroundStyle(isSelected ? .black : Color(white: 0.55))
-                                .multilineTextAlignment(.center)
-
-                            Button {
-                                // Single-selection: tap moves selection to this activity
-                                selectedActivityID = activity.id
-                            } label: {
+                        Button {
+                            selectedActivityID = activity.id
+                        } label: {
+                            VStack(spacing: 8) {
                                 Image(systemName: activity.iconName)
                                     .font(.system(size: 22, weight: .semibold))
                                     .foregroundStyle(isSelected ? Color.white : Color(white: 0.45))
@@ -188,17 +195,20 @@ extension UploadProofView {
                                     .background(
                                         Circle()
                                             .fill(isSelected ? Color.black : Color(white: 0.90))
-                                            .overlay(
-                                                Circle()
-                                                    .stroke(isSelected ? Color.black : Color.clear, lineWidth: 2)
-                                            )
                                             .shadow(color: isSelected ? Color.black.opacity(0.22) : .clear,
                                                     radius: 10, x: 0, y: 4)
                                     )
                                     .scaleEffect(isSelected ? 1.07 : 1.0)
+
+                                Text(activity.name)
+                                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+                                    .foregroundStyle(isSelected ? .black : Color(white: 0.55))
+                                    .multilineTextAlignment(.center)
                             }
-                            .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity)
                         }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.15), value: isSelected)
                     }
                 }
             }
@@ -207,26 +217,23 @@ extension UploadProofView {
             Spacer()
 
             // Submit button
-            HStack {
-                Spacer()
-                Button {
-                    // TODO: Submit proof with selected activity
-                } label: {
-                    Text(canSubmit ? "Submit" : "Upload Proof")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(canSubmit ? Color.white : Color.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(canSubmit ? Color.green : Color(white: 0.9))
-                        )
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: 320)
-                .disabled(!canSubmit)
-                Spacer()
+            Button {
+                // TODO: fire proof submission to backend before dismissing
+                dismiss()
+            } label: {
+                Text(canSubmit ? "Submit" : "Upload Proof")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(canSubmit ? Color.white : Color.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(canSubmit ? Color.black : Color(white: 0.9))
+                    )
             }
+            .buttonStyle(.plain)
+            .disabled(!canSubmit)
+            .padding(.horizontal, 24)
             .padding(.bottom, 40)
         }
     }
