@@ -20,7 +20,12 @@ struct HomeScreenView: View {
         ZStack(alignment: .bottom) {
             Group {
                 switch selectedTab {
-                case .home:   HomeView()
+                case .home:
+                    HomeView(onTeamTap: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            selectedTab = .team
+                        }
+                    })
                 case .upload: UploadView()
                 case .team:   TeamView()
                 }
