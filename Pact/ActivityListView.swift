@@ -11,9 +11,13 @@ import SwiftData
 // MARK: - ActivityListView
 
 struct ActivityListView: View {
+    var onContinue: (() -> Void)? = nil
+
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Activity.order), SortDescriptor(\Activity.createdAt)])
     private var activities: [Activity]
+
+    @EnvironmentObject var authManager: AuthManager
 
     @State private var showingAddActivity = false
     @State private var activityToEdit: Activity? = nil
@@ -92,6 +96,21 @@ struct ActivityListView: View {
                     }
                 }
 
+                #if DEBUG
+                Button {
+                    try? authManager.signOut()
+                } label: {
+                    Text("Debug: Sign Out")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(white: 0.6))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+                #endif
+
                 // Bottom padding so the last card isn't hidden behind the Add button
                 Color.clear
                     .frame(height: 90)
@@ -102,23 +121,40 @@ struct ActivityListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
 
-            // Fixed Add Activity button
-            Button {
-                showingAddActivity = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Add Activity")
-                        .font(.system(size: 17, weight: .semibold))
+            VStack(spacing: 12) {
+                if let onContinue {
+                    Button(action: onContinue) {
+                        Text("Continue")
+                            .font(.system(size: 17, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(activities.isEmpty ? Color(white: 0.9) : Color.black)
+                            )
+                            .foregroundStyle(activities.isEmpty ? Color(white: 0.7) : .white)
+                    }
+                    .disabled(activities.isEmpty)
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.black)
-                )
+
+                // Fixed Add Activity button
+                Button {
+                    showingAddActivity = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Add Activity")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.black)
+                    )
+                }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
