@@ -30,6 +30,7 @@ struct HomeView: View {
     var onTeamTap: () -> Void
 
     @State private var cardSelection: Int = carouselStart
+    @State private var animatedProgress: CGFloat = 0
 
     private var currentDot: Int { cardSelection % cardCount }
 
@@ -82,7 +83,7 @@ struct HomeView: View {
 
                             // Progress arc (black, flat ends)
                             Circle()
-                                .trim(from: 0, to: ringProgress)
+                                .trim(from: 0, to: animatedProgress)
                                 .stroke(
                                     Color.black,
                                     style: StrokeStyle(lineWidth: ringWidth, lineCap: .butt)
@@ -99,6 +100,14 @@ struct HomeView: View {
                         Spacer()
                     }
                     .padding(.top, 24)
+                    .onAppear {
+                        withAnimation(.easeOut(duration: 1.2).delay(0.3)) {
+                            animatedProgress = ringProgress
+                        }
+                    }
+                    .onDisappear {
+                        animatedProgress = 0
+                    }
 
                     // MARK: Infinite swipe carousel
                     TabView(selection: $cardSelection) {
