@@ -4,26 +4,20 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
-// MARK: - Mock data
+// MARK: - Mock data (screen time & activity stats for visual pop until backend wired)
 
-private let mockUserName      = "AlexTheGreat"
-private let mockUserHandle    = "@alexthegreat"
-private let mockAvatarAsset   = "avatar_alex"
-private let mockShieldTier    = "Emerald"
 private let mockStreak        = 12
 private let mockCompletion    = 87   // %
 private let mockDaysSaved     = 8
-
-// Hours per day: Mon Tue Wed Thu Fri Sat Sun
+private let mockAwakePercent  = 22
+// Hours per day: Mon–Sun (week); 28 days (month)
 private let mockWeekData: [Double]  = [2.5, 3.1, 4.2, 2.8, 3.5, 2.9, 3.0]
 private let mockMonthData: [Double] = [3.2, 2.8, 3.5, 4.0, 2.6, 3.8, 3.1,
-                                        2.9, 3.4, 3.0, 4.1, 2.7, 3.3, 3.6,
-                                        2.5, 3.1, 4.2, 2.8, 3.5, 2.9, 3.0,
-                                        3.2, 3.8, 2.6, 3.1, 4.0, 2.7, 3.5]
-private let mockAwakePercent  = 22
-private let mockTeamName      = "Morning Forge Alliance"
-private let mockTeamAvatars   = ["avatar_sara", "avatar_jordan", "avatar_alex"]
+                                       2.9, 3.4, 3.0, 4.1, 2.7, 3.3, 3.6,
+                                       2.5, 3.1, 4.2, 2.8, 3.5, 2.9, 3.0,
+                                       3.2, 3.8, 2.6, 3.1, 4.0, 2.7, 3.5]
 
 // MARK: - TimePeriod
 
@@ -36,33 +30,126 @@ private enum TimePeriod: String, CaseIterable {
 // MARK: - ProfileView
 
 struct ProfileView: View {
+    @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var firestoreService: FirestoreService
+
     @State private var selectedPeriod: TimePeriod = .week
+    @State private var activeMembership: FirestoreService.ActiveMembership?
+
+    private var nickname: String {
+        UserDefaults.standard.string(forKey: "app_nickname") ?? "back"
+    }
+
+    /// First name for display at top; from Auth displayName, fallback to nickname.
+    private var firstName: String {
+        if let raw = authManager.currentUser?.displayName,
+           let first = raw.split(separator: " ").first {
+            return String(first)
+        }
+        return nickname
+    }
+
+    private var avatarAssetName: String {
+        if let stored = UserDefaults.standard.string(forKey: "app_avatar_asset") {
+            return stored
+        }
+        return "avatar_\(persistedAvatar)"
+    }
+
+    private var persistedAvatar: String {
+        let key = "app_avatar"
+        if let saved = UserDefaults.standard.string(forKey: key) { return saved }
+        let names = ["felix", "mia", "sam", "alex", "jordan", "riley", "avery",
+                     "quinn", "morgan", "taylor", "casey", "blake", "drew",
+                     "sage", "skyler", "river", "storm", "nova", "zara", "kai"]
+        let pick = names.randomElement() ?? "felix"
+        UserDefaults.standard.set(pick, forKey: key)
+        return pick
+    }
+
+    private var teamName: String {
+        firestoreService.currentTeamName
+            ?? UserDefaults.standard.string(forKey: "app_team_name")
+            ?? "Your Team"
+    }
+
+    private var shieldTier: String {
+        let t = activeMembership?.shieldTier ?? ""
+        return t.isEmpty ? "—" : t
+    }
+
+    private var streakDays: Int {
+        activeMembership?.currentStreakDays ?? 0
+    }
+
+    private var teamMemberAvatars: [String] {
+        firestoreService.members
+            .map(\.avatarAssetName)
+            .filter { !$0.isEmpty }
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                ProfileHeaderSection()
-                ScreenTimeCard(selectedPeriod: $selectedPeriod)
-                ActivityStatsCard()
-                TeamCard()
-                ProfileSettingsSection()
-            }
+        VStack(spacing: 0) {
+            // Fixed header outside ScrollView so sheet dismiss gesture works from top
+            ProfileHeaderSection(
+                firstName: firstName,
+                username: nickname,
+                avatarAssetName: avatarAssetName,
+                shieldTier: shieldTier,
+                streakDays: streakDays
+            )
             .padding(.horizontal, 20)
             .padding(.top, 24)
-            .padding(.bottom, 40)
+            .padding(.bottom, 16)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    ScreenTimeCard(selectedPeriod: $selectedPeriod)
+                    ActivityStatsCard(
+                        streakDays: mockStreak,
+                        completionPercent: mockCompletion,
+                        daysSaved: mockDaysSaved
+                    )
+                    TeamCard(
+                        teamName: teamName,
+                        shieldTier: shieldTier,
+                        memberAvatars: teamMemberAvatars
+                    )
+                    ProfileSettingsSection(onSignOut: {
+                        try? authManager.signOut()
+                    })
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 40)
+            }
         }
         .background(Color.white)
+        .presentationDragIndicator(.visible)
+        .task {
+            activeMembership = try? await firestoreService.loadActiveMembership()
+        }
     }
 }
 
 // MARK: - ProfileHeaderSection
 
 private struct ProfileHeaderSection: View {
+    let firstName: String
+    let username: String
+    let avatarAssetName: String
+    let shieldTier: String
+    let streakDays: Int
+
+    private var usernameDisplay: String {
+        let base = username.lowercased().replacingOccurrences(of: " ", with: "")
+        return base.isEmpty ? "@user" : "@\(base)"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Name + gear row
+            // First name + gear row
             HStack {
-                Text(mockUserName)
+                Text(firstName)
                     .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(.black)
                 Spacer()
@@ -75,28 +162,28 @@ private struct ProfileHeaderSection: View {
             }
 
             // Avatar
-            Image(mockAvatarAsset)
+            Image(avatarAssetName)
                 .resizable()
                 .scaledToFill()
                 .frame(width: 80, height: 80)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.green, lineWidth: 3))
 
-            // Handle
-            Text(mockUserHandle)
+            // Username
+            Text(usernameDisplay)
                 .font(.system(size: 15))
                 .foregroundStyle(Color(white: 0.50))
 
             // Tier + streak pills
             HStack(spacing: 8) {
-                Text("\(mockShieldTier) Tier")
+                Text("\(shieldTier) Tier")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(Color.green, in: Capsule())
 
-                Text("🔥 \(mockStreak) day streak")
+                Text("🔥 \(streakDays) day streak")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, 10)
@@ -109,6 +196,7 @@ private struct ProfileHeaderSection: View {
 
 // MARK: - ScreenTimeCard
 
+/// Uses mock screen time data so the card pops until backend is wired.
 private struct ScreenTimeCard: View {
     @Binding var selectedPeriod: TimePeriod
 
@@ -154,7 +242,6 @@ private struct ScreenTimeCard: View {
                 }
             }
 
-            // Average display
             VStack(alignment: .leading, spacing: 4) {
                 Text(avgTimeText)
                     .font(.system(size: 36, weight: .bold))
@@ -192,11 +279,10 @@ private struct ScreenTimeBarChart: View {
     private let barAreaHeight: CGFloat = 120
     private let labelHeight: CGFloat   = 20
 
-    // Today's bar index: Thu (index 3) for week; last bar for month
     private var todayIndex: Int {
         switch selectedPeriod {
         case .week:     return 3
-        case .month:    return mockMonthData.count - 1
+        case .month:    return data.count - 1
         case .lifetime: return -1
         }
     }
@@ -214,7 +300,7 @@ private struct ScreenTimeBarChart: View {
                 let count  = bars.count
                 let gap: CGFloat = count > 7 ? 3 : 6
                 let barW   = (geo.size.width - gap * CGFloat(count - 1)) / CGFloat(count)
-                let maxVal = bars.max() ?? 1
+                let maxVal = max(bars.max() ?? 0, 1)
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .bottom, spacing: gap) {
@@ -247,7 +333,12 @@ private struct ScreenTimeBarChart: View {
 
 // MARK: - ActivityStatsCard
 
+/// Uses mock stats so the card pops until backend is wired.
 private struct ActivityStatsCard: View {
+    let streakDays: Int
+    let completionPercent: Int
+    let daysSaved: Int
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Activity Stats")
@@ -257,17 +348,17 @@ private struct ActivityStatsCard: View {
             HStack(spacing: 0) {
                 statCell(symbol: "flame.fill",
                          color: .black,
-                         value: "\(mockStreak)",
+                         value: "\(streakDays)",
                          label: "Day Streak")
                 Divider()
                 statCell(symbol: "checkmark.circle.fill",
                          color: .green,
-                         value: "\(mockCompletion)%",
+                         value: "\(completionPercent)%",
                          label: "Completion")
                 Divider()
                 statCell(symbol: "lock.shield.fill",
                          color: .black,
-                         value: "\(mockDaysSaved)",
+                         value: "\(daysSaved)",
                          label: "Days Saved")
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -300,6 +391,10 @@ private struct ActivityStatsCard: View {
 // MARK: - TeamCard
 
 private struct TeamCard: View {
+    let teamName: String
+    let shieldTier: String
+    let memberAvatars: [String]
+
     private let overlap: CGFloat = 24
 
     var body: some View {
@@ -309,9 +404,8 @@ private struct TeamCard: View {
                 .foregroundStyle(.black)
 
             HStack(spacing: 12) {
-                // Stacked overlapping avatars
                 ZStack {
-                    ForEach(Array(mockTeamAvatars.enumerated()), id: \.offset) { i, name in
+                    ForEach(Array(memberAvatars.enumerated()), id: \.offset) { i, name in
                         Image(name)
                             .resizable()
                             .scaledToFill()
@@ -321,13 +415,13 @@ private struct TeamCard: View {
                             .offset(x: CGFloat(i) * overlap)
                     }
                 }
-                .frame(width: 36 + overlap * CGFloat(mockTeamAvatars.count - 1), height: 36)
+                .frame(width: max(36, 36 + overlap * CGFloat(max(0, memberAvatars.count - 1))), height: 36)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(mockTeamName)
+                    Text(teamName)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.black)
-                    Text("\(mockShieldTier) Tier")
+                    Text("\(shieldTier) Tier")
                         .font(.system(size: 14))
                         .foregroundStyle(.green)
                 }
@@ -350,13 +444,18 @@ private struct TeamCard: View {
 // MARK: - ProfileSettingsSection
 
 private struct ProfileSettingsSection: View {
+    var onSignOut: () -> Void
+
     var body: some View {
         VStack(spacing: 0) {
             settingsRow(title: "Edit Profile")
             Divider()
             settingsRow(title: "Notifications")
             Divider()
-            settingsRow(title: "Sign Out", isRed: true, showChevron: false)
+            Button(action: onSignOut) {
+                settingsRow(title: "Sign Out", isRed: true, showChevron: false)
+            }
+            .buttonStyle(.plain)
         }
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -386,4 +485,6 @@ private struct ProfileSettingsSection: View {
 
 #Preview {
     ProfileView()
+        .environmentObject(AuthManager())
+        .environmentObject(FirestoreService())
 }
