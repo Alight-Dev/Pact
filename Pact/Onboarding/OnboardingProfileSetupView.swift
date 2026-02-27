@@ -116,10 +116,7 @@ struct OnboardingProfileSetupView: View {
                         // MARK: Header
                         VStack(alignment: .leading, spacing: 4) {
                             if let name = firstName {
-                                Text("Welcome to Pact,")
-                                    .font(.system(size: 17, weight: .light))
-                                    .foregroundStyle(Color(white: 0.55))
-                                Text(name)
+                                Text("Welcome, \(name)")
                                     .font(.system(size: 32, weight: .bold))
                                     .foregroundStyle(.black)
                             } else {
