@@ -11,6 +11,8 @@ import SwiftData
 // MARK: - ActivityListView
 
 struct ActivityListView: View {
+    var onContinue: (() -> Void)? = nil
+
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Activity.order), SortDescriptor(\Activity.createdAt)])
     private var activities: [Activity]
@@ -119,23 +121,40 @@ struct ActivityListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
 
-            // Fixed Add Activity button
-            Button {
-                showingAddActivity = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Add Activity")
-                        .font(.system(size: 17, weight: .semibold))
+            VStack(spacing: 12) {
+                if let onContinue {
+                    Button(action: onContinue) {
+                        Text("Continue")
+                            .font(.system(size: 17, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(activities.isEmpty ? Color(white: 0.9) : Color.black)
+                            )
+                            .foregroundStyle(activities.isEmpty ? Color(white: 0.7) : .white)
+                    }
+                    .disabled(activities.isEmpty)
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.black)
-                )
+
+                // Fixed Add Activity button
+                Button {
+                    showingAddActivity = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Add Activity")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.black)
+                    )
+                }
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
