@@ -21,6 +21,8 @@ struct ActivityListView: View {
 
     @State private var showingAddActivity = false
     @State private var activityToEdit: Activity? = nil
+    @State private var allowAIFallback: Bool = true
+    @State private var minApprovers: Int = 1
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -44,6 +46,52 @@ struct ActivityListView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 64, leading: 24, bottom: 36, trailing: 24))
+
+                // MARK: Initial Conditions card
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("INITIAL CONDITIONS")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color(white: 0.55))
+                        .kerning(0.6)
+                        .padding(.bottom, 14)
+
+                    // AI fallback row
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Allow AI fallback")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.black)
+                            Text("Auto-verifies after ~2–3 hrs of peer inactivity")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color(white: 0.55))
+                        }
+                        Spacer()
+                        Toggle("", isOn: $allowAIFallback)
+                            .labelsHidden()
+                            .tint(.black)
+                    }
+                    .padding(.bottom, 16)
+
+                    Divider()
+                        .padding(.bottom, 14)
+
+                    // Min approvers row
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Minimum required approvers")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.black)
+                        ApproverSegmentedPicker(selection: $minApprovers)
+                    }
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.white)
+                        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
 
                 if activities.isEmpty {
                     VStack(spacing: 12) {
@@ -343,8 +391,8 @@ struct AddActivitySheet: View {
                     .disabled(!canSave)
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 24)
-                .padding(.bottom, 32)
+                .padding(.top, 16)
+                .padding(.bottom, 16)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 28) {
@@ -491,6 +539,7 @@ struct AddActivitySheet: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color(white: 0.94))
                         )
+
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 48)
@@ -505,6 +554,45 @@ struct AddActivitySheet: View {
             }
         }
         .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - ApproverSegmentedPicker
+
+private struct ApproverSegmentedPicker: View {
+    @Binding var selection: Int  // 0 = 1 Person, 1 = 50% of Team, 2 = Entire Team
+
+    private let segments = ["1 Person", "50% of Team", "Entire Team"]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<segments.count, id: \.self) { index in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        selection = index
+                    }
+                } label: {
+                    Text(segments[index])
+                        .font(.system(size: 13, weight: selection == index ? .semibold : .regular))
+                        .foregroundStyle(selection == index ? .white : Color(white: 0.45))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .fill(selection == index ? Color.black : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white)
+                .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
+        )
     }
 }
 

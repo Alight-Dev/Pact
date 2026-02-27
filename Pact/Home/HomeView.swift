@@ -31,6 +31,7 @@ struct HomeView: View {
 
     @State private var cardSelection: Int = carouselStart
     @State private var animatedProgress: CGFloat = 0
+    @State private var showProfile = false
 
     private var currentDot: Int { cardSelection % cardCount }
 
@@ -62,12 +63,16 @@ struct HomeView: View {
 
                         Spacer()
 
-                        Image("avatar_\(persistedAvatar)")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 44, height: 44)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                        Button { showProfile = true } label: {
+                            Image("avatar_\(persistedAvatar)")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 44, height: 44)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                        }
+                        .buttonStyle(.plain)
+                        .sheet(isPresented: $showProfile) { ProfileView() }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
@@ -101,7 +106,7 @@ struct HomeView: View {
                     }
                     .padding(.top, 24)
                     .onAppear {
-                        withAnimation(.easeOut(duration: 1.2).delay(0.3)) {
+                        withAnimation(.timingCurve(0.19, 1, 0.22, 1, duration: 1.8).delay(0.3)) {
                             animatedProgress = ringProgress
                         }
                     }

@@ -45,16 +45,24 @@ private struct FloatingTabBar: View {
     @Binding var selectedTab: AppTab
 
     var body: some View {
-        HStack(spacing: 0) {
-            tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
-            tabButton(tab: .upload, icon: "plus", selectedIcon: "plus", weight: .medium)
-            tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
+        HStack {
+            Spacer()
+
+            HStack(spacing: 0) {
+                tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
+                tabButton(tab: .upload, icon: "plus", selectedIcon: "plus", weight: .medium)
+                tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
+            }
+            .padding(.horizontal, 6)
+            .frame(width: UIScreen.main.bounds.width * (2.3 / 3.0), height: 70)
+            // Outer liquid glass pill
+            .glassEffect(in: Capsule())
+            .shadow(color: .black.opacity(0.14), radius: 28, x: 0, y: 10)
+
+            Spacer()
         }
-        .padding(.horizontal, 6)
+        .frame(maxWidth: .infinity)
         .frame(height: 70)
-        // Outer liquid glass pill
-        .glassEffect(in: Capsule())
-        .shadow(color: .black.opacity(0.14), radius: 28, x: 0, y: 10)
     }
 
     @ViewBuilder
@@ -83,8 +91,10 @@ private struct FloatingTabBar: View {
                     .foregroundStyle(selectedTab == tab ? Color.black : Color(white: 0.50))
             }
             .frame(width: 94, height: 54)
+            .contentShape(Rectangle())          // makes transparent areas tappable
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)  // hit area fills full bar height
     }
 }
 
