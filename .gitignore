@@ -28,3 +28,7 @@ Config/Development.xcconfig
 Pact.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 firebase-debug.log
+
+# Cloud Functions build artifacts
+functions/lib/
+functions/node_modules/

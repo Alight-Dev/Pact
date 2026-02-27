@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import FirebaseAuth
 
 // MARK: - ActivityListView
 
@@ -18,9 +19,12 @@ struct ActivityListView: View {
     private var activities: [Activity]
 
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var firestoreService: FirestoreService
 
     @State private var showingAddActivity = false
     @State private var activityToEdit: Activity? = nil
+    @State private var isCreatingTeam = false
+    @State private var createTeamError: String?
     @State private var allowAIFallback: Bool = true
     @State private var minApprovers: Int = 1
 
@@ -171,18 +175,64 @@ struct ActivityListView: View {
 
             VStack(spacing: 12) {
                 if let onContinue {
-                    Button(action: onContinue) {
-                        Text("Continue")
-                            .font(.system(size: 17, weight: .semibold))
+                    VStack(spacing: 6) {
+                        Button {
+                            isCreatingTeam = true
+                            createTeamError = nil
+                            let payloads = activities.map { a in
+                                ActivityPayload(
+                                    name: a.name,
+                                    description: a.activityDescription,
+                                    iconName: a.iconName,
+                                    repeatDays: a.repeatDays,
+                                    isOptional: a.isOptional,
+                                    order: a.order
+                                )
+                            }
+                            let firstName = authManager.currentUser?.displayName?
+                                .components(separatedBy: " ").first ?? "My"
+                            let teamName = "\(firstName)'s Shield"
+                            Task {
+                                do {
+                                    _ = try await firestoreService.createTeam(
+                                        name: teamName,
+                                        activities: payloads,
+                                        timezone: TimeZone.current.identifier
+                                    )
+                                    onContinue()
+                                } catch {
+                                    createTeamError = error.localizedDescription
+                                }
+                                isCreatingTeam = false
+                            }
+                        } label: {
+                            Group {
+                                if isCreatingTeam {
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
+                                        .tint(.white)
+                                } else {
+                                    Text("Continue")
+                                        .font(.system(size: 17, weight: .semibold))
+                                }
+                            }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
                                 RoundedRectangle(cornerRadius: 16)
-                                    .fill(activities.isEmpty ? Color(white: 0.9) : Color.black)
+                                    .fill(activities.isEmpty || isCreatingTeam ? Color(white: 0.9) : Color.black)
                             )
-                            .foregroundStyle(activities.isEmpty ? Color(white: 0.7) : .white)
+                            .foregroundStyle(activities.isEmpty || isCreatingTeam ? Color(white: 0.7) : .white)
+                        }
+                        .disabled(activities.isEmpty || isCreatingTeam)
+
+                        if let error = createTeamError {
+                            Text(error)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.red.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                        }
                     }
-                    .disabled(activities.isEmpty)
                 }
 
                 // Fixed Add Activity button
@@ -601,4 +651,6 @@ private struct ApproverSegmentedPicker: View {
 #Preview {
     ActivityListView()
         .modelContainer(for: Activity.self, inMemory: true)
+        .environmentObject(AuthManager())
+        .environmentObject(FirestoreService())
 }

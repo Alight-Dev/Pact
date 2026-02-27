@@ -8,11 +8,13 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseMessaging
 import GoogleSignIn
 
 @main
 struct PactApp: App {
     @StateObject private var authManager = AuthManager()
+    @StateObject private var firestoreService = FirestoreService()
     @State private var showOnboarding = false
     @State private var showSignupDirect = false
     @State private var showShieldSelection = false
@@ -84,6 +86,12 @@ struct PactApp: App {
                                 showJoinShield = false
                                 showShieldSelection = true
                             }
+                        },
+                        onJoined: {
+                            withAnimation {
+                                showJoinShield = false
+                                showHomeScreen = true
+                            }
                         }
                     )
                     .transition(.opacity)
@@ -148,8 +156,31 @@ struct PactApp: App {
                 }
             }
             .environmentObject(authManager)
+            .environmentObject(firestoreService)
             .onOpenURL { url in
-                GIDSignIn.sharedInstance.handle(url)
+                // Handle pact://join/{code} deep links
+                if url.scheme == "pact", url.host == "join",
+                   let code = url.pathComponents.last, code.count == 6 {
+                    Task {
+                        do {
+                            _ = try await firestoreService.joinTeam(inviteCode: code)
+                            await MainActor.run {
+                                withAnimation {
+                                    showJoinShield = false
+                                    showShieldSelection = false
+                                    showHomeScreen = true
+                                }
+                            }
+                        } catch {
+                            // Fall through to JoinShieldView for manual entry
+                            await MainActor.run {
+                                withAnimation { showJoinShield = true }
+                            }
+                        }
+                    }
+                } else {
+                    GIDSignIn.sharedInstance.handle(url)
+                }
             }
             .onChange(of: authManager.currentUser) { _, user in
                 if user == nil {
@@ -161,6 +192,14 @@ struct PactApp: App {
                         showJoinShield = false
                         showOnboarding = false
                         showSignupDirect = false
+                    }
+                    firestoreService.stopListeners()
+                } else {
+                    // Refresh FCM token on sign-in
+                    Task {
+                        if let token = try? await Messaging.messaging().token() {
+                            await firestoreService.updateFCMToken(token)
+                        }
                     }
                 }
             }

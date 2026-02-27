@@ -1,0 +1,93 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isTeamMember(teamId) {
+      return exists(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid));
+    }
+
+    // ── Users ──────────────────────────────────────────────────────────────
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && isOwner(uid);
+      allow write: if isSignedIn() && isOwner(uid);
+
+      match /teamMemberships/{teamId} {
+        allow read: if isSignedIn() && isOwner(uid);
+        // Written only by Cloud Functions (Admin SDK bypasses rules)
+        allow write: if false;
+      }
+    }
+
+    // ── Invites ────────────────────────────────────────────────────────────
+
+    match /invites/{code} {
+      // Anyone signed in can read an invite (to preview before joining)
+      allow read: if isSignedIn();
+      // Written only by Cloud Functions
+      allow write: if false;
+    }
+
+    // ── Teams ──────────────────────────────────────────────────────────────
+
+    match /teams/{teamId} {
+      allow read: if isSignedIn() && isTeamMember(teamId);
+      // Written only by Cloud Functions
+      allow write: if false;
+
+      match /members/{uid} {
+        allow read: if isSignedIn() && isTeamMember(teamId);
+        allow write: if false;
+      }
+
+      match /goals/{goalId} {
+        allow read: if isSignedIn() && isTeamMember(teamId);
+        // Clients can write forgePactAgreements (their own doc only)
+        allow write: if false;
+
+        match /forgePactAgreements/{uid} {
+          allow read:   if isSignedIn() && isTeamMember(teamId);
+          allow create: if isSignedIn() && isOwner(uid) && isTeamMember(teamId);
+          allow update, delete: if false; // Immutable
+        }
+      }
+
+      match /dailyInstances/{date} {
+        allow read: if isSignedIn() && isTeamMember(teamId);
+        allow write: if false;
+
+        match /submissions/{uid} {
+          allow read:   if isSignedIn() && isTeamMember(teamId);
+          // Client can create their own submission with status = "pending" only
+          allow create: if isSignedIn()
+            && isOwner(uid)
+            && isTeamMember(teamId)
+            && request.resource.data.status == "pending";
+          allow update, delete: if false; // Status updates by Cloud Functions only
+
+          match /votes/{voterId} {
+            allow read:   if isSignedIn() && isTeamMember(teamId);
+            // No self-approval; no double voting (doc ID = voterId)
+            allow create: if isSignedIn()
+              && isOwner(voterId)
+              && isTeamMember(teamId)
+              && voterId != uid  // uid here is the submitterUid path param
+              && !exists(/databases/$(database)/documents/teams/$(teamId)/dailyInstances/$(date)/submissions/$(uid)/votes/$(voterId));
+            allow update, delete: if false; // Votes are immutable
+          }
+        }
+      }
+    }
+  }
+}

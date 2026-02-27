@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
 
 // MARK: - Flow Steps
 
@@ -20,6 +21,7 @@ struct OnboardingFlowView: View {
     var onFinished: () -> Void
 
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var firestoreService: FirestoreService
 
     @State private var step: OnboardingStep = .gender
     @State private var isGoingForward = true
@@ -30,6 +32,7 @@ struct OnboardingFlowView: View {
     @State private var selectedCategories: Set<AppCategoryOption> = []
     @State private var profileNickname: String = ""
     @State private var profileAvatarID: Int = 0
+    @State private var profileAvatarAssetName: String = ""
 
     private var slideTransition: AnyTransition {
         .asymmetric(
@@ -185,9 +188,29 @@ struct OnboardingFlowView: View {
                             step = .signup
                         }
                     },
-                    onContinue: { nickname, avatarID in
+                    onContinue: { nickname, avatarID, assetName in
                         profileNickname = nickname
                         profileAvatarID = avatarID
+                        profileAvatarAssetName = assetName
+                        // Save profile to Firestore (best-effort — onboarding still proceeds on error)
+                        if let user = authManager.currentUser {
+                            Task {
+                                try? await firestoreService.saveUserProfile(
+                                    uid: user.uid,
+                                    displayName: user.displayName ?? "",
+                                    email: user.email,
+                                    isAnonymous: user.isAnonymous,
+                                    nickname: nickname,
+                                    avatarID: avatarID,
+                                    avatarAssetName: assetName,
+                                    gender: selectedGender?.rawValue ?? "",
+                                    ageRange: selectedAge?.rawValue ?? "",
+                                    dailyScreenTime: selectedScreenTime?.rawValue ?? "",
+                                    smartphoneYears: selectedSmartphoneYears,
+                                    appCategories: selectedCategories.map(\.rawValue)
+                                )
+                            }
+                        }
                         onFinished()
                     }
                 )
@@ -203,4 +226,6 @@ struct OnboardingFlowView: View {
     OnboardingFlowView(onFinished: {
         print("Onboarding finished")
     })
+    .environmentObject(AuthManager())
+    .environmentObject(FirestoreService())
 }
