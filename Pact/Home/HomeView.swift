@@ -30,6 +30,8 @@ struct HomeView: View {
     var onTeamTap: () -> Void
 
     @State private var cardSelection: Int = carouselStart
+    @State private var animatedProgress: CGFloat = 0
+    @State private var showProfile = false
 
     private var currentDot: Int { cardSelection % cardCount }
 
@@ -49,8 +51,8 @@ struct HomeView: View {
                     // MARK: Header
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Welcome Ethan!")
-                                .font(.subheadline)
+                            Text("Welcome Ethan")
+                                .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(Color(white: 0.55))
 
                             Text("Money Team")
@@ -61,12 +63,16 @@ struct HomeView: View {
 
                         Spacer()
 
-                        Image("avatar_\(persistedAvatar)")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 44, height: 44)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                        Button { showProfile = true } label: {
+                            Image("avatar_\(persistedAvatar)")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 44, height: 44)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                        }
+                        .buttonStyle(.plain)
+                        .sheet(isPresented: $showProfile) { ProfileView() }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
@@ -82,7 +88,7 @@ struct HomeView: View {
 
                             // Progress arc (black, flat ends)
                             Circle()
-                                .trim(from: 0, to: ringProgress)
+                                .trim(from: 0, to: animatedProgress)
                                 .stroke(
                                     Color.black,
                                     style: StrokeStyle(lineWidth: ringWidth, lineCap: .butt)
@@ -99,6 +105,14 @@ struct HomeView: View {
                         Spacer()
                     }
                     .padding(.top, 24)
+                    .onAppear {
+                        withAnimation(.timingCurve(0.19, 1, 0.22, 1, duration: 1.8).delay(0.3)) {
+                            animatedProgress = ringProgress
+                        }
+                    }
+                    .onDisappear {
+                        animatedProgress = 0
+                    }
 
                     // MARK: Infinite swipe carousel
                     TabView(selection: $cardSelection) {
@@ -282,9 +296,9 @@ struct HomeView: View {
             Divider()
                 .padding(.bottom, 14)
 
-            // Team completion label + count
+            // Your completion label + count
             HStack {
-                Text("Team Completion")
+                Text("Your Completion")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(white: 0.50))
                 Spacer()
