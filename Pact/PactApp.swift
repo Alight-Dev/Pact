@@ -53,7 +53,7 @@ struct PactApp: App {
         WindowGroup {
             Group {
                 if showHomeScreen {
-                    ActivityListView()
+                    HomeScreenView()
                 } else if showJoinShield {
                     JoinShieldView(
                         onBack: {
