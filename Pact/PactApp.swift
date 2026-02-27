@@ -20,8 +20,10 @@ struct PactApp: App {
     @State private var showShieldSelection = false
     @State private var showJoinShield = false
     @State private var showHomeScreen = false
+    @State private var showTeamName = false
     @State private var showActivitiesSetup = false
     @State private var showPactLaunch = false
+    @State private var pendingTeamName = ""
 
     init() {
         FirebaseApp.configure()
@@ -71,10 +73,28 @@ struct PactApp: App {
                     .transition(.opacity)
                 } else if showActivitiesSetup {
                     ActivityListView(
+                        teamName: pendingTeamName,
                         onContinue: {
                             withAnimation {
                                 showActivitiesSetup = false
                                 showPactLaunch = true
+                            }
+                        }
+                    )
+                    .transition(.opacity)
+                } else if showTeamName {
+                    OnboardingTeamNameView(
+                        onBack: {
+                            withAnimation {
+                                showTeamName = false
+                                showShieldSelection = true
+                            }
+                        },
+                        onContinue: { name in
+                            pendingTeamName = name
+                            withAnimation {
+                                showTeamName = false
+                                showActivitiesSetup = true
                             }
                         }
                     )
@@ -100,7 +120,7 @@ struct PactApp: App {
                         onCreateShield: {
                             withAnimation {
                                 showShieldSelection = false
-                                showActivitiesSetup = true
+                                showTeamName = true
                             }
                         },
                         onJoinShield: {
@@ -187,6 +207,7 @@ struct PactApp: App {
                     withAnimation {
                         showHomeScreen = false
                         showActivitiesSetup = false
+                        showTeamName = false
                         showPactLaunch = false
                         showShieldSelection = false
                         showJoinShield = false

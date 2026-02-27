@@ -231,6 +231,9 @@ struct OnboardingFlowView: View {
                         profileNickname = nickname
                         profileAvatarID = avatarID
                         profileAvatarAssetName = assetName
+                        // Persist nickname + avatar locally so HomeView can greet the user without a Firestore round-trip.
+                        UserDefaults.standard.set(nickname, forKey: "app_nickname")
+                        UserDefaults.standard.set(assetName, forKey: "app_avatar_asset")
                         // Save profile to Firestore (best-effort — onboarding still proceeds on error)
                         if let user = authManager.currentUser {
                             Task {
