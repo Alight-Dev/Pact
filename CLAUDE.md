@@ -6,6 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This file should evolve with the project. Whenever a meaningful feature is added, an architectural decision is made, a new dependency is integrated, or the product vision shifts, update the relevant section here. The goal is for this file to always reflect the current state of the codebase accurately — not a snapshot from early development.
 
+## MVP Feature Tracking — TODO.md
+
+All MVP features and their completion status are tracked in **[`TODO.md`](./TODO.md)**.
+
+### Rules for Claude when working on this project:
+
+1. **Incremental scan before starting work:** At the beginning of every coding session (or whenever asked), scan the relevant Swift source files and Cloud Function TypeScript files to check whether any `TODO.md` items have been completed since the last update. Check off any completed items you discover.
+2. **Check off on completion:** Immediately after implementing a feature or wiring a piece of functionality, open `TODO.md` and change the corresponding `[ ]` to `[x]`. Do this before moving on to the next task.
+3. **Add new items:** If you discover a new requirement or sub-task not currently listed, add it to the appropriate section in `TODO.md` before starting work on it.
+4. **Move completed items:** Periodically move large groups of completed (`[x]`) items to the "Completed Items Archive" section at the bottom of `TODO.md` to keep the active list readable.
+
 ## Build & Run
 
 Open in Xcode and run with ⌘R, or from the terminal:
