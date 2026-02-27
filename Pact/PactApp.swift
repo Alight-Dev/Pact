@@ -183,7 +183,23 @@ struct PactApp: App {
                    let code = url.pathComponents.last, code.count == 6 {
                     Task {
                         do {
-                            _ = try await firestoreService.joinTeam(inviteCode: code)
+                            let joinResult = try await firestoreService.joinTeam(inviteCode: code)
+                            let membership = try await firestoreService.loadActiveMembership()
+                            await MainActor.run {
+                                if let membership {
+                                    firestoreService.startTeamSession(
+                                        teamId: membership.teamId,
+                                        teamName: membership.teamName,
+                                        adminTimezone: membership.adminTimezone
+                                    )
+                                } else {
+                                    firestoreService.startTeamSession(
+                                        teamId: joinResult.teamId,
+                                        teamName: joinResult.teamName,
+                                        adminTimezone: TimeZone.current.identifier
+                                    )
+                                }
+                            }
                             await MainActor.run {
                                 withAnimation {
                                     showJoinShield = false
