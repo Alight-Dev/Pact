@@ -47,7 +47,26 @@ private struct FloatingTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
-            tabButton(tab: .upload, icon: "plus", selectedIcon: "plus", weight: .medium)
+
+            // Upload (center raised button)
+            Button {
+                onUploadTapped()
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color(white: 0.93))
+                        .frame(width: 56, height: 56)
+                        .shadow(color: .black.opacity(0.10), radius: 6, x: 0, y: 3)
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(Color(white: 0.25))
+                }
+                .offset(y: -10)
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+
+            // Team
             tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
         }
         .padding(.horizontal, 6)
