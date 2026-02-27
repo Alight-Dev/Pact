@@ -66,6 +66,7 @@ struct HomeView: View {
                             .scaledToFill()
                             .frame(width: 44, height: 44)
                             .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white, lineWidth: 3))
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
@@ -122,6 +123,11 @@ struct HomeView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 10)
+
+                    // MARK: Today's Goal
+                    todayGoalCard
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
 
                     // Bottom breathing room for the tab bar
                     Spacer(minLength: 110)
@@ -180,9 +186,17 @@ struct HomeView: View {
 
     private var teamProgressCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Team Progress")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.black)
+            HStack {
+                Text("Team Progress")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.black)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color(white: 0.35))
+                    .padding(8)
+                    .background(Color(white: 0.93), in: Circle())
+            }
 
             HStack(spacing: 0) {
                 ForEach(teamAvatars, id: \.self) { name in
@@ -203,6 +217,104 @@ struct HomeView: View {
                 .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
         )
         .onTapGesture { onTeamTap() }
+    }
+
+    // MARK: - Activity row helper
+
+    @ViewBuilder
+    private func activityRow(title: String, completed: Bool) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 15))
+                .foregroundStyle(.black)
+            Spacer()
+            if completed {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.black)
+            } else {
+                Rectangle()
+                    .fill(Color(white: 0.50))
+                    .frame(width: 12, height: 2)
+                    .cornerRadius(1)
+            }
+        }
+    }
+
+    // MARK: - Today's Goal card
+
+    private var todayGoalCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            // Icon + title/subtitle row
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color(white: 0.10))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "scope")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Today's Goal")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.black)
+                    Text("Go to the gym before 9 AM")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(white: 0.50))
+                }
+            }
+            .padding(.bottom, 14)
+
+            Divider()
+                .padding(.bottom, 14)
+
+            // Activity list
+            VStack(spacing: 14) {
+                activityRow(title: "Go to the gym",           completed: true)
+                activityRow(title: "Read 10 pages of the bible", completed: false)
+                activityRow(title: "Meditate for 10 minutes", completed: true)
+                activityRow(title: "No social media before noon", completed: false)
+            }
+            .padding(.bottom, 16)
+
+            Divider()
+                .padding(.bottom, 14)
+
+            // Team completion label + count
+            HStack {
+                Text("Team Completion")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color(white: 0.50))
+                Spacer()
+                Text("2/4")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.black)
+            }
+            .padding(.bottom, 8)
+
+            // Progress bar (50% = 2/4)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(white: 0.88))
+                        .frame(height: 8)
+                    Capsule()
+                        .fill(Color.black)
+                        .frame(width: geo.size.width * 0.50, height: 8)
+                }
+            }
+            .frame(height: 8)
+            .padding(.bottom, 2)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white)
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
+        )
     }
 
     // MARK: - Persisted avatar
