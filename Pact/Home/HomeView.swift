@@ -49,8 +49,8 @@ struct HomeView: View {
                     // MARK: Header
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Welcome Ethan!")
-                                .font(.subheadline)
+                            Text("Welcome Ethan")
+                                .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(Color(white: 0.55))
 
                             Text("Money Team")
@@ -282,9 +282,9 @@ struct HomeView: View {
             Divider()
                 .padding(.bottom, 14)
 
-            // Team completion label + count
+            // Your completion label + count
             HStack {
-                Text("Team Completion")
+                Text("Your Completion")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(white: 0.50))
                 Spacer()
