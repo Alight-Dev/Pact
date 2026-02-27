@@ -7,6 +7,25 @@ import SwiftUI
 
 // MARK: - Mock Data
 
+private struct ShieldMember: Identifiable {
+    let id = UUID()
+    let memberName: String
+    let memberAvatarAsset: String
+    let activitiesCompleted: Int
+    let activitiesTotal: Int
+    let isCurrentUser: Bool
+
+    var hasCompletedAll: Bool { activitiesCompleted >= activitiesTotal }
+    var progress: Double { activitiesTotal > 0 ? Double(activitiesCompleted) / Double(activitiesTotal) : 0 }
+}
+
+private let mockMembers: [ShieldMember] = [
+    ShieldMember(memberName: "You",    memberAvatarAsset: "avatar_alex",   activitiesCompleted: 1, activitiesTotal: 3, isCurrentUser: true),
+    ShieldMember(memberName: "Sarah",  memberAvatarAsset: "avatar_sara",   activitiesCompleted: 3, activitiesTotal: 3, isCurrentUser: false),
+    ShieldMember(memberName: "Alex",   memberAvatarAsset: "avatar_alex",   activitiesCompleted: 0, activitiesTotal: 2, isCurrentUser: false),
+    ShieldMember(memberName: "Jordan", memberAvatarAsset: "avatar_jordan", activitiesCompleted: 2, activitiesTotal: 2, isCurrentUser: false),
+]
+
 private struct PendingSubmission: Identifiable {
     let id = UUID()
     let memberName: String
@@ -22,6 +41,110 @@ private let mockSubmissions: [PendingSubmission] = [
     PendingSubmission(memberName: "Sarah", memberAvatarAsset: "avatar_sara", activityName: "30 Min Reading", approvalsReceived: 0, approvalsRequired: 2),
     PendingSubmission(memberName: "Jordan", memberAvatarAsset: "avatar_jordan", activityName: "Meditation", approvalsReceived: 1, approvalsRequired: 2),
 ]
+
+private struct HighlightSubmission: Identifiable {
+    let id = UUID()
+    let memberName: String
+    let memberAvatarAsset: String
+    let activityName: String
+    let systemIconName: String
+}
+
+private let mockHighlights: [HighlightSubmission] = [
+    HighlightSubmission(memberName: "Sarah",  memberAvatarAsset: "avatar_sara",   activityName: "30 Min Reading", systemIconName: "book.fill"),
+    HighlightSubmission(memberName: "Jordan", memberAvatarAsset: "avatar_jordan", activityName: "Meditation",     systemIconName: "figure.mind.and.body"),
+    HighlightSubmission(memberName: "Alex",   memberAvatarAsset: "avatar_alex",   activityName: "Morning Gym",    systemIconName: "figure.strengthtraining.traditional"),
+]
+
+// MARK: - Highlight Card
+
+private struct HighlightCard: View {
+    let highlight: HighlightSubmission
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(white: 0.94))
+                    .frame(height: 260)
+
+                Image(systemName: highlight.systemIconName)
+                    .font(.system(size: 60))
+                    .foregroundStyle(Color(white: 0.70))
+            }
+            .overlay(alignment: .topTrailing) {
+                Text("APPROVED")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(red: 0.20, green: 0.75, blue: 0.45), in: Capsule())
+                    .padding(12)
+            }
+
+            HStack(spacing: 12) {
+                Image(highlight.memberAvatarAsset)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 48, height: 48)
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(highlight.memberName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.black)
+                    Text(highlight.activityName)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(white: 0.55))
+                }
+
+                Spacer()
+
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Color(red: 0.20, green: 0.75, blue: 0.45))
+            }
+            .padding(.top, 14)
+        }
+        .padding(16)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
+    }
+}
+
+// MARK: - Highlights Section
+
+private struct HighlightsSection: View {
+    let highlights: [HighlightSubmission]
+    @State private var currentPage = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Highlights")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.black)
+
+            TabView(selection: $currentPage) {
+                ForEach(Array(highlights.enumerated()), id: \.element.id) { index, highlight in
+                    HighlightCard(highlight: highlight)
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: 370)
+
+            HStack(spacing: 6) {
+                ForEach(highlights.indices, id: \.self) { index in
+                    Circle()
+                        .fill(index == currentPage ? Color.black : Color(white: 0.80))
+                        .frame(width: 7, height: 7)
+                        .animation(.easeInOut(duration: 0.2), value: currentPage)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+}
 
 // MARK: - Submission Card
 
@@ -173,48 +296,28 @@ private struct SubmissionCard: View {
 // MARK: - Swipeable Card Stack
 
 private struct SwipeableCardStack: View {
-    @State private var submissions: [PendingSubmission]
-
-    init(submissions: [PendingSubmission]) {
-        _submissions = State(initialValue: submissions)
-    }
+    @Binding var submissions: [PendingSubmission]
 
     var body: some View {
-        if submissions.isEmpty {
-            HStack {
-                Spacer()
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(Color(white: 0.80))
-                    Text("All caught up!")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Color(white: 0.55))
-                }
-                .padding(.vertical, 60)
-                Spacer()
-            }
-        } else {
-            let visible = Array(submissions.prefix(3))
-            ZStack {
-                ForEach(Array(visible.enumerated().reversed()), id: \.element.id) { index, submission in
-                    let isTop = index == 0
-                    let depth = index  // 0 = top, higher = further back
-                    let scale = 1.0 - (Double(depth) * 0.03)
-                    let yOffset = Double(depth) * 10
+        let visible = Array(submissions.prefix(3))
+        ZStack {
+            ForEach(Array(visible.enumerated().reversed()), id: \.element.id) { index, submission in
+                let isTop = index == 0
+                let depth = index
+                let scale = 1.0 - (Double(depth) * 0.03)
+                let yOffset = Double(depth) * 10
 
-                    SubmissionCard(
-                        submission: submission,
-                        onSwipe: { approved in
-                            withAnimation(.spring()) {
-                                submissions.removeAll { $0.id == submission.id }
-                            }
+                SubmissionCard(
+                    submission: submission,
+                    onSwipe: { _ in
+                        withAnimation(.spring()) {
+                            submissions.removeAll { $0.id == submission.id }
                         }
-                    )
-                    .scaleEffect(isTop ? 1.0 : scale)
-                    .offset(y: isTop ? 0 : yOffset)
-                    .zIndex(Double(visible.count - depth))
-                }
+                    }
+                )
+                .scaleEffect(isTop ? 1.0 : scale)
+                .offset(y: isTop ? 0 : yOffset)
+                .zIndex(Double(visible.count - depth))
             }
         }
     }
@@ -223,13 +326,99 @@ private struct SwipeableCardStack: View {
 // MARK: - Pending Approvals Section
 
 private struct PendingApprovalsSection: View {
+    @Binding var submissions: [PendingSubmission]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Pending Approvals")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.black)
 
-            SwipeableCardStack(submissions: mockSubmissions)
+            SwipeableCardStack(submissions: $submissions)
+        }
+    }
+}
+
+// MARK: - Member Row
+
+private struct MemberRow: View {
+    let member: ShieldMember
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(member.memberAvatarAsset)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 48, height: 48)
+                .clipShape(Circle())
+                .overlay(
+                    Circle().stroke(
+                        member.hasCompletedAll ? Color(red: 0.20, green: 0.75, blue: 0.45) : Color.clear,
+                        lineWidth: 2.5
+                    )
+                )
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text(member.memberName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.black)
+                    if member.isCurrentUser {
+                        Text("You")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color(red: 0.20, green: 0.75, blue: 0.45), in: Capsule())
+                    }
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Spacer()
+                        Text("\(member.activitiesCompleted)/\(member.activitiesTotal)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Color(white: 0.55))
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color(white: 0.88))
+                                .frame(height: 6)
+                            Capsule()
+                                .fill(Color(red: 0.20, green: 0.75, blue: 0.45))
+                                .frame(width: geo.size.width * member.progress, height: 6)
+                        }
+                    }
+                    .frame(height: 6)
+                }
+            }
+
+            Spacer()
+
+            Circle()
+                .fill(member.hasCompletedAll ? Color(red: 0.20, green: 0.75, blue: 0.45) : Color(white: 0.78))
+                .frame(width: 10, height: 10)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color(white: 0.96), in: RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+// MARK: - Shield Members Section
+
+private struct ShieldMembersSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Shield Members")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.black)
+
+            VStack(spacing: 8) {
+                ForEach(mockMembers) { member in
+                    MemberRow(member: member)
+                }
+            }
         }
     }
 }
@@ -237,6 +426,8 @@ private struct PendingApprovalsSection: View {
 // MARK: - Team View
 
 struct TeamView: View {
+    @State private var submissions = mockSubmissions
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -244,9 +435,22 @@ struct TeamView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 100)
 
-                PendingApprovalsSection()
+                if !submissions.isEmpty {
+                    PendingApprovalsSection(submissions: $submissions)
+                        .padding(.top, 32)
+                        .padding(.horizontal, 20)
+                        .transition(.opacity)
+                } else {
+                    HighlightsSection(highlights: mockHighlights)
+                        .padding(.top, 32)
+                        .padding(.horizontal, 20)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                }
+
+                ShieldMembersSection()
                     .padding(.top, 32)
                     .padding(.horizontal, 20)
+                    .padding(.bottom, 32)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
