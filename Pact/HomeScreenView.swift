@@ -8,37 +8,34 @@ import SwiftUI
 // MARK: - Tab Definition
 
 enum AppTab {
-    case home, team
+    case home, upload, team
 }
 
 // MARK: - Root Container
 
 struct HomeScreenView: View {
     @State private var selectedTab: AppTab = .home
-    @State private var showUpload: Bool = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch selectedTab {
                 case .home:
-                    HomeView()
-                case .team:
-                    TeamView()
+                    HomeView(onTeamTap: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            selectedTab = .team
+                        }
+                    })
+                case .upload: UploadView()
+                case .team:   TeamView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Floating liquid-glass tab bar
-            FloatingTabBar(selectedTab: $selectedTab, onUploadTapped: {
-                showUpload = true
-            })
-            .padding(.bottom, 24)
+            FloatingTabBar(selectedTab: $selectedTab)
+                .padding(.bottom, 24)
         }
         .ignoresSafeArea(edges: .bottom)
-        .fullScreenCover(isPresented: $showUpload) {
-            UploadProofView()
-        }
     }
 }
 
@@ -46,7 +43,6 @@ struct HomeScreenView: View {
 
 private struct FloatingTabBar: View {
     @Binding var selectedTab: AppTab
-    var onUploadTapped: () -> Void
 
     var body: some View {
         HStack(spacing: 0) {
