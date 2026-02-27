@@ -226,10 +226,13 @@ struct ActivityListView: View {
                                         activities: payloads,
                                         timezone: TimeZone.current.identifier
                                     )
-                                    // Persist team info locally so HomeView can display it.
-                                    // TODO: Start FirestoreService.listenToTeam(teamId:) here once Firestore is deployed.
-                                    UserDefaults.standard.set(result.teamId, forKey: "app_team_id")
-                                    UserDefaults.standard.set(resolvedName, forKey: "app_team_name")
+                                    await MainActor.run {
+                                        firestoreService.startTeamSession(
+                                            teamId: result.teamId,
+                                            teamName: resolvedName,
+                                            adminTimezone: TimeZone.current.identifier
+                                        )
+                                    }
                                     onContinue()
                                 } catch {
                                     createTeamError = error.localizedDescription

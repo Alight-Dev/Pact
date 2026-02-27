@@ -411,11 +411,28 @@ private struct MemberRow: View {
 // MARK: - Shield Members Section
 
 private struct ShieldMembersSection: View {
+    let shareText: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Shield Members")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(.black)
+            HStack(spacing: 12) {
+                Text("Shield Members")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.black)
+
+                Spacer()
+
+                if let shareText {
+                    ShareLink(item: shareText) {
+                        Label("Add Members", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color(white: 0.94), in: Capsule())
+                    }
+                }
+            }
 
             VStack(spacing: 8) {
                 ForEach(mockMembers) { member in
@@ -431,6 +448,11 @@ private struct ShieldMembersSection: View {
 struct TeamView: View {
     @EnvironmentObject var firestoreService: FirestoreService
     @State private var submissions = mockSubmissions
+    
+    private var inviteShareText: String? {
+        guard let code = firestoreService.currentTeam?["inviteCode"] as? String else { return nil }
+        return "pact://join/\(code)"
+    }
 
     private var shieldDisplayName: String {
         if let name = firestoreService.currentTeam?["name"] as? String {
@@ -464,7 +486,7 @@ struct TeamView: View {
                         .transition(.opacity.combined(with: .move(edge: .trailing)))
                 }
 
-                ShieldMembersSection()
+                ShieldMembersSection(shareText: inviteShareText)
                     .padding(.top, 32)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 32)
