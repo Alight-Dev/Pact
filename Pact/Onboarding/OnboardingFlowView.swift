@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 // MARK: - Flow Steps
 
@@ -17,6 +18,8 @@ private enum OnboardingStep {
 
 struct OnboardingFlowView: View {
     var onFinished: () -> Void
+
+    @EnvironmentObject var authManager: AuthManager
 
     @State private var step: OnboardingStep = .gender
     @State private var isGoingForward = true
@@ -175,6 +178,7 @@ struct OnboardingFlowView: View {
 
             case .profileSetup:
                 OnboardingProfileSetupView(
+                    firstName: authManager.currentUser?.displayName?.components(separatedBy: " ").first,
                     onBack: {
                         isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {

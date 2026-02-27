@@ -123,6 +123,17 @@ struct PactApp: App {
             .onOpenURL { url in
                 GIDSignIn.sharedInstance.handle(url)
             }
+            .onChange(of: authManager.currentUser) { _, user in
+                if user == nil {
+                    withAnimation {
+                        showHomeScreen = false
+                        showShieldSelection = false
+                        showJoinShield = false
+                        showOnboarding = false
+                        showSignupDirect = false
+                    }
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
     }

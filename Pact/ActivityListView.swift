@@ -15,6 +15,8 @@ struct ActivityListView: View {
     @Query(sort: [SortDescriptor(\Activity.order), SortDescriptor(\Activity.createdAt)])
     private var activities: [Activity]
 
+    @EnvironmentObject var authManager: AuthManager
+
     @State private var showingAddActivity = false
     @State private var activityToEdit: Activity? = nil
 
@@ -91,6 +93,21 @@ struct ActivityListView: View {
                         .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                     }
                 }
+
+                #if DEBUG
+                Button {
+                    try? authManager.signOut()
+                } label: {
+                    Text("Debug: Sign Out")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(white: 0.6))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+                #endif
 
                 // Bottom padding so the last card isn't hidden behind the Add button
                 Color.clear

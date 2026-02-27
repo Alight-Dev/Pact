@@ -27,3 +27,4 @@ Config/Development.xcconfig
 # Xcode project file (per-developer config: Team ID, bundle ID, signing)
 Pact.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
+firebase-debug.log
