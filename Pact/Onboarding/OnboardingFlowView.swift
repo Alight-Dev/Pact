@@ -7,12 +7,23 @@
 
 import SwiftUI
 import FirebaseAuth
+import FamilyControls
 import FirebaseFirestore
+
 
 // MARK: - Flow Steps
 
 private enum OnboardingStep {
-    case gender, age, screenTime, projectionInputs, projectionLoading, projectionResult, requestNotifications, signup, profileSetup
+    case gender
+    case age
+    case screenTime
+    case projectionInputs
+    case projectionLoading
+    case projectionResult
+    case requestNotifications
+    case screenTimeAccessIntro
+    case signup
+    case profileSetup
 }
 
 // MARK: - Flow Coordinator
@@ -156,6 +167,34 @@ struct OnboardingFlowView: View {
                     },
                     onContinue: {
                         withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .screenTimeAccessIntro
+                        }
+                    }
+                )
+                .transition(slideTransition)
+
+            case .screenTimeAccessIntro:
+                OnboardingScreenTimeAccessIntroView(
+                    onBack: {
+                        isGoingForward = false
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .requestNotifications
+                        }
+                    },
+                    onConnectTapped: {
+                        Task {
+                            await requestScreenTimeAuthorization()
+                            await MainActor.run {
+                                isGoingForward = true
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                    step = .signup
+                                }
+                            }
+                        }
+                    },
+                    onSkipTapped: {
+                        isGoingForward = true
+                        withAnimation(.easeInOut(duration: 0.35)) {
                             step = .signup
                         }
                     }
@@ -216,6 +255,16 @@ struct OnboardingFlowView: View {
                 )
                 .transition(slideTransition)
             }
+        }
+    }
+
+    @MainActor
+    private func requestScreenTimeAuthorization() async {
+        do {
+            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+        } catch {
+            // For now we silently ignore failures; the flow still continues.
+            print("Screen Time authorization request failed: \(error)")
         }
     }
 }
