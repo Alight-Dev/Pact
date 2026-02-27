@@ -38,7 +38,7 @@ private let allAvatarOptions: [AvatarOption] = [
 struct OnboardingProfileSetupView: View {
     var firstName: String? = nil
     var onBack: () -> Void
-    var onContinue: (String, Int) -> Void   // (nickname, avatarID)
+    var onContinue: (String, Int, String) -> Void   // (nickname, avatarID, avatarAssetName)
 
     @State private var nickname: String = ""
     @State private var selectedAvatarID: Int? = nil
@@ -236,9 +236,11 @@ struct OnboardingProfileSetupView: View {
 
                 // Continue — primary CTA, always at the very bottom
                 Button {
+                    let assetName = shuffledAvatars.first { $0.id == selectedAvatarID! }?.assetName ?? "avatar_felix"
                     onContinue(
                         nickname.trimmingCharacters(in: .whitespaces),
-                        selectedAvatarID!
+                        selectedAvatarID!,
+                        assetName
                     )
                 } label: {
                     Text("Continue")
@@ -430,13 +432,13 @@ private struct AvatarCell: View {
 // MARK: - Previews
 
 #Preview("No selection") {
-    OnboardingProfileSetupView(onBack: {}, onContinue: { _, _ in })
+    OnboardingProfileSetupView(onBack: {}, onContinue: { _, _, _ in })
 }
 
 #Preview("With name") {
     OnboardingProfileSetupView(
         firstName: "Alex",
         onBack: {},
-        onContinue: { _, _ in }
+        onContinue: { _, _, _ in }
     )
 }

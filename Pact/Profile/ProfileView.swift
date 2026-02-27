@@ -1,15 +1,15 @@
 //
-//  UploadView.swift
+//  ProfileView.swift
 //  Pact
 //
 
 import SwiftUI
 
-struct UploadView: View {
+struct ProfileView: View {
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
-            Text("Upload")
+            Text("Profile")
                 .font(.system(size: 36, weight: .bold))
                 .foregroundStyle(.black)
         }
@@ -17,5 +17,5 @@ struct UploadView: View {
 }
 
 #Preview {
-    UploadView()
+    ProfileView()
 }
