@@ -52,6 +52,18 @@ final class AuthManager: ObservableObject {
         try Auth.auth().signOut()
         currentUser = nil
     }
+
+    /// Deletes the Firebase Auth account, clears all local app data, and signs out.
+    /// After this call `currentUser` becomes nil which triggers PactApp to reset to splash.
+    func deleteAccount() async throws {
+        guard let user = Auth.auth().currentUser else { return }
+        try await user.delete()
+        GIDSignIn.sharedInstance.signOut()
+        // Clear all persisted app data so onboarding starts fresh.
+        let keys = ["app_nickname", "app_avatar", "app_avatar_asset", "app_team_id", "app_team_name"]
+        keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        currentUser = nil
+    }
 }
 
 enum AuthError: LocalizedError {

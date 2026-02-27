@@ -89,7 +89,7 @@ struct HomeView: View {
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(Color(white: 0.55))
 
-                            Text(firstName)
+                            Text(teamName)
                                 .font(.system(size: 32, weight: .bold))
                                 .foregroundStyle(.black)
                                 .onTapGesture { onTeamTap() }

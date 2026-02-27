@@ -28,6 +28,7 @@ struct ActivityListView: View {
     @State private var createTeamError: String?
     @State private var allowAIFallback: Bool = true
     @State private var minApprovers: Int = 1
+    @State private var showDeleteAccountAlert = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -162,6 +163,30 @@ struct ActivityListView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+
+                Button {
+                    showDeleteAccountAlert = true
+                } label: {
+                    Text("Debug: Delete Account")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.red.opacity(0.7))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+                .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
+                    Button("Delete", role: .destructive) {
+                        Task {
+                            try? await authManager.deleteAccount()
+                            try? modelContext.delete(model: Activity.self)
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This permanently deletes your account and resets the app. You cannot undo this.")
+                }
                 #endif
 
                 // Bottom padding so the last card isn't hidden behind the Add button

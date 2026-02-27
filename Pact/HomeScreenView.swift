@@ -45,23 +45,26 @@ private struct FloatingTabBar: View {
     @Binding var selectedTab: AppTab
 
     var body: some View {
-        HStack {
-            Spacer()
+        GeometryReader { proxy in
+            HStack {
+                Spacer()
 
-            HStack(spacing: 0) {
-                tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
-                tabButton(tab: .upload, icon: "plus", selectedIcon: "plus", weight: .medium)
-                tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
+                HStack(spacing: 0) {
+                    tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
+                    tabButton(tab: .upload, icon: "plus", selectedIcon: "plus", weight: .medium)
+                    tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
+                }
+                .padding(.horizontal, 6)
+                .frame(width: proxy.size.width * (2.3 / 3.0), height: 70)
+                // Outer liquid glass pill
+                .glassEffect(in: Capsule())
+                .shadow(color: .black.opacity(0.14), radius: 28, x: 0, y: 10)
+
+                Spacer()
             }
-            .padding(.horizontal, 6)
-            .frame(width: UIScreen.main.bounds.width * (2.3 / 3.0), height: 70)
-            // Outer liquid glass pill
-            .glassEffect(in: Capsule())
-            .shadow(color: .black.opacity(0.14), radius: 28, x: 0, y: 10)
-
-            Spacer()
+            .frame(maxWidth: .infinity)
+            .frame(height: 70)
         }
-        .frame(maxWidth: .infinity)
         .frame(height: 70)
     }
 
