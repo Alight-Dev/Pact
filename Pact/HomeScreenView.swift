@@ -8,37 +8,34 @@ import SwiftUI
 // MARK: - Tab Definition
 
 enum AppTab {
-    case home, team
+    case home, upload, team
 }
 
 // MARK: - Root Container
 
 struct HomeScreenView: View {
     @State private var selectedTab: AppTab = .home
-    @State private var showUpload: Bool = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch selectedTab {
                 case .home:
-                    HomeView()
-                case .team:
-                    TeamView()
+                    HomeView(onTeamTap: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                            selectedTab = .team
+                        }
+                    })
+                case .upload: UploadView()
+                case .team:   TeamView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Floating liquid-glass tab bar
-            FloatingTabBar(selectedTab: $selectedTab, onUploadTapped: {
-                showUpload = true
-            })
-            .padding(.bottom, 24)
+            FloatingTabBar(selectedTab: $selectedTab)
+                .padding(.bottom, 24)
         }
         .ignoresSafeArea(edges: .bottom)
-        .fullScreenCover(isPresented: $showUpload) {
-            UploadProofView()
-        }
     }
 }
 
@@ -46,7 +43,6 @@ struct HomeScreenView: View {
 
 private struct FloatingTabBar: View {
     @Binding var selectedTab: AppTab
-    var onUploadTapped: () -> Void
 
     var body: some View {
         HStack {
@@ -54,25 +50,7 @@ private struct FloatingTabBar: View {
 
             HStack(spacing: 0) {
                 tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
-                
-                // Upload (center raised button)
-                Button {
-                    onUploadTapped()
-                } label: {
-                    ZStack {
-                        Circle()
-                            .fill(Color(white: 0.93))
-                            .frame(width: 56, height: 56)
-                            .shadow(color: .black.opacity(0.10), radius: 6, x: 0, y: 3)
-                        Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(Color(white: 0.25))
-                    }
-                    .offset(y: -10)
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.plain)
-
+                tabButton(tab: .upload, icon: "plus", selectedIcon: "plus", weight: .medium)
                 tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
             }
             .padding(.horizontal, 6)
