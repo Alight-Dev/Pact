@@ -12,6 +12,7 @@ import FirebaseAuth
 // MARK: - ActivityListView
 
 struct ActivityListView: View {
+    var teamName: String = ""
     var onContinue: (() -> Void)? = nil
 
     @Environment(\.modelContext) private var modelContext
@@ -27,6 +28,7 @@ struct ActivityListView: View {
     @State private var createTeamError: String?
     @State private var allowAIFallback: Bool = true
     @State private var minApprovers: Int = 1
+    @State private var showDeleteAccountAlert = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -161,6 +163,30 @@ struct ActivityListView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+
+                Button {
+                    showDeleteAccountAlert = true
+                } label: {
+                    Text("Debug: Delete Account")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.red.opacity(0.7))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
+                .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
+                    Button("Delete", role: .destructive) {
+                        Task {
+                            try? await authManager.deleteAccount()
+                            try? modelContext.delete(model: Activity.self)
+                        }
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This permanently deletes your account and resets the app. You cannot undo this.")
+                }
                 #endif
 
                 // Bottom padding so the last card isn't hidden behind the Add button
@@ -189,16 +215,21 @@ struct ActivityListView: View {
                                     order: a.order
                                 )
                             }
-                            let firstName = authManager.currentUser?.displayName?
-                                .components(separatedBy: " ").first ?? "My"
-                            let teamName = "\(firstName)'s Shield"
+                            let resolvedName = teamName.isEmpty
+                                ? (authManager.currentUser?.displayName?
+                                    .components(separatedBy: " ").first.map { "\($0)'s Shield" } ?? "My Shield")
+                                : teamName
                             Task {
                                 do {
-                                    _ = try await firestoreService.createTeam(
-                                        name: teamName,
+                                    let result = try await firestoreService.createTeam(
+                                        name: resolvedName,
                                         activities: payloads,
                                         timezone: TimeZone.current.identifier
                                     )
+                                    // Persist team info locally so HomeView can display it.
+                                    // TODO: Start FirestoreService.listenToTeam(teamId:) here once Firestore is deployed.
+                                    UserDefaults.standard.set(result.teamId, forKey: "app_team_id")
+                                    UserDefaults.standard.set(resolvedName, forKey: "app_team_name")
                                     onContinue()
                                 } catch {
                                     createTeamError = error.localizedDescription

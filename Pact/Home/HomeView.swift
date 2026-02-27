@@ -4,6 +4,8 @@
 //
 
 import SwiftUI
+import SwiftData
+import FirebaseAuth
 
 // MARK: - Carousel data
 
@@ -19,9 +21,12 @@ private let carouselStart = 100   // index 100 → .healthScore  (100 % 2 == 0)
 private let ringDiameter: CGFloat  = 190
 private let ringWidth: CGFloat     = 14
 private let logoSize: CGFloat      = 100
+// TODO: Wire ringProgress to today's activity completion ratio (completed/total) from SwiftData or Firestore.
 private let ringProgress: CGFloat  = 0.35
+// TODO: Wire health score to real weekly streak data from Firestore.
 private let scoreProgress: CGFloat = 0.80   // 4 out of 5
 
+// TODO: Replace teamAvatars with real member avatar assets from FirestoreService.currentTeam members.
 private let teamAvatars = ["felix", "mia", "sam", "alex"]
 
 // MARK: - HomeView
@@ -29,11 +34,40 @@ private let teamAvatars = ["felix", "mia", "sam", "alex"]
 struct HomeView: View {
     var onTeamTap: () -> Void
 
+    @EnvironmentObject var authManager: AuthManager
+    @Query(sort: [SortDescriptor(\Activity.order), SortDescriptor(\Activity.createdAt)])
+    private var activities: [Activity]
+
     @State private var cardSelection: Int = carouselStart
     @State private var animatedProgress: CGFloat = 0
     @State private var showProfile = false
 
     private var currentDot: Int { cardSelection % cardCount }
+
+    private var nickname: String {
+        UserDefaults.standard.string(forKey: "app_nickname") ?? "back"
+    }
+
+    private var avatarAssetName: String {
+        if let stored = UserDefaults.standard.string(forKey: "app_avatar_asset") {
+            return stored
+        }
+        // Fallback for users who onboarded before avatar persistence was added.
+        return "avatar_\(persistedAvatar)"
+    }
+
+    private var firstName: String {
+        if let raw = authManager.currentUser?.displayName,
+           let first = raw.split(separator: " ").first {
+            return String(first)
+        }
+        return nickname
+    }
+
+    // TODO: Replace with real-time FirestoreService.currentTeam["name"] once listeners are started post-onboarding.
+    private var teamName: String {
+        UserDefaults.standard.string(forKey: "app_team_name") ?? "Your Team"
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -51,11 +85,11 @@ struct HomeView: View {
                     // MARK: Header
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Welcome Ethan")
+                            Text("Welcome \(nickname)")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(Color(white: 0.55))
 
-                            Text("Money Team")
+                            Text(teamName)
                                 .font(.system(size: 32, weight: .bold))
                                 .foregroundStyle(.black)
                                 .onTapGesture { onTeamTap() }
@@ -64,7 +98,7 @@ struct HomeView: View {
                         Spacer()
 
                         Button { showProfile = true } label: {
-                            Image("avatar_\(persistedAvatar)")
+                            Image(avatarAssetName)
                                 .resizable()
                                 .scaledToFill()
                                 .frame(width: 44, height: 44)
@@ -167,6 +201,7 @@ struct HomeView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.black)
                 Spacer()
+                // TODO: Wire health score to real weekly streak data from Firestore.
                 Text("4/5")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.black)
@@ -184,6 +219,7 @@ struct HomeView: View {
             }
             .frame(height: 8)
 
+            // TODO: Replace lorem ipsum with real health score description.
             Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.")
                 .font(.system(size: 14))
                 .foregroundStyle(Color(white: 0.50))
@@ -274,7 +310,7 @@ struct HomeView: View {
                     Text("Today's Goal")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.black)
-                    Text("Go to the gym before 9 AM")
+                    Text(activities.first?.name ?? "No activities yet")
                         .font(.system(size: 14))
                         .foregroundStyle(Color(white: 0.50))
                 }
@@ -286,10 +322,17 @@ struct HomeView: View {
 
             // Activity list
             VStack(spacing: 14) {
-                activityRow(title: "Go to the gym",           completed: true)
-                activityRow(title: "Read 10 pages of the bible", completed: false)
-                activityRow(title: "Meditate for 10 minutes", completed: true)
-                activityRow(title: "No social media before noon", completed: false)
+                if activities.isEmpty {
+                    Text("No activities set up yet.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(white: 0.55))
+                } else {
+                    ForEach(activities) { activity in
+                        activityRow(title: activity.name, completed: false)
+                        // TODO: Replace `completed: false` with real submission status from
+                        //       FirestoreService.todaysSubmissions once Firestore is deployed.
+                    }
+                }
             }
             .padding(.bottom, 16)
 
@@ -302,13 +345,14 @@ struct HomeView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(Color(white: 0.50))
                 Spacer()
-                Text("2/4")
+                // TODO: Replace 0 with count of approved submissions from Firestore.
+                Text("0/\(activities.count)")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.black)
             }
             .padding(.bottom, 8)
 
-            // Progress bar (50% = 2/4)
+            // TODO: Replace 0.0 with real completion fraction (approvedCount / activities.count).
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
@@ -316,7 +360,7 @@ struct HomeView: View {
                         .frame(height: 8)
                     Capsule()
                         .fill(Color.black)
-                        .frame(width: geo.size.width * 0.50, height: 8)
+                        .frame(width: geo.size.width * 0.0, height: 8)
                 }
             }
             .frame(height: 8)
@@ -363,4 +407,6 @@ private extension Color {
 
 #Preview {
     HomeView(onTeamTap: {})
+        .modelContainer(for: Activity.self, inMemory: true)
 }
+
