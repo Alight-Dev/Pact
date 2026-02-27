@@ -12,6 +12,7 @@ import FirebaseAuth
 // MARK: - ActivityListView
 
 struct ActivityListView: View {
+    var teamName: String = ""
     var onContinue: (() -> Void)? = nil
 
     @Environment(\.modelContext) private var modelContext
@@ -189,16 +190,21 @@ struct ActivityListView: View {
                                     order: a.order
                                 )
                             }
-                            let firstName = authManager.currentUser?.displayName?
-                                .components(separatedBy: " ").first ?? "My"
-                            let teamName = "\(firstName)'s Shield"
+                            let resolvedName = teamName.isEmpty
+                                ? (authManager.currentUser?.displayName?
+                                    .components(separatedBy: " ").first.map { "\($0)'s Shield" } ?? "My Shield")
+                                : teamName
                             Task {
                                 do {
-                                    _ = try await firestoreService.createTeam(
-                                        name: teamName,
+                                    let result = try await firestoreService.createTeam(
+                                        name: resolvedName,
                                         activities: payloads,
                                         timezone: TimeZone.current.identifier
                                     )
+                                    // Persist team info locally so HomeView can display it.
+                                    // TODO: Start FirestoreService.listenToTeam(teamId:) here once Firestore is deployed.
+                                    UserDefaults.standard.set(result.teamId, forKey: "app_team_id")
+                                    UserDefaults.standard.set(resolvedName, forKey: "app_team_name")
                                     onContinue()
                                 } catch {
                                     createTeamError = error.localizedDescription

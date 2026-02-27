@@ -19,6 +19,7 @@ private struct ShieldMember: Identifiable {
     var progress: Double { activitiesTotal > 0 ? Double(activitiesCompleted) / Double(activitiesTotal) : 0 }
 }
 
+// TODO: Replace with real team member data from FirestoreService.currentTeam members subcollection.
 private let mockMembers: [ShieldMember] = [
     ShieldMember(memberName: "You",    memberAvatarAsset: "avatar_alex",   activitiesCompleted: 1, activitiesTotal: 3, isCurrentUser: true),
     ShieldMember(memberName: "Sarah",  memberAvatarAsset: "avatar_sara",   activitiesCompleted: 3, activitiesTotal: 3, isCurrentUser: false),
@@ -36,6 +37,7 @@ private struct PendingSubmission: Identifiable {
     // imageURL will replace placeholder once Firebase Storage is wired up
 }
 
+// TODO: Replace with pending submissions from FirestoreService.todaysSubmissions.
 private let mockSubmissions: [PendingSubmission] = [
     PendingSubmission(memberName: "Alex", memberAvatarAsset: "avatar_alex", activityName: "Morning Gym", approvalsReceived: 1, approvalsRequired: 2),
     PendingSubmission(memberName: "Sarah", memberAvatarAsset: "avatar_sara", activityName: "30 Min Reading", approvalsReceived: 0, approvalsRequired: 2),
@@ -50,6 +52,7 @@ private struct HighlightSubmission: Identifiable {
     let systemIconName: String
 }
 
+// TODO: Replace with approved/highlighted submissions from Firestore.
 private let mockHighlights: [HighlightSubmission] = [
     HighlightSubmission(memberName: "Sarah",  memberAvatarAsset: "avatar_sara",   activityName: "30 Min Reading", systemIconName: "book.fill"),
     HighlightSubmission(memberName: "Jordan", memberAvatarAsset: "avatar_jordan", activityName: "Meditation",     systemIconName: "figure.mind.and.body"),
@@ -426,12 +429,26 @@ private struct ShieldMembersSection: View {
 // MARK: - Team View
 
 struct TeamView: View {
+    @EnvironmentObject var firestoreService: FirestoreService
     @State private var submissions = mockSubmissions
+
+    private var shieldDisplayName: String {
+        if let name = firestoreService.currentTeam?["name"] as? String {
+            return name
+        }
+        if let cached = firestoreService.currentTeamName {
+            return cached
+        }
+        if let local = UserDefaults.standard.string(forKey: "app_team_name") {
+            return local
+        }
+        return "Your Team"
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                TeamShieldHeader()
+                TeamShieldHeader(teamName: shieldDisplayName)
                     .padding(.horizontal, 20)
                     .padding(.top, 100)
 
@@ -462,6 +479,8 @@ struct TeamView: View {
 // MARK: - Team Shield Header
 
 private struct TeamShieldHeader: View {
+    let teamName: String
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Shield icon + title
@@ -471,7 +490,7 @@ private struct TeamShieldHeader: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 40, height: 40)
 
-                Text("Money Team")
+                Text(teamName)
                     .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(.black)
             }
@@ -501,4 +520,5 @@ private struct TeamShieldHeader: View {
 
 #Preview {
     TeamView()
+        .environmentObject(FirestoreService())
 }
