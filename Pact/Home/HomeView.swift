@@ -85,7 +85,7 @@ struct HomeView: View {
                     // MARK: Header
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Welcome \(nickname)")
+                            Text("Welcome \(firstName)")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(Color(white: 0.55))
 
