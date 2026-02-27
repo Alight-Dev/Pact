@@ -47,7 +47,8 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 | `Pact/Home/HomeView.swift` | Home tab. Currently an empty stub with a “Home” label. |
 | `Pact/Upload/UploadView.swift` | Upload tab (center “+” button). Currently an empty stub with an “Upload” label. |
 | `Pact/Team/TeamView.swift` | Team tab. Currently an empty stub with a “Team” label. |
-| `Pact/ActivityListView.swift` | Legacy activity list screen (pre-tab-bar era). Kept for reference; not currently wired into navigation. |
+| `Pact/ActivityListView.swift` | Activities setup screen shown after onboarding when a user chooses “Create a Shield”. Users define daily activities here, then tap Continue to see a short Pact launch splash before landing on the Home tab. |
+| `Pact/Onboarding/PactLaunchView.swift` | Post-activities splash/loading screen with maroon accents that briefly celebrates the new pact, then auto-transitions into `HomeScreenView`. |
 
 ---
 

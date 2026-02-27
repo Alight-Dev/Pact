@@ -18,6 +18,8 @@ struct PactApp: App {
     @State private var showShieldSelection = false
     @State private var showJoinShield = false
     @State private var showHomeScreen = false
+    @State private var showActivitiesSetup = false
+    @State private var showPactLaunch = false
 
     init() {
         FirebaseApp.configure()
@@ -54,6 +56,27 @@ struct PactApp: App {
             Group {
                 if showHomeScreen {
                     HomeScreenView()
+                        .transition(.opacity)
+                } else if showPactLaunch {
+                    PactLaunchView(
+                        onFinished: {
+                            withAnimation {
+                                showPactLaunch = false
+                                showHomeScreen = true
+                            }
+                        }
+                    )
+                    .transition(.opacity)
+                } else if showActivitiesSetup {
+                    ActivityListView(
+                        onContinue: {
+                            withAnimation {
+                                showActivitiesSetup = false
+                                showPactLaunch = true
+                            }
+                        }
+                    )
+                    .transition(.opacity)
                 } else if showJoinShield {
                     JoinShieldView(
                         onBack: {
@@ -63,12 +86,13 @@ struct PactApp: App {
                             }
                         }
                     )
+                    .transition(.opacity)
                 } else if showShieldSelection {
                     OnboardingCreateOrJoinShieldView(
                         onCreateShield: {
                             withAnimation {
                                 showShieldSelection = false
-                                showHomeScreen = true
+                                showActivitiesSetup = true
                             }
                         },
                         onJoinShield: {
@@ -78,6 +102,7 @@ struct PactApp: App {
                             }
                         }
                     )
+                    .transition(.opacity)
                 } else if showOnboarding {
                     OnboardingFlowView(onFinished: {
                         withAnimation {
@@ -85,6 +110,7 @@ struct PactApp: App {
                             showShieldSelection = true
                         }
                     })
+                    .transition(.opacity)
                 } else if showSignupDirect {
                     OnboardingSignupView(
                         onBack: {
@@ -99,6 +125,7 @@ struct PactApp: App {
                             }
                         }
                     )
+                    .transition(.opacity)
                 } else {
                     SplashView(
                         onFinished: {
@@ -117,11 +144,25 @@ struct PactApp: App {
                             }
                         }
                     )
+                    .transition(.opacity)
                 }
             }
             .environmentObject(authManager)
             .onOpenURL { url in
                 GIDSignIn.sharedInstance.handle(url)
+            }
+            .onChange(of: authManager.currentUser) { _, user in
+                if user == nil {
+                    withAnimation {
+                        showHomeScreen = false
+                        showActivitiesSetup = false
+                        showPactLaunch = false
+                        showShieldSelection = false
+                        showJoinShield = false
+                        showOnboarding = false
+                        showSignupDirect = false
+                    }
+                }
             }
         }
         .modelContainer(sharedModelContainer)
