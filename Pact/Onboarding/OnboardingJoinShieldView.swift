@@ -9,9 +9,14 @@ import SwiftUI
 
 struct JoinShieldView: View {
     var onBack: () -> Void
+    var onJoined: () -> Void
+
+    @EnvironmentObject var firestoreService: FirestoreService
 
     @State private var code: String = ""
     @FocusState private var isFieldFocused: Bool
+    @State private var isJoining = false
+    @State private var joinError: String?
 
     private var isComplete: Bool {
         code.count == 6
@@ -92,25 +97,53 @@ struct JoinShieldView: View {
                 }
 
                 // Primary button
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        // Hook up join action here (e.g., API call)
-                    }) {
-                        Text("Join Shield")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(isComplete ? .white : .black)
+                VStack(spacing: 8) {
+                    HStack {
+                        Spacer()
+                        Button {
+                            isJoining = true
+                            joinError = nil
+                            Task {
+                                do {
+                                    _ = try await firestoreService.joinTeam(inviteCode: code)
+                                    onJoined()
+                                } catch {
+                                    joinError = error.localizedDescription
+                                }
+                                isJoining = false
+                            }
+                        } label: {
+                            Group {
+                                if isJoining {
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
+                                        .tint(isComplete ? .white : .black)
+                                } else {
+                                    Text("Join Shield")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundStyle(isComplete ? .white : .black)
+                                }
+                            }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                             .background(
                                 RoundedRectangle(cornerRadius: 16)
-                                    .fill(isComplete ? Color.black : Color(white: 0.9))
+                                    .fill(isComplete && !isJoining ? Color.black : Color(white: 0.9))
                             )
+                        }
+                        .frame(maxWidth: 320)
+                        .buttonStyle(.plain)
+                        .disabled(!isComplete || isJoining)
+                        Spacer()
                     }
-                    .frame(maxWidth: 320)
-                    .buttonStyle(.plain)
-                    .disabled(!isComplete)
-                    Spacer()
+
+                    if let error = joinError {
+                        Text(error)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.red.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
                 }
                 .padding(.top, 32)
 
@@ -172,6 +205,7 @@ struct JoinShieldView: View {
 }
 
 #Preview {
-    JoinShieldView(onBack: {})
+    JoinShieldView(onBack: {}, onJoined: {})
+        .environmentObject(FirestoreService())
 }
 

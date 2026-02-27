@@ -31,11 +31,12 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 
 ---
 
-## Auth
+## Auth & Services
 
 | File | Purpose |
 |------|--------|
 | `Pact/Auth/AuthManager.swift` | `@MainActor ObservableObject` that owns Firebase Auth state. Exposes `currentUser`, `signInWithGoogle()` (async/throws), and `signOut()`. Injected as an `@EnvironmentObject` from `PactApp`. |
+| `Pact/Services/FirestoreService.swift` | `@MainActor ObservableObject` service layer for all Firestore operations. Methods: `saveUserProfile`, `createTeam` (calls CF-8), `joinTeam` (calls CF-7), `forgePact`, `listenToTeam`, `listenToTodaysSubmissions`, `castVote`, `updateFCMToken`. Injected as `@EnvironmentObject` from `PactApp`. |
 
 ---
 

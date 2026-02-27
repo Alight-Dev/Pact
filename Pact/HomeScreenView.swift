@@ -50,7 +50,9 @@ private struct FloatingTabBar: View {
 
             // Upload (center raised button)
             Button {
-                onUploadTapped()
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                    selectedTab = .upload
+                }
             } label: {
                 ZStack {
                     Circle()
@@ -112,3 +114,4 @@ private struct FloatingTabBar: View {
 #Preview {
     HomeScreenView()
 }
+
