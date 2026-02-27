@@ -28,6 +28,7 @@ struct ActivityListView: View {
     @State private var createTeamError: String?
     @State private var allowAIFallback: Bool = true
     @State private var minApprovers: Int = 1
+    @State private var showDebugSheet: Bool = false
     @State private var showDeleteAccountAlert = false
 
     var body: some View {
@@ -44,10 +45,29 @@ struct ActivityListView: View {
 
                     Spacer()
 
-                    Image("SplashLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 56, height: 56)
+                    HStack(spacing: 12) {
+                        Image("SplashLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 56, height: 56)
+
+                        #if DEBUG
+                        Button {
+                            showDebugSheet = true
+                        } label: {
+                            Image(systemName: "ladybug.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(Color(white: 0.35))
+                                .frame(width: 32, height: 32)
+                                .background(
+                                    Circle()
+                                        .fill(Color(white: 0.94))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Debug account actions")
+                        #endif
+                    }
                 }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
@@ -150,45 +170,6 @@ struct ActivityListView: View {
                     }
                 }
 
-                #if DEBUG
-                Button {
-                    try? authManager.signOut()
-                } label: {
-                    Text("Debug: Sign Out")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color(white: 0.6))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
-
-                Button {
-                    showDeleteAccountAlert = true
-                } label: {
-                    Text("Debug: Delete Account")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.red.opacity(0.7))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
-                .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
-                    Button("Delete", role: .destructive) {
-                        Task {
-                            try? await authManager.deleteAccount()
-                            try? modelContext.delete(model: Activity.self)
-                        }
-                    }
-                    Button("Cancel", role: .cancel) {}
-                } message: {
-                    Text("This permanently deletes your account and resets the app. You cannot undo this.")
-                }
-                #endif
-
                 // Bottom padding so the last card isn't hidden behind the Add button
                 Color.clear
                     .frame(height: 90)
@@ -288,6 +269,33 @@ struct ActivityListView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
         }
+        #if DEBUG
+        // TODO: Remove debug account controls before production.
+        .confirmationDialog(
+            "Debug Account Actions",
+            isPresented: $showDebugSheet,
+            titleVisibility: .visible
+        ) {
+            Button("Sign Out") {
+                try? authManager.signOut()
+            }
+            Button("Delete Account", role: .destructive) {
+                showDeleteAccountAlert = true
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    try? await authManager.deleteAccount()
+                    try? modelContext.delete(model: Activity.self)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your account and resets the app. You cannot undo this.")
+        }
+        #endif
         // Add sheet
         .sheet(isPresented: $showingAddActivity) {
             AddActivitySheet { name, description, iconName, repeatDays, isOptional in
