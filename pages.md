@@ -48,6 +48,7 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 | `Pact/Home/HomeView.swift` | Home tab. Header shows user avatar button that opens `ProfileView` as a sheet. Displays a progress ring, infinite card carousel (health score + team progress), and today's goal card. |
 | `Pact/Profile/ProfileView.swift` | Profile sheet (opens from HomeView avatar tap). Shows user identity (avatar, name, gamertag, tier/streak pills), a screen time card with week/month/lifetime bar chart, activity stats (streak, completion, days saved), team card with stacked avatars, and settings rows (Edit Profile, Notifications, Sign Out). |
 | `Pact/Upload/UploadView.swift` | Upload tab (center “+” button). Currently an empty stub with an “Upload” label. |
+| `Pact/Upload/CameraPermissionExplainerView.swift` | Intermediate sheet shown before the iOS camera permission dialog. Explains live-capture requirement with animated viewfinder, scan-line, green corner brackets, and staggered feature rows. Green accent. |
 | `Pact/Team/TeamView.swift` | Team tab. Currently an empty stub with a “Team” label. |
 | `Pact/ActivityListView.swift` | Activities setup screen shown after onboarding when a user chooses “Create a Shield”. Users define daily activities here, then tap Continue to see a short Pact launch splash before landing on the Home tab. |
 | `Pact/Onboarding/PactLaunchView.swift` | Post-activities splash/loading screen with maroon accents that briefly celebrates the new pact, then auto-transitions into `HomeScreenView`. |
