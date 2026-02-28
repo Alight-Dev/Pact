@@ -4,6 +4,7 @@ import UIKit
 
 struct UploadProofView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var firestoreService: FirestoreService
 
     @State private var showCameraExplainer = false
     @State private var showImagePicker = false
@@ -177,26 +178,34 @@ struct UploadProofView: View {
 
 #Preview {
     UploadProofView()
+        .environmentObject(FirestoreService())
 }
 
 // MARK: - UploadProofView Post-Photo Content
 
 extension UploadProofView {
     private struct ActivityOption: Identifiable, Hashable {
-        var id: String { name }   // stable across re-renders
+        let id: String        // Firestore doc ID, or stable fallback key
         let name: String
         let iconName: String
     }
 
-    // TODO: replace with real activities from your model
+    /// Live activities from the team's Firestore `goals` subcollection.
+    /// Falls back to a hardcoded demo list while data loads or when no team is active.
     private var activityOptions: [ActivityOption] {
-        [
-            ActivityOption(name: "Morning Run", iconName: "figure.run"),
-            ActivityOption(name: "Study", iconName: "book.fill"),
-            ActivityOption(name: "Meditate", iconName: "brain.head.profile"),
-            ActivityOption(name: "Gym", iconName: "dumbbell.fill"),
-            ActivityOption(name: "Reading", iconName: "text.book.closed.fill"),
-            ActivityOption(name: "Practice", iconName: "music.note"),
+        let live = firestoreService.teamActivities.map {
+            ActivityOption(id: $0.id, name: $0.name, iconName: $0.iconName)
+        }
+        if !live.isEmpty { return live }
+
+        // Fallback — shown during testing or before the listener fires
+        return [
+            ActivityOption(id: "morning-run", name: "Morning Run",  iconName: "figure.run"),
+            ActivityOption(id: "study",       name: "Study",        iconName: "book.fill"),
+            ActivityOption(id: "meditate",    name: "Meditate",     iconName: "brain.head.profile"),
+            ActivityOption(id: "gym",         name: "Gym",          iconName: "dumbbell.fill"),
+            ActivityOption(id: "reading",     name: "Reading",      iconName: "text.book.closed.fill"),
+            ActivityOption(id: "practice",    name: "Practice",     iconName: "music.note"),
         ]
     }
 

@@ -30,6 +30,7 @@ final class FirestoreService: ObservableObject {
     private var teamListener: ListenerRegistration?
     private var submissionsListener: ListenerRegistration?
     private var membersListener: ListenerRegistration?
+    private var activitiesListener: ListenerRegistration?
 
     // Published so views can observe live data
     @Published var currentTeam: [String: Any]?
@@ -40,6 +41,7 @@ final class FirestoreService: ObservableObject {
     @Published var currentTeamName: String?
     @Published var adminTimezone: String?
     @Published var members: [TeamMember] = []
+    @Published var teamActivities: [TeamActivity] = []
 
     /// Convenience accessor exposing today's submissions as strongly-typed models.
     var mappedSubmissions: [Submission] {
@@ -50,6 +52,7 @@ final class FirestoreService: ObservableObject {
         teamListener?.remove()
         submissionsListener?.remove()
         membersListener?.remove()
+        activitiesListener?.remove()
     }
 
     // MARK: - User Profile
@@ -166,6 +169,7 @@ final class FirestoreService: ObservableObject {
 
         listenToTeam(teamId: teamId)
         listenToMembers(teamId: teamId)
+        listenToActivities(teamId: teamId)
 
         let todayDate = Self.todayString(in: adminTimezone)
         listenToTodaysSubmissions(teamId: teamId, date: todayDate)
@@ -300,13 +304,29 @@ final class FirestoreService: ObservableObject {
             }
     }
 
+    /// Attaches a real-time listener to `teams/{teamId}/goals`, ordered by `order`.
+    /// Publishes a typed `teamActivities` array used by UploadProofView.
+    func listenToActivities(teamId: String) {
+        activitiesListener?.remove()
+        activitiesListener = db.collection("teams").document(teamId)
+            .collection("goals")
+            .order(by: "order")
+            .addSnapshotListener { [weak self] snapshot, _ in
+                let docs = snapshot?.documents ?? []
+                self?.teamActivities = docs.compactMap { TeamActivity(document: $0) }
+            }
+    }
+
     func stopListeners() {
         teamListener?.remove()
         submissionsListener?.remove()
         membersListener?.remove()
+        activitiesListener?.remove()
         teamListener = nil
         submissionsListener = nil
         membersListener = nil
+        activitiesListener = nil
+        teamActivities = []
     }
 
     // MARK: - Voting
@@ -451,6 +471,21 @@ struct Submission: Identifiable {
         self.approvalsRequired = dictionary["approvalsRequired"] as? Int
             ?? dictionary["eligibleVoterCount"] as? Int
             ?? 0
+    }
+}
+
+/// A team goal/activity pulled from `teams/{teamId}/goals`, used in the upload proof flow.
+struct TeamActivity: Identifiable {
+    let id: String          // Firestore document ID
+    let name: String
+    let iconName: String
+
+    init?(document: QueryDocumentSnapshot) {
+        let data = document.data()
+        guard let name = data["name"] as? String else { return nil }
+        self.id = document.documentID
+        self.name = name
+        self.iconName = data["iconName"] as? String ?? "checkmark.circle"
     }
 }
 
