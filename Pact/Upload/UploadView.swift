@@ -5,6 +5,7 @@ import UIKit
 struct UploadProofView: View {
     @Environment(\.dismiss) private var dismiss
 
+    @State private var showCameraExplainer = false
     @State private var showImagePicker = false
     @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
     @State private var selectedImage: UIImage? = nil
@@ -83,6 +84,55 @@ struct UploadProofView: View {
             }
             .padding(.horizontal, 24)
             .padding(.top, 16)
+
+            // Dim layer — fades behind the explainer
+            Color.black.opacity(showCameraExplainer ? 0.40 : 0)
+                .ignoresSafeArea()
+                .allowsHitTesting(showCameraExplainer)
+                .animation(.easeInOut(duration: 0.22), value: showCameraExplainer)
+
+            // Explainer — spring slide-up from bottom
+            VStack(spacing: 0) {
+                Spacer()
+                if showCameraExplainer {
+                    CameraPermissionExplainerView(
+                        onEnable: {
+                            showCameraExplainer = false
+                            // Wait for dismiss animation, then request permission.
+                            // requestAccess shows the iOS dialog for .notDetermined,
+                            // and returns immediately for .authorized / .denied.
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                AVCaptureDevice.requestAccess(for: .video) { granted in
+                                    DispatchQueue.main.async {
+                                        if granted {
+                                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                                imagePickerSource = .camera
+                                                showImagePicker = true
+                                            } else {
+                                                pickerErrorMessage = "Camera is not available on this device."
+                                            }
+                                        } else {
+                                            pickerErrorMessage = "Camera access was denied. Enable it in Settings to submit proof."
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        onCancel: {
+                            showCameraExplainer = false
+                        }
+                    )
+                    .clipShape(UnevenRoundedRectangle(
+                        topLeadingRadius: 32, bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0, topTrailingRadius: 32,
+                        style: .continuous
+                    ))
+                    .shadow(color: .black.opacity(0.10), radius: 24, x: 0, y: -6)
+                    .transition(.move(edge: .bottom))
+                }
+            }
+            .ignoresSafeArea(edges: .bottom)
+            .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showCameraExplainer)
         }
         // Image picker sheet (camera only)
         .sheet(isPresented: $showImagePicker) {
@@ -112,12 +162,15 @@ struct UploadProofView: View {
     }
 
     private func handleUploadProofTapped() {
-        // Prefer camera; if unavailable (e.g. simulator), show an error.
-        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        if status == .authorized {
+            // Permission already granted — skip explainer, go straight to camera
             imagePickerSource = .camera
             showImagePicker = true
         } else {
-            pickerErrorMessage = "Camera is not available on this device."
+            // Undetermined, denied, or restricted — show explainer
+            // (covers first-time, revoked, and changed permission states)
+            showCameraExplainer = true
         }
     }
 }

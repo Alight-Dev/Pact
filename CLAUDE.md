@@ -45,7 +45,7 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -on
 
 > Features using `FamilyControls` and `ManagedSettings` (app blocking) require a **physical device** with a provisioning profile that includes the Family Controls entitlement. They cannot be tested in the simulator.
 
-> **Device signing:** Copy `Config/Development.xcconfig.example` to `Config/Development.xcconfig` and set your Apple Developer Team ID so you can run on your device without changing the project file.
+> **Device signing & bundle ID:** Copy `Config/Development.xcconfig.example` to `Config/Development.xcconfig` and set `DEVELOPMENT_TEAM` and optionally `BUNDLE_ID_PREFIX` (e.g. `cmc` or `com.chris`) so each developer can run on device with their own bundle ID without changing the project file.
 
 ## Project Details
 
@@ -53,7 +53,7 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -on
 - **UI:** SwiftUI
 - **Persistence:** SwiftData
 - **iOS Deployment Target:** 26.2
-- **Bundle ID:** `cmc.Pact`
+- **Bundle ID:** Set via `BUNDLE_ID_PREFIX` in `Config/Development.xcconfig` (default from example: `cmc.Pact`).
 
 ## Architecture
 

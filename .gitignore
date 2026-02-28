@@ -21,12 +21,8 @@ Pods/
 
 .claude/
 
-# Per-developer signing (avoids DEVELOPMENT_TEAM conflicts when testing on device)
+# Per-developer signing and bundle ID (copy from Config/Development.xcconfig.example)
 Config/Development.xcconfig
-
-# Xcode project files (per-developer config: Team ID, bundle ID, signing)
-Pact.xcodeproj/project.pbxproj
-Pact.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
 firebase-debug.log
 
