@@ -157,6 +157,7 @@ private struct SubmissionCard: View {
 
     @State private var offset: CGSize = .zero
     @State private var isDragging = false
+    @State private var dragIsHorizontal: Bool? = nil
 
     private var approveOpacity: Double {
         max(0, min(1, Double(offset.width) / 80))
@@ -263,17 +264,24 @@ private struct SubmissionCard: View {
         .padding(16)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
         .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
-        .offset(x: offset.width, y: offset.height * 0.3)
+        .offset(x: offset.width, y: 0)
         .rotationEffect(.degrees(rotation))
-        .gesture(
-            DragGesture(minimumDistance: 5)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 10)
                 .onChanged { value in
+                    if dragIsHorizontal == nil {
+                        let isH = abs(value.translation.width) > abs(value.translation.height)
+                        dragIsHorizontal = isH
+                    }
+                    guard dragIsHorizontal == true else { return }
                     isDragging = true
-                    offset = value.translation
+                    offset = CGSize(width: value.translation.width, height: 0)
                 }
                 .onEnded { value in
+                    let wasHorizontal = dragIsHorizontal == true
+                    dragIsHorizontal = nil
                     isDragging = false
-                    if abs(value.translation.width) > 120 {
+                    if wasHorizontal && abs(value.translation.width) > 120 {
                         flyOff(approved: value.translation.width > 0)
                     } else {
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
@@ -472,7 +480,7 @@ struct TeamView: View {
             VStack(alignment: .leading, spacing: 0) {
                 TeamShieldHeader(teamName: shieldDisplayName)
                     .padding(.horizontal, 20)
-                    .padding(.top, 100)
+                    .padding(.top, 60)
 
                 if !submissions.isEmpty {
                     PendingApprovalsSection(submissions: $submissions)
@@ -489,7 +497,7 @@ struct TeamView: View {
                 ShieldMembersSection(shareText: inviteShareText)
                     .padding(.top, 32)
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 120)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
