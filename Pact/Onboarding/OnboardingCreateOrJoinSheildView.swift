@@ -10,6 +10,8 @@ import SwiftUI
 struct OnboardingCreateOrJoinShieldView: View {
     var onCreateShield: () -> Void
     var onJoinShield: () -> Void
+    /// Testing shortcut — jumps straight to HomeScreenView without creating or joining a team.
+    var onSkip: () -> Void = {}
 
     @State private var logoScale: CGFloat = 0.4
     @State private var logoOffsetY: CGFloat = 260
@@ -19,6 +21,25 @@ struct OnboardingCreateOrJoinShieldView: View {
         ZStack {
             Color.white
                 .ignoresSafeArea()
+
+            // Skip button — top-right, fades in with the option cards
+            if showOptions {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: onSkip) {
+                            Text("Skip")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color(white: 0.55))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 60)
+                        .padding(.trailing, 24)
+                    }
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
 
             VStack(spacing: 32) {
                 Spacer()
@@ -112,7 +133,8 @@ struct OnboardingCreateOrJoinShieldView: View {
 #Preview {
     OnboardingCreateOrJoinShieldView(
         onCreateShield: {},
-        onJoinShield: {}
+        onJoinShield: {},
+        onSkip: {}
     )
 }
 
