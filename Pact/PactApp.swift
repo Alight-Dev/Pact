@@ -116,8 +116,7 @@ struct PactApp: App {
                                 pendingJoinCode = ""
                                 showHomeScreen = true
                             }
-                        },
-                        initialCode: pendingJoinCode
+                        }
                     )
                     .transition(.opacity)
                 } else if showShieldSelection {
@@ -132,12 +131,6 @@ struct PactApp: App {
                             withAnimation {
                                 showShieldSelection = false
                                 showJoinShield = true
-                            }
-                        },
-                        onSkip: {
-                            withAnimation {
-                                showShieldSelection = false
-                                showHomeScreen = true
                             }
                         }
                     )
