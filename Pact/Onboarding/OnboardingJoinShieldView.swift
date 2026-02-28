@@ -77,10 +77,12 @@ struct JoinShieldView: View {
                         .textInputAutocapitalization(.characters)
                         .disableAutocorrection(true)
                         .foregroundColor(.clear)
-                        .accentColor(.clear)
+                        .tint(.clear)
                         .focused($isFieldFocused)
-                        .frame(width: 0, height: 0)
-                        .opacity(0.05)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .opacity(0.011)
+                        .allowsHitTesting(true)
 
                         // Visual boxes
                         HStack(spacing: 12) {
@@ -88,6 +90,7 @@ struct JoinShieldView: View {
                                 codeBox(at: index)
                             }
                         }
+                        .allowsHitTesting(false)
                     }
                 }
                 .padding(.top, 8)
