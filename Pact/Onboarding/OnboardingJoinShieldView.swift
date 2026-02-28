@@ -10,6 +10,7 @@ import SwiftUI
 struct JoinShieldView: View {
     var onBack: () -> Void
     var onJoined: () -> Void
+    var initialCode: String = ""
 
     @EnvironmentObject var firestoreService: FirestoreService
 
@@ -142,6 +143,9 @@ struct JoinShieldView: View {
         }
         .onTapGesture { isFieldFocused = false }
         .onAppear {
+            if !initialCode.isEmpty && code.isEmpty {
+                code = initialCode
+            }
             DispatchQueue.main.async { isFieldFocused = true }
         }
         .preferredColorScheme(.light)
