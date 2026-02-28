@@ -10,6 +10,9 @@ import SwiftUI
 struct JoinShieldView: View {
     var onBack: () -> Void
     var onJoined: () -> Void
+    /// Pre-fills the code boxes when navigating here via an invite deep-link or
+    /// the "Add Members" button on the Team page.
+    var initialCode: String = ""
 
     @EnvironmentObject var firestoreService: FirestoreService
 
@@ -173,7 +176,12 @@ struct JoinShieldView: View {
         }
         .onAppear {
             DispatchQueue.main.async {
-                isFieldFocused = true
+                // Pre-fill when arriving via invite deep-link or "Add Members"
+                if !initialCode.isEmpty {
+                    code = String(initialCode.prefix(6))
+                }
+                // Only focus the field if the code isn't already complete
+                isFieldFocused = code.count < 6
             }
         }
     }

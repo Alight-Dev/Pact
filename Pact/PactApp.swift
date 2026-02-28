@@ -20,6 +20,8 @@ struct PactApp: App {
     @State private var showShieldSelection = false
     @State private var showJoinShield = false
     @State private var showHomeScreen = false
+    /// Invite code passed in via a pact://join/{code} deep-link when auto-join fails.
+    @State private var pendingJoinCode: String = ""
     @State private var showTeamName = false
     @State private var showActivitiesSetup = false
     @State private var showPactLaunch = false
@@ -104,15 +106,18 @@ struct PactApp: App {
                         onBack: {
                             withAnimation {
                                 showJoinShield = false
+                                pendingJoinCode = ""
                                 showShieldSelection = true
                             }
                         },
                         onJoined: {
                             withAnimation {
                                 showJoinShield = false
+                                pendingJoinCode = ""
                                 showHomeScreen = true
                             }
-                        }
+                        },
+                        initialCode: pendingJoinCode
                     )
                     .transition(.opacity)
                 } else if showShieldSelection {
@@ -127,6 +132,12 @@ struct PactApp: App {
                             withAnimation {
                                 showShieldSelection = false
                                 showJoinShield = true
+                            }
+                        },
+                        onSkip: {
+                            withAnimation {
+                                showShieldSelection = false
+                                showHomeScreen = true
                             }
                         }
                     )
@@ -178,42 +189,13 @@ struct PactApp: App {
             .environmentObject(authManager)
             .environmentObject(firestoreService)
             .onOpenURL { url in
-                // Handle pact://join/{code} deep links
+                // Handle pact://join/{code} deep links.
+                // Always land on JoinShieldView with the code pre-filled so the user
+                // can review it before tapping "Join Shield" to confirm.
                 if url.scheme == "pact", url.host == "join",
                    let code = url.pathComponents.last, code.count == 6 {
-                    Task {
-                        do {
-                            let joinResult = try await firestoreService.joinTeam(inviteCode: code)
-                            let membership = try await firestoreService.loadActiveMembership()
-                            await MainActor.run {
-                                if let membership {
-                                    firestoreService.startTeamSession(
-                                        teamId: membership.teamId,
-                                        teamName: membership.teamName,
-                                        adminTimezone: membership.adminTimezone
-                                    )
-                                } else {
-                                    firestoreService.startTeamSession(
-                                        teamId: joinResult.teamId,
-                                        teamName: joinResult.teamName,
-                                        adminTimezone: TimeZone.current.identifier
-                                    )
-                                }
-                            }
-                            await MainActor.run {
-                                withAnimation {
-                                    showJoinShield = false
-                                    showShieldSelection = false
-                                    showHomeScreen = true
-                                }
-                            }
-                        } catch {
-                            // Fall through to JoinShieldView for manual entry
-                            await MainActor.run {
-                                withAnimation { showJoinShield = true }
-                            }
-                        }
-                    }
+                    pendingJoinCode = code
+                    withAnimation { showJoinShield = true }
                 } else {
                     GIDSignIn.sharedInstance.handle(url)
                 }

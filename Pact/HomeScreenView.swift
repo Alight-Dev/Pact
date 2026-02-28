@@ -77,7 +77,7 @@ private struct FloatingTabBar: View {
                     tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
                 }
                 .padding(.horizontal, 6)
-                .frame(width: proxy.size.width * (2.0 / 3.0), height: 70)
+                .frame(width: proxy.size.width * (2.2 / 3.0), height: 70)
                 // Outer liquid glass pill
                 .glassEffect(in: Capsule())
                 .shadow(color: .black.opacity(0.14), radius: 28, x: 0, y: 10)
