@@ -17,206 +17,241 @@ struct JoinShieldView: View {
     @FocusState private var isFieldFocused: Bool
     @State private var isJoining = false
     @State private var joinError: String?
+    @State private var cursorVisible = true
 
     private var isComplete: Bool {
         code.count == 6
     }
 
     var body: some View {
-        ZStack {
-            Color.white
-                .ignoresSafeArea()
+        ZStack(alignment: .bottom) {
+            Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Top back button
-                HStack(spacing: 8) {
-                    Button(action: {
-                        onBack()
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .semibold))
-                            Text("Back")
-                                .font(.system(size: 16))
-                        }
-                        .foregroundStyle(.black)
+
+                // MARK: Navigation row
+                HStack(alignment: .center) {
+                    Button(action: onBack) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.black)
+                            .frame(width: 40, height: 40)
+                            .background(
+                                Circle()
+                                    .fill(Color(red: 0.94, green: 0.94, blue: 0.96))
+                                    .overlay(
+                                        Circle().strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                                    )
+                            )
                     }
-                    .buttonStyle(.plain)
+                    .accessibilityLabel("Go back")
 
                     Spacer()
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
 
-                Spacer()
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
 
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(alignment: .center, spacing: 8) {
-                        Text("Enter Invite Code")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(.black)
+                        // MARK: Header
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Enter Invite Code")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundStyle(.black)
 
-                        Text("Ask your team admin for the 6-digit code.")
-                            .font(.system(size: 15))
-                            .foregroundStyle(Color(white: 0.55))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
-
-                    // Code input boxes (driven by a single hidden TextField)
-                    ZStack {
-                        // Invisible text field capturing all input
-                        TextField("", text: Binding(
-                            get: { code },
-                            set: { newValue in
-                                handleCodeChange(newValue)
-                            }
-                        ))
-                        .keyboardType(.numberPad)
-                        .textContentType(.oneTimeCode)
-                        .textInputAutocapitalization(.characters)
-                        .disableAutocorrection(true)
-                        .foregroundColor(.clear)
-                        .tint(.clear)
-                        .focused($isFieldFocused)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .opacity(0.011)
-                        .allowsHitTesting(true)
-
-                        // Visual boxes
-                        HStack(spacing: 12) {
-                            ForEach(0..<6, id: \.self) { index in
-                                codeBox(at: index)
-                            }
+                            Text("Ask your team admin for the 6-digit code\nto join their Shield.")
+                                .font(.system(size: 15))
+                                .foregroundStyle(Color(white: 0.55))
+                                .lineSpacing(3)
                         }
-                        .allowsHitTesting(false)
-                    }
-                }
-                .padding(.top, 8)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    isFieldFocused = true
-                }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 40)
 
-                // Primary button
-                VStack(spacing: 8) {
-                    HStack {
-                        Spacer()
-                        Button {
-                            isJoining = true
-                            joinError = nil
-                            Task {
-                                do {
-                                    let joinResult = try await firestoreService.joinTeam(inviteCode: code)
-                                    let membership = try await firestoreService.loadActiveMembership()
-                                    await MainActor.run {
-                                        if let membership {
-                                            firestoreService.startTeamSession(
-                                                teamId: membership.teamId,
-                                                teamName: membership.teamName,
-                                                adminTimezone: membership.adminTimezone
-                                            )
-                                        } else {
-                                            firestoreService.startTeamSession(
-                                                teamId: joinResult.teamId,
-                                                teamName: joinResult.teamName,
-                                                adminTimezone: TimeZone.current.identifier
-                                            )
-                                        }
-                                        onJoined()
-                                    }
-                                } catch {
-                                    joinError = error.localizedDescription
-                                }
-                                isJoining = false
-                            }
-                        } label: {
-                            Group {
-                                if isJoining {
-                                    ProgressView()
-                                        .progressViewStyle(.circular)
-                                        .tint(isComplete ? .white : .black)
-                                } else {
-                                    Text("Join Shield")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(isComplete ? .white : .black)
-                                }
-                            }
+                        // MARK: Code input
+                        ZStack {
+                            TextField("", text: Binding(
+                                get: { code },
+                                set: { handleCodeChange($0) }
+                            ))
+                            .keyboardType(.numberPad)
+                            .textContentType(.oneTimeCode)
+                            .textInputAutocapitalization(.characters)
+                            .disableAutocorrection(true)
+                            .foregroundColor(.clear)
+                            .tint(.clear)
+                            .focused($isFieldFocused)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(isComplete && !isJoining ? Color.black : Color(white: 0.9))
-                            )
-                        }
-                        .frame(maxWidth: 320)
-                        .buttonStyle(.plain)
-                        .disabled(!isComplete || isJoining)
-                        Spacer()
-                    }
+                            .frame(height: 72)
+                            .opacity(0.011)
+                            .allowsHitTesting(true)
 
-                    if let error = joinError {
-                        Text(error)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.red.opacity(0.8))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
+                            codeBoxesView
+                                .allowsHitTesting(false)
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 28)
+                        .contentShape(Rectangle())
+                        .onTapGesture { isFieldFocused = true }
+
+                        // MARK: Error
+                        if let error = joinError {
+                            Text(error)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.red.opacity(0.8))
+                                .padding(.horizontal, 24)
+                                .padding(.top, 12)
+                        }
+
+                        Spacer(minLength: 160)
                     }
                 }
-                .padding(.top, 32)
-
-                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 0)
-            .padding(.bottom, 40)
+
+            // MARK: Join CTA
+            Button {
+                performJoin()
+            } label: {
+                Group {
+                    if isJoining {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(isComplete ? .white : Color.black.opacity(0.30))
+                    } else {
+                        Text("Join Shield")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(isComplete ? .white : Color.black.opacity(0.30))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(
+                    Capsule()
+                        .fill(
+                            isComplete && !isJoining
+                                ? Color.black
+                                : Color(red: 0.88, green: 0.88, blue: 0.90)
+                        )
+                )
+            }
+            .disabled(!isComplete || isJoining)
+            .animation(.easeInOut(duration: 0.2), value: isComplete)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 48)
+        }
+        .onTapGesture { isFieldFocused = false }
+        .onAppear {
+            DispatchQueue.main.async { isFieldFocused = true }
+        }
+        .preferredColorScheme(.light)
+    }
+
+    // MARK: - Code Boxes
+
+    private var codeBoxesView: some View {
+        HStack(spacing: 10) {
+            ForEach(0..<3, id: \.self) { index in
+                codeBox(at: index)
+            }
+
+            Text("–")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(Color(white: 0.78))
+                .frame(width: 14)
+
+            ForEach(3..<6, id: \.self) { index in
+                codeBox(at: index)
+            }
         }
         .onAppear {
-            DispatchQueue.main.async {
-                isFieldFocused = true
+            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                cursorVisible.toggle()
             }
         }
     }
 
-    // MARK: - Subviews
-
     private func codeBox(at index: Int) -> some View {
         let characters = Array(code)
-        let character: String = index < characters.count ? String(characters[index]) : ""
+        let isFilled = index < characters.count
+        let character: String = isFilled ? String(characters[index]) : ""
         let isActive = isFieldFocused && index == min(code.count, 5)
 
-        return Text(character)
-            .font(.system(size: 24, weight: .semibold, design: .monospaced))
-            .foregroundColor(.black)
-            .frame(width: 48, height: 56)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(white: 0.96))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isActive ? Color.black : Color.clear, lineWidth: 1.5)
-            )
+        return ZStack {
+            if isFilled {
+                Text(character)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundColor(.black)
+                    .transition(.scale.combined(with: .opacity))
+            } else if isActive {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Color.black)
+                    .frame(width: 2, height: 22)
+                    .opacity(cursorVisible ? 1 : 0)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 64)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(isFilled ? Color.white : Color(red: 0.94, green: 0.94, blue: 0.96))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(
+                    isActive ? Color.black :
+                    isFilled ? Color.black.opacity(0.06) : Color.black.opacity(0.04),
+                    lineWidth: isActive ? 1.5 : 1
+                )
+        )
+        .shadow(
+            color: isFilled ? Color.black.opacity(0.06) : .clear,
+            radius: 8, x: 0, y: 3
+        )
+        .scaleEffect(isActive ? 1.04 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isActive)
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isFilled)
+    }
+
+    // MARK: - Actions
+
+    private func performJoin() {
+        isJoining = true
+        joinError = nil
+        Task {
+            do {
+                let joinResult = try await firestoreService.joinTeam(inviteCode: code)
+                let membership = try await firestoreService.loadActiveMembership()
+                await MainActor.run {
+                    if let membership {
+                        firestoreService.startTeamSession(
+                            teamId: membership.teamId,
+                            teamName: membership.teamName,
+                            adminTimezone: membership.adminTimezone
+                        )
+                    } else {
+                        firestoreService.startTeamSession(
+                            teamId: joinResult.teamId,
+                            teamName: joinResult.teamName,
+                            adminTimezone: TimeZone.current.identifier
+                        )
+                    }
+                    onJoined()
+                }
+            } catch {
+                joinError = error.localizedDescription
+            }
+            isJoining = false
+        }
     }
 
     // MARK: - Input Handling
 
     private func handleCodeChange(_ newValue: String) {
-        // Allow only numeric digits 0–9
         let filtered = newValue.filter { $0.isASCII && $0.isNumber }
-
-        // Enforce max length 6
         let limited = String(filtered.prefix(6))
+        code = limited
 
-        // Detect backspace (shorter than current) and simply assign
-        if limited.count <= code.count {
-            code = limited
-        } else {
-            // User added characters; only keep up to 6
-            code = limited
-        }
-
-        // Dismiss keyboard when complete
         if code.count == 6 {
             isFieldFocused = false
         }
@@ -227,4 +262,3 @@ struct JoinShieldView: View {
     JoinShieldView(onBack: {}, onJoined: {})
         .environmentObject(FirestoreService())
 }
-
