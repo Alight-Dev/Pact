@@ -10,91 +10,125 @@ import SwiftUI
 struct OnboardingCreateOrJoinShieldView: View {
     var onCreateShield: () -> Void
     var onJoinShield: () -> Void
-    /// Testing shortcut — jumps straight to HomeScreenView without creating or joining a team.
-    var onSkip: () -> Void = {}
 
     @State private var logoScale: CGFloat = 0.4
     @State private var logoOffsetY: CGFloat = 260
-    @State private var showOptions: Bool = false
+    @State private var showContent: Bool = false
 
     var body: some View {
         ZStack {
             Color.white
                 .ignoresSafeArea()
 
-            // Skip button — top-right, fades in with the option cards
-            if showOptions {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: onSkip) {
-                            Text("Skip")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(Color(white: 0.55))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 60)
-                        .padding(.trailing, 24)
-                    }
-                    Spacer()
-                }
-                .transition(.opacity)
-            }
-
-            VStack(spacing: 32) {
+            VStack(spacing: 0) {
                 Spacer()
 
+                // Logo
                 Image("SplashLogo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 150, height: 150)
+                    .frame(width: 90, height: 90)
                     .scaleEffect(logoScale)
                     .offset(y: logoOffsetY)
 
-                if showOptions {
-                    VStack(spacing: 24) {
-                        HStack(spacing: 16) {
-                            Button(action: onCreateShield) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Create a Shield")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(.black)
+                if showContent {
+                    VStack(spacing: 6) {
+                        Text("One more step.")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color(white: 0.55))
 
-                                    Text("Start a new team")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Color(white: 0.55))
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
-                                .padding(20)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 24)
-                                        .fill(Color(white: 0.96))
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            Button(action: onJoinShield) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Join a Shield")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(.black)
-
-                                    Text("Use an invite link")
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Color(white: 0.55))
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
-                                .padding(20)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 24)
-                                        .fill(Color(white: 0.96))
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.horizontal, 24)
+                        Text("How do you want\nto start?")
+                            .font(.system(size: 30, weight: .bold))
+                            .foregroundStyle(.black)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(2)
                     }
+                    .padding(.top, 16)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+                    // Cards
+                    VStack(spacing: 14) {
+                        // Create a Shield — dark card
+                        Button(action: onCreateShield) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Image(systemName: "shield.fill")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .fill(Color(white: 0.25))
+                                    )
+
+                                Spacer(minLength: 0)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Create a Shield")
+                                        .font(.system(size: 19, weight: .semibold))
+                                        .foregroundStyle(.white)
+
+                                    Text("Build a team and set the rules")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color(white: 0.6))
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(height: 150)
+                            .padding(20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(Color.black)
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        // Join a Shield — light card
+                        Button(action: onJoinShield) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                Image(systemName: "person.2.fill")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(.black)
+                                    .frame(width: 44, height: 44)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .fill(Color(red: 0.94, green: 0.94, blue: 0.96))
+                                    )
+
+                                Spacer(minLength: 0)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Join a Shield")
+                                        .font(.system(size: 19, weight: .semibold))
+                                        .foregroundStyle(.black)
+
+                                    Text("Use an invite code from your team")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color(white: 0.55))
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(height: 150)
+                            .padding(20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    .fill(Color(white: 0.97))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                            .strokeBorder(Color.black, lineWidth: 1.5)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 32)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+                    Text("Pact works best with 2–5 friends")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(white: 0.65))
+                        .padding(.top, 20)
+                        .transition(.opacity)
                 }
 
                 Spacer()
@@ -103,12 +137,13 @@ struct OnboardingCreateOrJoinShieldView: View {
         .onAppear {
             startAnimation()
         }
+        .preferredColorScheme(.light)
     }
 
     private func startAnimation() {
         logoScale = 0.4
         logoOffsetY = 260
-        showOptions = false
+        showContent = false
 
         withAnimation(.interpolatingSpring(stiffness: 180, damping: 14)) {
             logoScale = 1.1
@@ -122,8 +157,8 @@ struct OnboardingCreateOrJoinShieldView: View {
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    showOptions = true
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    showContent = true
                 }
             }
         }
@@ -133,8 +168,6 @@ struct OnboardingCreateOrJoinShieldView: View {
 #Preview {
     OnboardingCreateOrJoinShieldView(
         onCreateShield: {},
-        onJoinShield: {},
-        onSkip: {}
+        onJoinShield: {}
     )
 }
-
