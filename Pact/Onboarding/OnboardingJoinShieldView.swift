@@ -17,6 +17,7 @@ struct JoinShieldView: View {
     @FocusState private var isFieldFocused: Bool
     @State private var isJoining = false
     @State private var joinError: String?
+    @State private var cursorVisible = true
 
     private var isComplete: Bool {
         code.count == 6
@@ -63,9 +64,7 @@ struct JoinShieldView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                    // Code input boxes (driven by a single hidden TextField)
                     ZStack {
-                        // Invisible text field capturing all input
                         TextField("", text: Binding(
                             get: { code },
                             set: { newValue in
@@ -77,17 +76,15 @@ struct JoinShieldView: View {
                         .textInputAutocapitalization(.characters)
                         .disableAutocorrection(true)
                         .foregroundColor(.clear)
-                        .accentColor(.clear)
+                        .tint(.clear)
                         .focused($isFieldFocused)
-                        .frame(width: 0, height: 0)
-                        .opacity(0.05)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 62)
+                        .opacity(0.011)
+                        .allowsHitTesting(true)
 
-                        // Visual boxes
-                        HStack(spacing: 12) {
-                            ForEach(0..<6, id: \.self) { index in
-                                codeBox(at: index)
-                            }
-                        }
+                        codeBoxesView
+                            .allowsHitTesting(false)
                     }
                 }
                 .padding(.top, 8)
@@ -177,23 +174,70 @@ struct JoinShieldView: View {
 
     // MARK: - Subviews
 
+    private var codeBoxesView: some View {
+        HStack(spacing: 10) {
+            ForEach(0..<3, id: \.self) { index in
+                codeBox(at: index)
+            }
+
+            Text("–")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundStyle(Color(white: 0.75))
+                .frame(width: 12)
+
+            ForEach(3..<6, id: \.self) { index in
+                codeBox(at: index)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                cursorVisible.toggle()
+            }
+        }
+    }
+
     private func codeBox(at index: Int) -> some View {
         let characters = Array(code)
-        let character: String = index < characters.count ? String(characters[index]) : ""
+        let isFilled = index < characters.count
+        let character: String = isFilled ? String(characters[index]) : ""
         let isActive = isFieldFocused && index == min(code.count, 5)
 
-        return Text(character)
-            .font(.system(size: 24, weight: .semibold, design: .monospaced))
-            .foregroundColor(.black)
-            .frame(width: 48, height: 56)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(white: 0.96))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isActive ? Color.black : Color.clear, lineWidth: 1.5)
-            )
+        return ZStack {
+            if isFilled {
+                Text(character)
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundColor(.black)
+                    .transition(.scale.combined(with: .opacity))
+            } else if isActive {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Color.black)
+                    .frame(width: 2, height: 24)
+                    .opacity(cursorVisible ? 1 : 0)
+            }
+        }
+        .frame(width: 50, height: 62)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(isFilled ? Color.white : Color(white: 0.965))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(
+                    isActive ? Color.black :
+                    isFilled ? Color(white: 0.88) : Color(white: 0.92),
+                    lineWidth: isActive ? 2 : 1
+                )
+        )
+        .shadow(
+            color: isActive ? Color.black.opacity(0.08) :
+                   isFilled ? Color.black.opacity(0.04) : .clear,
+            radius: isActive ? 8 : 4,
+            x: 0,
+            y: isActive ? 3 : 2
+        )
+        .scaleEffect(isActive ? 1.05 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isActive)
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isFilled)
     }
 
     // MARK: - Input Handling
