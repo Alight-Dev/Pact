@@ -37,7 +37,20 @@ export const joinTeam = onCall(
     const teamId: string = invite.teamId;
     const teamName: string = invite.teamName;
 
-    // 2. Check user isn't already a member
+    // 2. Enforce one-team-at-a-time: reject if user already belongs to any team
+    const membershipsSnap = await db
+      .collection("users").doc(uid)
+      .collection("teamMemberships")
+      .limit(1)
+      .get();
+    if (!membershipsSnap.empty) {
+      throw new HttpsError(
+        "already-exists",
+        "You are already in a team. Leave your current team before joining another."
+      );
+    }
+
+    // 2b. Check user isn't already a member of this specific team
     const existingMemberSnap = await db
       .collection("teams").doc(teamId)
       .collection("members").doc(uid)
