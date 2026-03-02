@@ -510,11 +510,14 @@ struct AddActivitySheet: View {
                                 .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
-                            TextField("e.g. Morning Run", text: $name)
+                            TextField("e.g. Morning Run", text: Binding(
+                                get: { name },
+                                set: { name = String($0.prefix(20)) }
+                            ))
                                 .font(.system(size: 16))
                                 .foregroundStyle(.black)
                                 .tint(.black)
-                                .textInputAutocapitalization(.words)
+                                .textInputAutocapitalization(.sentences)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
