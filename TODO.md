@@ -42,8 +42,11 @@
 - [x] Team name entry screen (`OnboardingTeamNameView`)
 - [x] Activity/goal definition screen (`ActivityListView`)
 - [x] `FirestoreService.createTeam` (calls CF-8)
-- [ ] Wire `ActivityListView` "Continue" button to call `FirestoreService.createTeam` (currently saves to local SwiftData only; Firestore write is not triggered)
-- [ ] Show invite code after team creation (present share sheet with iMessage/WhatsApp/copy)
+- [x] Wire `ActivityListView` "Continue" button to call `FirestoreService.createTeam`
+- [x] Show invite code after team creation (present iOS share sheet with invite code + `pact://join/{code}` deep link)
+- [ ] Add "Share Invite" button to `TeamView` so admin can re-share the invite code at any time (read `firestoreService.currentTeam?["inviteCode"] as? String`)
+- [ ] Wire `minApprovers` and `allowAIFallback` from `ActivityListView` "Initial Conditions" card into the `createTeam` Cloud Function payload (requires CF update too)
+- [ ] Deduplicate SwiftData activities before calling `createTeam` if navigation ever allows re-entry to `ActivityListView` (defensive guard)
 - [ ] `FamilyActivityPicker` integration in `ActivityListView` (admin selects which apps to restrict; store serialized selection in goal doc)
 
 ---
