@@ -12,6 +12,7 @@ initializeApp();
 // HTTP Callables
 export { createTeam }    from "./createTeam";
 export { joinTeam }      from "./joinTeam";
+export { leaveTeam }     from "./leaveTeam";
 
 // Firestore Triggers
 export { onForgePactAgreement }  from "./onForgePactAgreement";
