@@ -161,12 +161,6 @@ struct PactApp: App {
                                 showShieldSelection = false
                                 showJoinShield = true
                             }
-                        },
-                        onSkip: {
-                            withAnimation {
-                                showShieldSelection = false
-                                showHomeScreen = true
-                            }
                         }
                     )
                     .transition(.opacity)
@@ -191,8 +185,20 @@ struct PactApp: App {
                             }
                         },
                         onContinue: {
-                            // Async — OnboardingSignupView's isLoading spinner stays
-                            // active until this resolves, so the user sees no flash.
+                            // Same routing as "already signed in" from Splash.
+                            let completed: Bool
+                            do {
+                                completed = try await firestoreService.hasCompletedOnboarding()
+                            } catch {
+                                completed = false
+                            }
+                            if !completed {
+                                withAnimation {
+                                    showSignupDirect = false
+                                    showOnboarding = true
+                                }
+                                return
+                            }
                             if !pendingJoinCode.isEmpty {
                                 withAnimation {
                                     showSignupDirect = false
@@ -225,7 +231,17 @@ struct PactApp: App {
                             // Async — SplashView shows spinner while this runs.
                             // No intermediate screen is shown before we know where to route.
                             if authManager.currentUser != nil {
-                                // Already signed in: check for an existing team first.
+                                // Already signed in: only skip onboarding if account has completed it.
+                                let completed: Bool
+                                do {
+                                    completed = try await firestoreService.hasCompletedOnboarding()
+                                } catch {
+                                    completed = false
+                                }
+                                if !completed {
+                                    withAnimation { showOnboarding = true }
+                                    return
+                                }
                                 if !pendingJoinCode.isEmpty {
                                     withAnimation { showJoinShield = true }
                                     return
@@ -243,13 +259,8 @@ struct PactApp: App {
                                     withAnimation { showShieldSelection = true }
                                 }
                             } else {
-                                // Not signed in: start onboarding.
-                                withAnimation { showOnboarding = true }
-                            }
-                        },
-                        onSkipToSignup: {
-                            withAnimation {
-                                showSignupDirect = true
+                                // Not signed in: show sign-in screen first.
+                                withAnimation { showSignupDirect = true }
                             }
                         }
                     )
@@ -260,9 +271,8 @@ struct PactApp: App {
             .environmentObject(firestoreService)
             .onOpenURL { url in
                 // Handle pact://join/{code} deep links.
-                // • Already on HomeScreen → sheet over the current view.
-                // • Anywhere else → set showJoinShield; pendingJoinCode is preserved
-                //   through onboarding/sign-in and consumed by routeAfterAuth().
+                // Only show join UI when user is already signed in and has completed onboarding
+                // (on home screen or shield selection). Otherwise only store the code for later.
                 if url.scheme == "pact", url.host == "join",
                    let code = url.pathComponents.last, code.count == 6 {
                     pendingJoinCode = code
@@ -275,9 +285,11 @@ struct PactApp: App {
                             } else {
                                 showJoinShieldSheet = true
                             }
-                        } else {
+                        } else if showShieldSelection {
                             showJoinShield = true
                         }
+                        // Else: Splash, onboarding, signup, etc. — only pendingJoinCode is set;
+                        // existing flows will route to join after sign-in/onboarding.
                     }
                 } else {
                     GIDSignIn.sharedInstance.handle(url)

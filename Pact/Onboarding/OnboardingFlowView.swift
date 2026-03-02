@@ -22,7 +22,6 @@ private enum OnboardingStep {
     case projectionResult
     case requestNotifications
     case screenTimeAccessIntro
-    case signup
     case profileSetup
 }
 
@@ -187,29 +186,12 @@ struct OnboardingFlowView: View {
                             await MainActor.run {
                                 isGoingForward = true
                                 withAnimation(.easeInOut(duration: 0.35)) {
-                                    step = .signup
+                                    step = .profileSetup
                                 }
                             }
                         }
                     },
                     onSkipTapped: {
-                        isGoingForward = true
-                        withAnimation(.easeInOut(duration: 0.35)) {
-                            step = .signup
-                        }
-                    }
-                )
-                .transition(slideTransition)
-
-            case .signup:
-                OnboardingSignupView(
-                    onBack: {
-                        isGoingForward = false
-                        withAnimation(.easeInOut(duration: 0.35)) {
-                            step = .requestNotifications
-                        }
-                    },
-                    onContinue: {
                         isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .profileSetup
@@ -224,7 +206,7 @@ struct OnboardingFlowView: View {
                     onBack: {
                         isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
-                            step = .signup
+                            step = .screenTimeAccessIntro
                         }
                     },
                     onContinue: { nickname, avatarID, assetName in
