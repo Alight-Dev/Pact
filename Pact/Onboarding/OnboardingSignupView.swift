@@ -99,34 +99,34 @@ struct OnboardingSignupView: View {
                     // MARK: Signup buttons
                     VStack(spacing: 14) {
 
-                        // Continue with Apple (placeholder — not yet functional)
-                        Button {
-                            Task {
-                                isLoading = true
-                                errorMessage = nil
-                                do {
-                                    try await authManager.signInWithApple()
-                                    await onContinue()
-                                } catch let error as ASAuthorizationError where error.code == .canceled {
-                                    // User cancelled — no error shown
-                                } catch {
-                                    errorMessage = error.localizedDescription
-                                }
-                                isLoading = false
-                            }
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "apple.logo")
-                                    .font(.system(size: 17, weight: .semibold))
-                                Text("Continue with Apple")
-                                    .font(.system(size: 17, weight: .semibold))
-                            }
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 17)
-                            .background(Capsule().fill(Color.black))
-                        }
-                        .disabled(isLoading)
+                        // Continue with Apple
+//                        Button {
+//                            Task {
+//                                isLoading = true
+//                                errorMessage = nil
+//                                do {
+//                                    try await authManager.signInWithApple()
+//                                    await onContinue()
+//                                } catch let error as ASAuthorizationError where error.code == .canceled {
+//                                    // User cancelled — no error shown
+//                                } catch {
+//                                    errorMessage = error.localizedDescription
+//                                }
+//                                isLoading = false
+//                            }
+//                        } label: {
+//                            HStack(spacing: 10) {
+//                                Image(systemName: "apple.logo")
+//                                    .font(.system(size: 17, weight: .semibold))
+//                                Text("Continue with Apple")
+//                                    .font(.system(size: 17, weight: .semibold))
+//                            }
+//                            .foregroundStyle(.white)
+//                            .frame(maxWidth: .infinity)
+//                            .padding(.vertical, 17)
+//                            .background(Capsule().fill(Color.black))
+//                        }
+//                        .disabled(isLoading)
 
                         // Continue with Google
                         Button {
