@@ -266,7 +266,11 @@ struct OnboardingProfileSetupView: View {
         .onTapGesture { nicknameFieldFocused = false }
         .preferredColorScheme(.light)
         .onAppear {
-            randomizeNickname()
+            if let first = firstName, !first.isEmpty {
+                nickname = first
+            } else {
+                randomizeNickname()
+            }
             shuffledAvatars = allAvatarOptions.shuffled()
             // "Show more" springs up from behind Continue after a brief beat
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {

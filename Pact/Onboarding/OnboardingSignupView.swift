@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct OnboardingSignupView: View {
     var onBack: () -> Void
@@ -98,9 +99,21 @@ struct OnboardingSignupView: View {
                     // MARK: Signup buttons
                     VStack(spacing: 14) {
 
-                        // Continue with Apple (placeholder — not yet functional)
+                        // Continue with Apple
                         Button {
-                            Task { await onContinue() }
+                            Task {
+                                isLoading = true
+                                errorMessage = nil
+                                do {
+                                    try await authManager.signInWithApple()
+                                    onContinue()
+                                } catch let error as ASAuthorizationError where error.code == .canceled {
+                                    // User cancelled — no error shown
+                                } catch {
+                                    errorMessage = error.localizedDescription
+                                }
+                                isLoading = false
+                            }
                         } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: "apple.logo")
