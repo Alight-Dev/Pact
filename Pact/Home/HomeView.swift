@@ -115,7 +115,12 @@ struct HomeView: View {
                                 .overlay(Circle().stroke(Color.white, lineWidth: 3))
                         }
                         .buttonStyle(.plain)
-                        .sheet(isPresented: $showProfile) { ProfileView() }
+                        .sheet(isPresented: $showProfile) {
+                            ProfileView(onTeamTap: {
+                                showProfile = false
+                                onTeamTap()
+                            })
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
