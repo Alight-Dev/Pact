@@ -38,6 +38,7 @@ struct ProfileView: View {
 
     @State private var selectedPeriod: TimePeriod = .week
     @State private var activeMembership: FirestoreService.ActiveMembership?
+    @State private var showEditTeam = false
     @State private var showLeaveTeamConfirm = false
     @State private var showAdminPickerSheet = false
     @State private var selectedNewAdminUid: String? = nil
@@ -140,6 +141,8 @@ struct ProfileView: View {
                         onTap: onTeamTap
                     )
                     ProfileSettingsSection(
+                        isAdmin: isAdmin,
+                        onEditTeam: { showEditTeam = true },
                         onSignOut: { try? authManager.signOut() },
                         onLeaveTeam: {
                             selectedNewAdminUid = nil
@@ -243,6 +246,10 @@ struct ProfileView: View {
                 },
                 onCancel: { showAdminPickerSheet = false }
             )
+        }
+        .sheet(isPresented: $showEditTeam) {
+            EditTeamView()
+                .environmentObject(firestoreService)
         }
     }
 }
@@ -563,6 +570,8 @@ private struct TeamCard: View {
 // MARK: - ProfileSettingsSection
 
 private struct ProfileSettingsSection: View {
+    var isAdmin: Bool
+    var onEditTeam: () -> Void
     var onSignOut: () -> Void
     var onLeaveTeam: () -> Void
     var onDeleteAccount: () -> Void
@@ -572,6 +581,13 @@ private struct ProfileSettingsSection: View {
             settingsRow(title: "Edit Profile")
             Divider()
             settingsRow(title: "Notifications")
+            if isAdmin {
+                Divider()
+                Button(action: onEditTeam) {
+                    settingsRow(title: "Edit Team")
+                }
+                .buttonStyle(.plain)
+            }
             Divider()
             Button(action: onLeaveTeam) {
                 settingsRow(title: "Leave Team", isRed: true, showChevron: false)

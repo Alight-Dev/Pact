@@ -10,9 +10,10 @@ import { initializeApp } from "firebase-admin/app";
 initializeApp();
 
 // HTTP Callables
-export { createTeam }    from "./createTeam";
-export { joinTeam }      from "./joinTeam";
-export { leaveTeam }     from "./leaveTeam";
+export { createTeam }                    from "./createTeam";
+export { joinTeam }                      from "./joinTeam";
+export { leaveTeam }                     from "./leaveTeam";
+export { addGoal, updateGoal, deleteGoal } from "./manageGoal";
 
 // Firestore Triggers
 export { onForgePactAgreement }  from "./onForgePactAgreement";

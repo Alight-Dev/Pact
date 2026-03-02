@@ -46,7 +46,8 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 |------|--------|
 | `Pact/HomeScreenView.swift` | Root tab container. Owns `selectedTab` state and renders `HomeView`, `UploadView`, or `TeamView`. Contains `FloatingTabBar` — a liquid-glass pill with Home, Upload (+), and Team tabs. |
 | `Pact/Home/HomeView.swift` | Home tab. Header shows user avatar button that opens `ProfileView` as a sheet. Displays a progress ring, infinite card carousel (health score + team progress), and today's goal card. |
-| `Pact/Profile/ProfileView.swift` | Profile sheet (opens from HomeView avatar tap). Shows user identity (avatar, name, gamertag, tier/streak pills), a screen time card with week/month/lifetime bar chart, activity stats (streak, completion, days saved), team card with stacked avatars, and settings rows (Edit Profile, Notifications, Sign Out). |
+| `Pact/Profile/ProfileView.swift` | Profile sheet (opens from HomeView avatar tap). Shows user identity (avatar, name, gamertag, tier/streak pills), a screen time card with week/month/lifetime bar chart, activity stats (streak, completion, days saved), team card with stacked avatars, and settings rows (Edit Profile, Notifications, Edit Team (admin only), Sign Out). |
+| `Pact/Profile/EditTeamView.swift` | Edit team activities sheet (admin only). Reads from `firestoreService.teamActivities`; supports add/edit/delete via Firestore CRUD (`addGoal`, `updateGoal`, `deleteGoal`). |
 | `Pact/Upload/UploadView.swift` | Upload tab (center “+” button). Currently an empty stub with an “Upload” label. |
 | `Pact/Upload/CameraPermissionExplainerView.swift` | Intermediate sheet shown before the iOS camera permission dialog. Explains live-capture requirement with animated viewfinder, scan-line, green corner brackets, and staggered feature rows. Green accent. |
 | `Pact/Team/TeamView.swift` | Team tab. Currently an empty stub with a “Team” label. |
