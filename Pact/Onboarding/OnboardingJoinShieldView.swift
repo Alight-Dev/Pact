@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseFunctions
 
 struct JoinShieldView: View {
     var onBack: () -> Void
@@ -242,8 +243,14 @@ struct JoinShieldView: View {
                     }
                     onJoined()
                 }
-            } catch {
-                joinError = error.localizedDescription
+            } catch let error as NSError {
+                if error.domain == FunctionsErrorDomain,
+                   let code = FunctionsErrorCode(rawValue: error.code),
+                   code == .alreadyExists {
+                    joinError = "You're already in a team. Leave your current team first to join another."
+                } else {
+                    joinError = error.localizedDescription
+                }
             }
             isJoining = false
         }

@@ -29,6 +29,8 @@ struct PactApp: App {
     /// Set when a pact://join/{code} deep link arrives while the user is on HomeScreenView.
     /// Drives a .sheet presentation of JoinShieldView over the home screen.
     @State private var showJoinShieldSheet = false
+    /// Set when a deep link arrives but the user is already in a team.
+    @State private var showAlreadyInTeamAlert = false
 
     init() {
         FirebaseApp.configure()
@@ -83,6 +85,11 @@ struct PactApp: App {
                                 },
                                 initialCode: pendingJoinCode
                             )
+                        }
+                        .alert("Already in a Team", isPresented: $showAlreadyInTeamAlert) {
+                            Button("OK", role: .cancel) {}
+                        } message: {
+                            Text("You're already in a team. Leave your current team first to join a new one.")
                         }
                 } else if showPactLaunch {
                     PactLaunchView(
@@ -184,12 +191,28 @@ struct PactApp: App {
                             }
                         },
                         onContinue: {
-                            withAnimation {
-                                showSignupDirect = false
-                                // If a deep link arrived before sign-in, go straight to join.
-                                if !pendingJoinCode.isEmpty {
+                            // Async — OnboardingSignupView's isLoading spinner stays
+                            // active until this resolves, so the user sees no flash.
+                            if !pendingJoinCode.isEmpty {
+                                withAnimation {
+                                    showSignupDirect = false
                                     showJoinShield = true
-                                } else {
+                                }
+                                return
+                            }
+                            if let membership = try? await firestoreService.loadActiveMembership() {
+                                withAnimation {
+                                    showSignupDirect = false
+                                    firestoreService.startTeamSession(
+                                        teamId: membership.teamId,
+                                        teamName: membership.teamName,
+                                        adminTimezone: membership.adminTimezone
+                                    )
+                                    showHomeScreen = true
+                                }
+                            } else {
+                                withAnimation {
+                                    showSignupDirect = false
                                     showShieldSelection = true
                                 }
                             }
@@ -199,39 +222,29 @@ struct PactApp: App {
                 } else {
                     SplashView(
                         onFinished: {
-                            withAnimation {
-                                if authManager.currentUser != nil {
-                                    // Already signed in — skip onboarding.
-                                    // If a deep link is pending, go straight to join screen.
-                                    if !pendingJoinCode.isEmpty {
-                                        showJoinShield = true
-                                    } else {
-                                        showShieldSelection = true
+                            // Async — SplashView shows spinner while this runs.
+                            // No intermediate screen is shown before we know where to route.
+                            if authManager.currentUser != nil {
+                                // Already signed in: check for an existing team first.
+                                if !pendingJoinCode.isEmpty {
+                                    withAnimation { showJoinShield = true }
+                                    return
+                                }
+                                if let membership = try? await firestoreService.loadActiveMembership() {
+                                    withAnimation {
+                                        firestoreService.startTeamSession(
+                                            teamId: membership.teamId,
+                                            teamName: membership.teamName,
+                                            adminTimezone: membership.adminTimezone
+                                        )
+                                        showHomeScreen = true
                                     }
                                 } else {
-                                    showOnboarding = true
+                                    withAnimation { showShieldSelection = true }
                                 }
-                            }
-                            // Background session restore — if the user already belongs to a
-                            // team, start listeners and animate straight to HomeScreen.
-                            // The user briefly sees ShieldSelection (~0.5–1 s) while the
-                            // Firestore round-trip completes; no extra state vars needed.
-                            if authManager.currentUser != nil && pendingJoinCode.isEmpty {
-                                Task {
-                                    if let membership = try? await firestoreService.loadActiveMembership() {
-                                        await MainActor.run {
-                                            withAnimation {
-                                                firestoreService.startTeamSession(
-                                                    teamId: membership.teamId,
-                                                    teamName: membership.teamName,
-                                                    adminTimezone: membership.adminTimezone
-                                                )
-                                                showShieldSelection = false
-                                                showHomeScreen = true
-                                            }
-                                        }
-                                    }
-                                }
+                            } else {
+                                // Not signed in: start onboarding.
+                                withAnimation { showOnboarding = true }
                             }
                         },
                         onSkipToSignup: {
@@ -255,7 +268,13 @@ struct PactApp: App {
                     pendingJoinCode = code
                     withAnimation {
                         if showHomeScreen {
-                            showJoinShieldSheet = true
+                            if firestoreService.currentTeamId != nil {
+                                // User is already in a team — cannot join another
+                                pendingJoinCode = ""
+                                showAlreadyInTeamAlert = true
+                            } else {
+                                showJoinShieldSheet = true
+                            }
                         } else {
                             showJoinShield = true
                         }

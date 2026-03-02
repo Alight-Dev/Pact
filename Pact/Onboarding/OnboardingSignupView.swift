@@ -10,7 +10,7 @@ import AuthenticationServices
 
 struct OnboardingSignupView: View {
     var onBack: () -> Void
-    var onContinue: () -> Void
+    var onContinue: () async -> Void
 
     @EnvironmentObject var authManager: AuthManager
 
@@ -135,7 +135,7 @@ struct OnboardingSignupView: View {
                                 errorMessage = nil
                                 do {
                                     try await authManager.signInWithGoogle()
-                                    onContinue()
+                                    await onContinue()   // stays in loading state while membership check runs
                                 } catch {
                                     errorMessage = error.localizedDescription
                                 }

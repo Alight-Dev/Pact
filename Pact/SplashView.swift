@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SplashView: View {
-    var onFinished: () -> Void
+    var onFinished: () async -> Void
     var onSkipToSignup: (() -> Void)? = nil
 
     @State private var logoScale: CGFloat = 0.3
@@ -17,6 +17,7 @@ struct SplashView: View {
     @State private var showButton = false
     @State private var textHighlightVisible = false
     @State private var screenHeight: CGFloat = 1000
+    @State private var isLoading = false
 
     var body: some View {
         ZStack {
@@ -104,17 +105,27 @@ struct SplashView: View {
             if showButton {
                 VStack {
                     Spacer()
-                    Button(action: onFinished) {
-                        Text("Get Started")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.black)
-                            )
+                    Button {
+                        isLoading = true
+                        Task { await onFinished() }
+                    } label: {
+                        Group {
+                            if isLoading {
+                                ProgressView().tint(.white)
+                            } else {
+                                Text("Get Started")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.black)
+                        )
                     }
+                    .disabled(isLoading)
                     .padding(.horizontal, 24)
                 }
                 .transition(.opacity.combined(with: .move(edge: .bottom)))

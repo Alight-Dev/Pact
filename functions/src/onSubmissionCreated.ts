@@ -62,13 +62,13 @@ export const onSubmissionCreated = onDocumentCreated(
 
     if (tokens.length > 0) {
       const submitterNickname: string =
-        submission.displayName ?? submission.avatarAssetName ?? "A teammate";
+        submission.nickname ?? submission.displayName ?? "A teammate";
 
       await getMessaging().sendEachForMulticast({
         tokens,
         notification: {
-          title: "Vote needed!",
-          body: `${submitterNickname} submitted their proof. Cast your vote.`,
+          title: "New submission",
+          body: `${submitterNickname} just finished a task. Tap to approve.`,
         },
         data: {
           type: "vote_needed",

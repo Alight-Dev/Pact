@@ -28,54 +28,44 @@ private let mockMembers: [ShieldMember] = [
     ShieldMember(memberName: "Jordan", memberAvatarAsset: "avatar_jordan", activitiesCompleted: 2, activitiesTotal: 2, isCurrentUser: false),
 ]
 
-private struct PendingSubmission: Identifiable {
-    let id = UUID()
-    let memberName: String
-    let memberAvatarAsset: String
-    let activityName: String
-    let approvalsReceived: Int
-    let approvalsRequired: Int
-    // imageURL will replace placeholder once Firebase Storage is wired up
-}
 
-// TODO: Replace with pending submissions from FirestoreService.todaysSubmissions.
-private let mockSubmissions: [PendingSubmission] = [
-    PendingSubmission(memberName: "Alex", memberAvatarAsset: "avatar_alex", activityName: "Morning Gym", approvalsReceived: 1, approvalsRequired: 2),
-    PendingSubmission(memberName: "Sarah", memberAvatarAsset: "avatar_sara", activityName: "30 Min Reading", approvalsReceived: 0, approvalsRequired: 2),
-    PendingSubmission(memberName: "Jordan", memberAvatarAsset: "avatar_jordan", activityName: "Meditation", approvalsReceived: 1, approvalsRequired: 2),
-]
-
-private struct HighlightSubmission: Identifiable {
-    let id = UUID()
-    let memberName: String
-    let memberAvatarAsset: String
-    let activityName: String
-    let systemIconName: String
-}
-
-// TODO: Replace with approved/highlighted submissions from Firestore.
-private let mockHighlights: [HighlightSubmission] = [
-    HighlightSubmission(memberName: "Sarah",  memberAvatarAsset: "avatar_sara",   activityName: "30 Min Reading", systemIconName: "book.fill"),
-    HighlightSubmission(memberName: "Jordan", memberAvatarAsset: "avatar_jordan", activityName: "Meditation",     systemIconName: "figure.mind.and.body"),
-    HighlightSubmission(memberName: "Alex",   memberAvatarAsset: "avatar_alex",   activityName: "Morning Gym",    systemIconName: "figure.strengthtraining.traditional"),
-]
 
 // MARK: - Highlight Card
 
 private struct HighlightCard: View {
-    let highlight: HighlightSubmission
+    let highlight: Submission
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(white: 0.94))
-                    .frame(height: 260)
-
-                Image(systemName: highlight.systemIconName)
-                    .font(.system(size: 60))
-                    .foregroundStyle(Color(white: 0.70))
+            Group {
+                if let urlStr = highlight.photoUrl, let url = URL(string: urlStr) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable()
+                                .scaledToFill()
+                                .frame(height: 260)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        default:
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color(white: 0.94))
+                                .frame(height: 260)
+                                .overlay { ProgressView().tint(Color(white: 0.55)) }
+                        }
+                    }
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color(white: 0.94))
+                            .frame(height: 260)
+                        Image(systemName: "photo")
+                            .font(.system(size: 48))
+                            .foregroundStyle(Color(white: 0.70))
+                    }
+                }
             }
+            .frame(height: 260)
             .overlay(alignment: .topTrailing) {
                 Text("APPROVED")
                     .font(.system(size: 13, weight: .bold))
@@ -87,14 +77,14 @@ private struct HighlightCard: View {
             }
 
             HStack(spacing: 12) {
-                Image(highlight.memberAvatarAsset)
+                Image(highlight.avatarAssetName.isEmpty ? "avatar_felix" : highlight.avatarAssetName)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 48, height: 48)
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(highlight.memberName)
+                    Text(highlight.nickname.isEmpty ? highlight.displayName : highlight.nickname)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.black)
                     Text(highlight.activityName)
@@ -119,7 +109,7 @@ private struct HighlightCard: View {
 // MARK: - Highlights Section
 
 private struct HighlightsSection: View {
-    let highlights: [HighlightSubmission]
+    let highlights: [Submission]
     @State private var currentPage = 0
 
     var body: some View {
@@ -128,24 +118,33 @@ private struct HighlightsSection: View {
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.black)
 
-            TabView(selection: $currentPage) {
-                ForEach(Array(highlights.enumerated()), id: \.element.id) { index, highlight in
-                    HighlightCard(highlight: highlight)
-                        .tag(index)
+            if highlights.isEmpty {
+                Text("No highlights yet — be the first to complete a goal!")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color(white: 0.55))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+            } else {
+                TabView(selection: $currentPage) {
+                    ForEach(Array(highlights.enumerated()), id: \.element.id) { index, highlight in
+                        HighlightCard(highlight: highlight)
+                            .tag(index)
+                    }
                 }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 370)
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: 370)
 
-            HStack(spacing: 6) {
-                ForEach(highlights.indices, id: \.self) { index in
-                    Circle()
-                        .fill(index == currentPage ? Color.black : Color(white: 0.80))
-                        .frame(width: 7, height: 7)
-                        .animation(.easeInOut(duration: 0.2), value: currentPage)
+                HStack(spacing: 6) {
+                    ForEach(highlights.indices, id: \.self) { index in
+                        Circle()
+                            .fill(index == currentPage ? Color.black : Color(white: 0.80))
+                            .frame(width: 7, height: 7)
+                            .animation(.easeInOut(duration: 0.2), value: currentPage)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
             }
-            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 }
@@ -153,7 +152,7 @@ private struct HighlightsSection: View {
 // MARK: - Submission Card
 
 private struct SubmissionCard: View {
-    let submission: PendingSubmission
+    let submission: Submission
     let onSwipe: (Bool) -> Void
 
     @State private var offset: CGSize = .zero
@@ -174,16 +173,38 @@ private struct SubmissionCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Photo placeholder area
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(white: 0.94))
-                    .frame(height: 260)
-
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.system(size: 60))
-                    .foregroundStyle(Color(white: 0.70))
+            // Photo area
+            Group {
+                if let urlStr = submission.photoUrl, let url = URL(string: urlStr) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable()
+                                .scaledToFill()
+                                .frame(height: 260)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        default:
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color(white: 0.94))
+                                .frame(height: 260)
+                                .overlay {
+                                    ProgressView().tint(Color(white: 0.55))
+                                }
+                        }
+                    }
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color(white: 0.94))
+                            .frame(height: 260)
+                        Image(systemName: "photo")
+                            .font(.system(size: 48))
+                            .foregroundStyle(Color(white: 0.70))
+                    }
+                }
             }
+            .frame(height: 260)
             .overlay(alignment: .topLeading) {
                 // APPROVE label
                 Text("APPROVE")
@@ -213,14 +234,14 @@ private struct SubmissionCard: View {
 
             // Info row
             HStack(spacing: 12) {
-                Image(submission.memberAvatarAsset)
+                Image(submission.avatarAssetName.isEmpty ? "avatar_felix" : submission.avatarAssetName)
                     .resizable()
                     .scaledToFill()
                     .frame(width: 48, height: 48)
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(submission.memberName)
+                    Text(submission.nickname.isEmpty ? submission.displayName : submission.nickname)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.black)
                     Text(submission.activityName)
@@ -308,7 +329,8 @@ private struct SubmissionCard: View {
 // MARK: - Swipeable Card Stack
 
 private struct SwipeableCardStack: View {
-    @Binding var submissions: [PendingSubmission]
+    @Binding var submissions: [Submission]
+    let onVote: (String, String) -> Void
 
     var body: some View {
         let visible = Array(submissions.prefix(3))
@@ -321,7 +343,8 @@ private struct SwipeableCardStack: View {
 
                 SubmissionCard(
                     submission: submission,
-                    onSwipe: { _ in
+                    onSwipe: { approved in
+                        onVote(submission.submitterUid, approved ? "approve" : "reject")
                         withAnimation(.spring()) {
                             submissions.removeAll { $0.id == submission.id }
                         }
@@ -338,7 +361,8 @@ private struct SwipeableCardStack: View {
 // MARK: - Pending Approvals Section
 
 private struct PendingApprovalsSection: View {
-    @Binding var submissions: [PendingSubmission]
+    @Binding var submissions: [Submission]
+    let onVote: (String, String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -346,7 +370,7 @@ private struct PendingApprovalsSection: View {
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.black)
 
-            SwipeableCardStack(submissions: $submissions)
+            SwipeableCardStack(submissions: $submissions, onVote: onVote)
         }
     }
 }
@@ -456,7 +480,25 @@ private struct ShieldMembersSection: View {
 
 struct TeamView: View {
     @EnvironmentObject var firestoreService: FirestoreService
-    @State private var submissions = mockSubmissions
+    @State private var pendingSubmissions: [Submission] = []
+    @State private var votedIds: Set<String> = []
+    @State private var showLeaveSheet = false
+    @State private var showAdminPickerSheet = false
+    @State private var selectedNewAdminUid: String? = nil
+    @State private var isLeavingTeam = false
+    @State private var leaveTeamError: String? = nil
+
+    private var currentUid: String? { Auth.auth().currentUser?.uid }
+
+    private var isAdmin: Bool {
+        guard let uid = currentUid else { return false }
+        return firestoreService.members.first(where: { $0.id == uid })?.role == "admin"
+    }
+
+    private var otherMembers: [TeamMember] {
+        guard let uid = currentUid else { return firestoreService.members }
+        return firestoreService.members.filter { $0.id != uid }
+    }
     
     private var inviteShareURL: URL {
         // Use the live invite code from Firestore when available,
@@ -494,6 +536,12 @@ struct TeamView: View {
         liveMembers.isEmpty ? mockMembers : liveMembers
     }
 
+    private var approvedSubmissions: [Submission] {
+        firestoreService.mappedSubmissions.filter {
+            $0.status == "approved" || $0.status == "auto_approved"
+        }
+    }
+
     private var shieldDisplayName: String {
         if let name = firestoreService.currentTeam?["name"] as? String {
             return name
@@ -508,33 +556,135 @@ struct TeamView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                TeamShieldHeader(teamName: shieldDisplayName, memberCount: firestoreService.members.count)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 60)
+        ZStack(alignment: .topTrailing) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    TeamShieldHeader(teamName: shieldDisplayName, memberCount: firestoreService.members.count)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 60)
 
-                if !submissions.isEmpty {
-                    PendingApprovalsSection(submissions: $submissions)
+                    if !pendingSubmissions.isEmpty {
+                        PendingApprovalsSection(submissions: $pendingSubmissions, onVote: handleVote)
+                            .padding(.top, 32)
+                            .padding(.horizontal, 20)
+                            .transition(.opacity)
+                    } else {
+                        HighlightsSection(highlights: approvedSubmissions)
+                            .padding(.top, 32)
+                            .padding(.horizontal, 20)
+                            .transition(.opacity.combined(with: .move(edge: .trailing)))
+                    }
+
+                    ShieldMembersSection(shareURL: inviteShareURL, members: membersToShow)
                         .padding(.top, 32)
                         .padding(.horizontal, 20)
-                        .transition(.opacity)
-                } else {
-                    HighlightsSection(highlights: mockHighlights)
-                        .padding(.top, 32)
-                        .padding(.horizontal, 20)
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                        .padding(.bottom, 120)
                 }
-
-                ShieldMembersSection(shareURL: inviteShareURL, members: membersToShow)
-                    .padding(.top, 32)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 120)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .ignoresSafeArea(edges: .top)
+            .onChange(of: firestoreService.mappedSubmissions) { _, newSubmissions in
+                refreshPending(from: newSubmissions)
+            }
+            .onAppear {
+                refreshPending(from: firestoreService.mappedSubmissions)
+            }
+
+            // Leave / Manage Team menu — top-right, aligned with the shield header
+            Menu {
+                if isAdmin && !otherMembers.isEmpty {
+                    Button("Transfer Admin & Leave", role: .destructive) {
+                        selectedNewAdminUid = nil
+                        showAdminPickerSheet = true
+                    }
+                } else {
+                    Button(
+                        isAdmin && otherMembers.isEmpty ? "Delete Team" : "Leave Team",
+                        role: .destructive
+                    ) {
+                        showLeaveSheet = true
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.black)
+                    .padding(.trailing, 20)
+                    .padding(.top, 60)
+            }
         }
-        .background(Color.white)
-        .ignoresSafeArea(edges: .top)
+        .alert(
+            isAdmin && otherMembers.isEmpty ? "Delete Team?" : "Leave Team?",
+            isPresented: $showLeaveSheet
+        ) {
+            Button(isAdmin && otherMembers.isEmpty ? "Delete" : "Leave", role: .destructive) {
+                performLeave(newAdminUid: nil)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if isAdmin && otherMembers.isEmpty {
+                Text("You are the only member. This will permanently delete the team.")
+            } else {
+                Text("You will leave this team. Other members will not be affected.")
+            }
+        }
+        .alert("Could Not Leave", isPresented: .init(
+            get: { leaveTeamError != nil },
+            set: { if !$0 { leaveTeamError = nil } }
+        )) {
+            Button("OK", role: .cancel) { leaveTeamError = nil }
+        } message: {
+            Text(leaveTeamError ?? "")
+        }
+        .sheet(isPresented: $showAdminPickerSheet) {
+            TeamAdminPickerSheet(
+                members: otherMembers,
+                selectedUid: $selectedNewAdminUid,
+                onConfirm: { uid in
+                    showAdminPickerSheet = false
+                    performLeave(newAdminUid: uid)
+                },
+                onCancel: { showAdminPickerSheet = false }
+            )
+        }
+    }
+
+    private func performLeave(newAdminUid: String?) {
+        guard let teamId = firestoreService.currentTeamId else { return }
+        isLeavingTeam = true
+        Task {
+            do {
+                try await firestoreService.leaveTeam(teamId: teamId, newAdminUid: newAdminUid)
+                await MainActor.run { firestoreService.clearTeamSession() }
+            } catch {
+                await MainActor.run { leaveTeamError = error.localizedDescription }
+            }
+            await MainActor.run { isLeavingTeam = false }
+        }
+    }
+
+    private func refreshPending(from all: [Submission]) {
+        let currentUid = Auth.auth().currentUser?.uid
+        pendingSubmissions = all.filter { sub in
+            sub.status == "pending"
+                && sub.submitterUid != currentUid
+                && !votedIds.contains(sub.submitterUid)
+        }
+    }
+
+    private func handleVote(submitterUid: String, vote: String) {
+        votedIds.insert(submitterUid)
+        guard let teamId = firestoreService.currentTeamId else { return }
+        let date = FirestoreService.todayDateString()
+        Task {
+            try? await firestoreService.castVote(
+                teamId: teamId,
+                date: date,
+                submitterUid: submitterUid,
+                vote: vote
+            )
+        }
     }
 }
 
@@ -576,6 +726,70 @@ private struct TeamShieldHeader: View {
                 Text("12 day streak")
                     .font(.system(size: 15))
                     .foregroundStyle(Color(white: 0.50))
+            }
+        }
+    }
+}
+
+// MARK: - TeamAdminPickerSheet
+
+private struct TeamAdminPickerSheet: View {
+    let members: [TeamMember]
+    @Binding var selectedUid: String?
+    let onConfirm: (String) -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationView {
+            List(members) { member in
+                Button {
+                    selectedUid = member.id
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(member.avatarAssetName.isEmpty ? "avatar_felix" : member.avatarAssetName)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(member.nickname.isEmpty ? member.displayName : member.nickname)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.black)
+                            if !member.displayName.isEmpty {
+                                Text(member.displayName)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color(white: 0.55))
+                            }
+                        }
+
+                        Spacer()
+
+                        if selectedUid == member.id {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.black)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle("Choose New Admin")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel", action: onCancel)
+                        .foregroundStyle(.black)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Confirm & Leave") {
+                        if let uid = selectedUid { onConfirm(uid) }
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(selectedUid != nil ? Color.red : Color(white: 0.55))
+                    .disabled(selectedUid == nil)
+                }
             }
         }
     }
