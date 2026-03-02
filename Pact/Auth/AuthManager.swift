@@ -8,6 +8,8 @@ import Combine
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
+import AuthenticationServices
+import CryptoKit
 import UIKit
 
 @MainActor
@@ -15,6 +17,7 @@ final class AuthManager: ObservableObject {
     @Published var currentUser: FirebaseAuth.User?
 
     private var authStateListener: AuthStateDidChangeListenerHandle?
+    private var currentNonce: String?
 
     init() {
         authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
@@ -24,6 +27,36 @@ final class AuthManager: ObservableObject {
         }
     }
 
+    func signInWithApple() async throws {
+        let nonce = randomNonceString()
+        currentNonce = nonce
+        
+        let appleIDProvider = ASAuthorizationAppleIDProvider()
+        let request = appleIDProvider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = sha256(nonce)
+        
+        let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+        
+        // Use a delegate to handle the authorization
+        let delegate = try await SignInWithAppleDelegate.signIn()
+        
+        guard let appleIDCredential = delegate.credential as? ASAuthorizationAppleIDCredential,
+              let appleIDToken = appleIDCredential.identityToken,
+              let idTokenString = String(data: appleIDToken, encoding: .utf8) else {
+            throw AuthError.missingToken
+        }
+        
+        let credential = OAuthProvider.appleCredential(
+            withIDToken: idTokenString,
+            rawNonce: nonce,
+            fullName: appleIDCredential.fullName
+        )
+        
+        let authResult = try await Auth.auth().signIn(with: credential)
+        currentUser = authResult.user
+    }
+    
     func signInWithGoogle() async throws {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             throw AuthError.missingClientID
@@ -82,3 +115,74 @@ enum AuthError: LocalizedError {
         }
     }
 }
+// MARK: - Sign in with Apple Helper
+
+private func randomNonceString(length: Int = 32) -> String {
+    precondition(length > 0)
+    var randomBytes = [UInt8](repeating: 0, count: length)
+    let errorCode = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
+    if errorCode != errSecSuccess {
+        fatalError("Unable to generate nonce. SecRandomCopyBytes failed with OSStatus \(errorCode)")
+    }
+
+    let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+
+    let nonce = randomBytes.map { byte in
+        charset[Int(byte) % charset.count]
+    }
+
+    return String(nonce)
+}
+
+private func sha256(_ input: String) -> String {
+    let inputData = Data(input.utf8)
+    let hashedData = SHA256.hash(data: inputData)
+    let hashString = hashedData.compactMap {
+        String(format: "%02x", $0)
+    }.joined()
+
+    return hashString
+}
+
+@MainActor
+private class SignInWithAppleDelegate: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    var continuation: CheckedContinuation<SignInWithAppleDelegate, Error>?
+    var credential: ASAuthorizationCredential?
+    
+    static func signIn() async throws -> SignInWithAppleDelegate {
+        let delegate = SignInWithAppleDelegate()
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            delegate.continuation = continuation
+            
+            let appleIDProvider = ASAuthorizationAppleIDProvider()
+            let request = appleIDProvider.createRequest()
+            request.requestedScopes = [.fullName, .email]
+            
+            let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+            authorizationController.delegate = delegate
+            authorizationController.presentationContextProvider = delegate
+            authorizationController.performRequests()
+        }
+    }
+    
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else {
+            return ASPresentationAnchor()
+        }
+        return window
+    }
+    
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
+            credential = appleIDCredential
+            continuation?.resume(returning: self)
+        }
+    }
+    
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        continuation?.resume(throwing: error)
+    }
+}
+
