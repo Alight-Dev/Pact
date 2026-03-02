@@ -236,6 +236,20 @@ final class FirestoreService: ObservableObject {
         return JoinTeamResult(teamId: teamId, teamName: teamName)
     }
 
+    // MARK: - Team Leave (CF-9)
+
+    /// Calls the `leaveTeam` Cloud Function.
+    /// Returns `true` if the team was fully dissolved (caller was last member),
+    /// `false` if other members remain.
+    /// After this returns, call `clearTeamSession()` to wipe local state.
+    @discardableResult
+    func leaveTeam(teamId: String) async throws -> Bool {
+        let callable = functions.httpsCallable("leaveTeam")
+        let result = try await callable.call(["teamId": teamId])
+        let data = result.data as? [String: Any]
+        return data?["dissolved"] as? Bool ?? false
+    }
+
     // MARK: - Forge Pact
 
     /// Writes a forgePactAgreement document for the current user.
@@ -329,6 +343,21 @@ final class FirestoreService: ObservableObject {
         membersListener = nil
         activitiesListener = nil
         teamActivities = []
+    }
+
+    /// Stops all real-time listeners AND clears every team-related @Published
+    /// property and UserDefaults key. Call this after leaving a team (without
+    /// signing out) so the app can route to the Create/Join screen cleanly.
+    func clearTeamSession() {
+        stopListeners()
+        currentTeamId     = nil
+        currentTeamName   = nil
+        adminTimezone     = nil
+        currentTeam       = nil
+        members           = []
+        todaysSubmissions = []
+        let keys = ["app_team_id", "app_team_name", "app_team_timezone", "app_invite_code"]
+        keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
     }
 
     // MARK: - Voting

@@ -286,6 +286,17 @@ struct PactApp: App {
                     }
                 }
             }
+            // When clearTeamSession() sets currentTeamId to nil while the user
+            // is on the home screen (e.g. after leaving a team), route them to
+            // the Create/Join shield screen so they can join or create a new team.
+            .onChange(of: firestoreService.currentTeamId) { _, teamId in
+                if teamId == nil && showHomeScreen {
+                    withAnimation {
+                        showHomeScreen = false
+                        showShieldSelection = true
+                    }
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
     }
