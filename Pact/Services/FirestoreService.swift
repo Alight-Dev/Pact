@@ -12,10 +12,12 @@
 
 import Foundation
 import Combine
+import UIKit
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseFunctions
 import FirebaseMessaging
+import FirebaseStorage
 import SwiftData
 
 // MARK: - FirestoreService
@@ -382,6 +384,67 @@ final class FirestoreService: ObservableObject {
             .setData(data)
     }
 
+    // MARK: - Proof Submission
+
+    /// Uploads a proof photo to Firebase Storage and writes the submission document to Firestore.
+    /// Triggers the `onSubmissionCreated` Cloud Function which sends FCM vote-needed push notifications.
+    func submitProof(teamId: String, image: UIImage, activityName: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { throw FirestoreServiceError.notAuthenticated }
+
+        // Fetch caller's profile for denormalized fields
+        let userSnap = try await db.collection("users").document(uid).getDocument()
+        let userData = userSnap.data() ?? [:]
+        let displayName = userData["displayName"] as? String ?? ""
+        let nickname = userData["nickname"] as? String ?? ""
+        let avatarAssetName = userData["avatarAssetName"] as? String ?? ""
+
+        // Compress image
+        guard let imageData = image.jpegData(compressionQuality: 0.75) else {
+            throw FirestoreServiceError.invalidResponse
+        }
+
+        // Upload to Firebase Storage: proof/{teamId}/{date}/{uid}.jpg
+        let dateString = Self.todayDateString()
+        let storagePath = "proof/\(teamId)/\(dateString)/\(uid).jpg"
+        let storageRef = Storage.storage().reference(withPath: storagePath)
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+        _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
+        let downloadURL = try await storageRef.downloadURL()
+
+        // Determine eligible voter count (all team members except the submitter)
+        let memberCount = max(1, members.count)
+
+        // Write submission document — triggers onSubmissionCreated Cloud Function
+        let submissionData: [String: Any] = [
+            "submitterUid": uid,
+            "displayName": displayName,
+            "nickname": nickname,
+            "avatarAssetName": avatarAssetName,
+            "activityName": activityName,
+            "photoUrl": downloadURL.absoluteString,
+            "status": "pending",
+            "approveCount": 0,
+            "rejectCount": 0,
+            "voteCount": 0,
+            "eligibleVoterCount": memberCount,
+            "createdAt": FieldValue.serverTimestamp(),
+        ]
+        try await db
+            .collection("teams").document(teamId)
+            .collection("dailyInstances").document(dateString)
+            .collection("submissions").document(uid)
+            .setData(submissionData)
+    }
+
+    /// Returns today's date as "yyyy-MM-dd" in UTC — matches the format used by Firestore listeners.
+    static func todayDateString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter.string(from: Date())
+    }
+
     // MARK: - Goal Sync → SwiftData
 
     /// Reads `teams/{teamId}/goals` once and upserts them into the local SwiftData `Activity` store.
@@ -472,7 +535,7 @@ struct TeamMember: Identifiable {
     }
 }
 
-struct Submission: Identifiable {
+struct Submission: Identifiable, Equatable {
     let id: String
     let submitterUid: String
     let displayName: String
@@ -482,6 +545,7 @@ struct Submission: Identifiable {
     let status: String
     let approvalsReceived: Int
     let approvalsRequired: Int
+    let photoUrl: String?
 
     init?(dictionary: [String: Any]) {
         guard let id = dictionary["uid"] as? String ?? dictionary["submitterUid"] as? String else {
@@ -495,11 +559,13 @@ struct Submission: Identifiable {
         self.activityName = dictionary["activityName"] as? String ?? ""
         self.status = dictionary["status"] as? String ?? "pending"
         self.approvalsReceived = dictionary["approvalsReceived"] as? Int
+            ?? dictionary["approveCount"] as? Int
             ?? dictionary["approvedCount"] as? Int
             ?? 0
         self.approvalsRequired = dictionary["approvalsRequired"] as? Int
             ?? dictionary["eligibleVoterCount"] as? Int
             ?? 0
+        self.photoUrl = dictionary["photoUrl"] as? String
     }
 }
 

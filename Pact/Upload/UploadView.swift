@@ -12,6 +12,8 @@ struct UploadProofView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var selectedActivityID: String? = nil
     @State private var pickerErrorMessage: String? = nil
+    @State private var isUploading = false
+    @State private var uploadError: String? = nil
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -210,7 +212,7 @@ extension UploadProofView {
     }
 
     private var canSubmit: Bool {
-        selectedImage != nil && selectedActivityID != nil
+        selectedImage != nil && selectedActivityID != nil && !isUploading
     }
 
     @ViewBuilder
@@ -279,24 +281,54 @@ extension UploadProofView {
             Spacer()
 
             // Submit button
-            Button {
-                // TODO: fire proof submission to backend before dismissing
-                dismiss()
-            } label: {
-                Text(canSubmit ? "Submit" : "Upload Proof")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(canSubmit ? Color.white : Color.black)
+            ZStack {
+                Button {
+                    guard let teamId = firestoreService.currentTeamId,
+                          let image = selectedImage,
+                          let activityName = activityOptions.first(where: { $0.id == selectedActivityID })?.name
+                    else { return }
+                    isUploading = true
+                    Task {
+                        do {
+                            try await firestoreService.submitProof(teamId: teamId, image: image, activityName: activityName)
+                            dismiss()
+                        } catch {
+                            uploadError = error.localizedDescription
+                            isUploading = false
+                        }
+                    }
+                } label: {
+                    ZStack {
+                        Text(canSubmit ? "Submit" : "Upload Proof")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(canSubmit ? Color.white : Color.black)
+                            .opacity(isUploading ? 0 : 1)
+
+                        if isUploading {
+                            ProgressView()
+                                .tint(.white)
+                        }
+                    }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
                             .fill(canSubmit ? Color.black : Color(white: 0.9))
                     )
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSubmit)
             }
-            .buttonStyle(.plain)
-            .disabled(!canSubmit)
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
+            .alert("Upload Failed", isPresented: Binding(
+                get: { uploadError != nil },
+                set: { if !$0 { uploadError = nil } }
+            )) {
+                Button("OK", role: .cancel) { uploadError = nil }
+            } message: {
+                Text(uploadError ?? "")
+            }
         }
     }
 }
