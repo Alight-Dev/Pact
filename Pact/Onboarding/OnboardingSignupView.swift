@@ -106,7 +106,7 @@ struct OnboardingSignupView: View {
                                 errorMessage = nil
                                 do {
                                     try await authManager.signInWithApple()
-                                    onContinue()
+                                    await onContinue()
                                 } catch let error as ASAuthorizationError where error.code == .canceled {
                                     // User cancelled — no error shown
                                 } catch {
