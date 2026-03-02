@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct OnboardingSignupView: View {
     var onBack: () -> Void
@@ -98,7 +99,7 @@ struct OnboardingSignupView: View {
                     // MARK: Signup buttons
                     VStack(spacing: 14) {
 
-                        // Continue with Apple (placeholder — not yet functional)
+                        // Continue with Apple
                         Button {
                             Task {
                                 isLoading = true
