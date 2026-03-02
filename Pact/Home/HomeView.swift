@@ -49,6 +49,7 @@ struct HomeView: View {
     @State private var cardSelection: Int = carouselStart
     @State private var animatedProgress: CGFloat = 0
     @State private var showProfile = false
+    @State private var switchToTeamAfterDismiss = false
 
     private var currentDot: Int { cardSelection % cardCount }
 
@@ -115,10 +116,15 @@ struct HomeView: View {
                                 .overlay(Circle().stroke(Color.white, lineWidth: 3))
                         }
                         .buttonStyle(.plain)
-                        .sheet(isPresented: $showProfile) {
-                            ProfileView(onTeamTap: {
-                                showProfile = false
+                        .sheet(isPresented: $showProfile, onDismiss: {
+                            if switchToTeamAfterDismiss {
+                                switchToTeamAfterDismiss = false
                                 onTeamTap()
+                            }
+                        }) {
+                            ProfileView(onTeamTap: {
+                                switchToTeamAfterDismiss = true
+                                showProfile = false
                             })
                         }
                     }
