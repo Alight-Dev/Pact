@@ -19,16 +19,21 @@ struct HomeScreenView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Group {
+            ZStack {
                 switch selectedTab {
                 case .home:
                     HomeView(onTeamTap: {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        withAnimation(.spring(response: 0.15, dampingFraction: 0.75)) {
                             selectedTab = .team
                         }
                     })
+                    .transition(.opacity)
                 case .team:
                     TeamView()
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing),
+                            removal: .move(edge: .trailing)
+                        ))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -98,7 +103,7 @@ private struct FloatingTabBar: View {
         weight: Font.Weight = .regular
     ) -> some View {
         Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            withAnimation(.spring(response: 0.15, dampingFraction: 0.75)) {
                 selectedTab = tab
             }
         } label: {
