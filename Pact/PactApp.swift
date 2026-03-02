@@ -19,6 +19,7 @@ struct PactApp: App {
     @State private var showSignupDirect = false
     @State private var showShieldSelection = false
     @State private var showJoinShield = false
+    @State private var showJoinShieldActivities = false
     @State private var showHomeScreen = false
     /// Invite code passed in via a pact://join/{code} deep-link when auto-join fails.
     @State private var pendingJoinCode: String = ""
@@ -78,10 +79,12 @@ struct PactApp: App {
                                     pendingJoinCode = ""
                                 },
                                 onJoined: {
-                                    // User joined a second team; listeners are updated
-                                    // via startTeamSession inside JoinShieldView.
-                                    withAnimation { showJoinShieldSheet = false }
-                                    pendingJoinCode = ""
+                                    withAnimation {
+                                        showJoinShieldSheet = false
+                                        pendingJoinCode = ""
+                                        showHomeScreen = false
+                                        showJoinShieldActivities = true
+                                    }
                                 },
                                 initialCode: pendingJoinCode
                             )
@@ -129,6 +132,16 @@ struct PactApp: App {
                         }
                     )
                     .transition(.opacity)
+                } else if showJoinShieldActivities {
+                    JoinShieldActivitiesView(
+                        onContinue: {
+                            withAnimation {
+                                showJoinShieldActivities = false
+                                showHomeScreen = true
+                            }
+                        }
+                    )
+                    .transition(.opacity)
                 } else if showJoinShield {
                     JoinShieldView(
                         onBack: {
@@ -142,7 +155,7 @@ struct PactApp: App {
                             withAnimation {
                                 showJoinShield = false
                                 pendingJoinCode = ""
-                                showHomeScreen = true
+                                showJoinShieldActivities = true
                             }
                         },
                         initialCode: pendingJoinCode
@@ -299,6 +312,7 @@ struct PactApp: App {
                 if user == nil {
                     withAnimation {
                         showHomeScreen = false
+                        showJoinShieldActivities = false
                         showActivitiesSetup = false
                         showTeamName = false
                         showPactLaunch = false
