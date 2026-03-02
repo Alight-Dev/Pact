@@ -37,6 +37,9 @@ struct ProfileView: View {
 
     @State private var selectedPeriod: TimePeriod = .week
     @State private var activeMembership: FirestoreService.ActiveMembership?
+    @State private var showLeaveTeamConfirm = false
+    @State private var isLeavingTeam = false
+    @State private var leaveTeamError: String?
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
     @State private var isDeleting = false
@@ -123,14 +126,52 @@ struct ProfileView: View {
                     )
                     ProfileSettingsSection(
                         onSignOut: { try? authManager.signOut() },
+                        onLeaveTeam: { showLeaveTeamConfirm = true },
                         onDeleteAccount: { showDeleteConfirm = true }
                     )
+                    .alert("Leave Team?", isPresented: $showLeaveTeamConfirm) {
+                        Button("Leave", role: .destructive) {
+                            guard let teamId = firestoreService.currentTeamId else { return }
+                            Task {
+                                isLeavingTeam = true
+                                do {
+                                    try await firestoreService.leaveTeam(teamId: teamId)
+                                    firestoreService.clearTeamSession()
+                                } catch {
+                                    leaveTeamError = error.localizedDescription
+                                }
+                                isLeavingTeam = false
+                            }
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        if firestoreService.members.count <= 1 {
+                            Text("You are the only member. Leaving will permanently delete this team.")
+                        } else {
+                            Text("You will leave this team. Other members will not be affected.")
+                        }
+                    }
+                    .alert("Could Not Leave Team", isPresented: .init(
+                        get: { leaveTeamError != nil },
+                        set: { if !$0 { leaveTeamError = nil } }
+                    )) {
+                        Button("OK", role: .cancel) { leaveTeamError = nil }
+                    } message: {
+                        Text(leaveTeamError ?? "")
+                    }
                     .alert("Delete Account?", isPresented: $showDeleteConfirm) {
                         Button("Delete", role: .destructive) {
                             Task {
                                 isDeleting = true
                                 do {
-                                    firestoreService.stopListeners()
+                                    // Leave the team first so Firestore reflects
+                                    // the departure on all other members' devices.
+                                    // Use try? — if leave fails (already removed,
+                                    // network error) we still proceed with deletion.
+                                    if let teamId = firestoreService.currentTeamId {
+                                        try? await firestoreService.leaveTeam(teamId: teamId)
+                                    }
+                                    firestoreService.clearTeamSession()
                                     try await authManager.deleteAccount()
                                 } catch {
                                     deleteError = error.localizedDescription
@@ -140,7 +181,7 @@ struct ProfileView: View {
                         }
                         Button("Cancel", role: .cancel) {}
                     } message: {
-                        Text("This permanently deletes your account and all local app data. Your Firestore team data is not removed. This cannot be undone.")
+                        Text("This permanently deletes your account. You will be removed from your team and all local app data will be cleared. This cannot be undone.")
                     }
                     .alert("Delete Failed", isPresented: .init(
                         get: { deleteError != nil },
@@ -480,6 +521,7 @@ private struct TeamCard: View {
 
 private struct ProfileSettingsSection: View {
     var onSignOut: () -> Void
+    var onLeaveTeam: () -> Void
     var onDeleteAccount: () -> Void
 
     var body: some View {
@@ -487,6 +529,11 @@ private struct ProfileSettingsSection: View {
             settingsRow(title: "Edit Profile")
             Divider()
             settingsRow(title: "Notifications")
+            Divider()
+            Button(action: onLeaveTeam) {
+                settingsRow(title: "Leave Team", isRed: true, showChevron: false)
+            }
+            .buttonStyle(.plain)
             Divider()
             Button(action: onSignOut) {
                 settingsRow(title: "Sign Out", isRed: true, showChevron: false)
