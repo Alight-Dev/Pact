@@ -8,6 +8,8 @@ import Combine
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
+import AuthenticationServices
+import CryptoKit
 import UIKit
 
 @MainActor
@@ -15,6 +17,8 @@ final class AuthManager: ObservableObject {
     @Published var currentUser: FirebaseAuth.User?
 
     private var authStateListener: AuthStateDidChangeListenerHandle?
+    private var currentNonce: String?
+    private var appleSignInHandler: AppleSignInHandler?
 
     init() {
         authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
@@ -47,6 +51,57 @@ final class AuthManager: ObservableObject {
         currentUser = authResult.user
     }
 
+    func signInWithApple() async throws {
+        let nonce = randomNonceString()
+        currentNonce = nonce
+
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = sha256(nonce)
+
+        let authorization = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ASAuthorization, Error>) in
+            let handler = AppleSignInHandler(continuation: continuation)
+            appleSignInHandler = handler
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = handler
+            controller.presentationContextProvider = handler
+            controller.performRequests()
+        }
+        appleSignInHandler = nil
+
+        guard let appleCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let tokenData = appleCredential.identityToken,
+              let idTokenString = String(data: tokenData, encoding: .utf8),
+              let rawNonce = currentNonce else {
+            throw AuthError.missingAppleToken
+        }
+
+        let firebaseCredential = OAuthProvider.appleCredential(
+            withIDToken: idTokenString,
+            rawNonce: rawNonce,
+            fullName: appleCredential.fullName
+        )
+
+        let authResult = try await Auth.auth().signIn(with: firebaseCredential)
+
+        // Apple only returns the full name on the very first sign-in.
+        // If available and the Firebase user has no display name yet, set it now.
+        if let nameComponents = appleCredential.fullName {
+            let fullName = [nameComponents.givenName, nameComponents.familyName]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+
+            if !fullName.isEmpty && (authResult.user.displayName?.isEmpty ?? true) {
+                let changeRequest = authResult.user.createProfileChangeRequest()
+                changeRequest.displayName = fullName
+                try await changeRequest.commitChanges()
+            }
+        }
+
+        currentUser = Auth.auth().currentUser
+    }
+
     func signOut() throws {
         GIDSignIn.sharedInstance.signOut()
         try Auth.auth().signOut()
@@ -64,12 +119,60 @@ final class AuthManager: ObservableObject {
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
         currentUser = nil
     }
+
+    // MARK: - Nonce Helpers
+
+    private func randomNonceString(length: Int = 32) -> String {
+        var randomBytes = [UInt8](repeating: 0, count: length)
+        _ = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
+        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        return String(randomBytes.map { charset[Int($0) % charset.count] })
+    }
+
+    private func sha256(_ input: String) -> String {
+        SHA256.hash(data: Data(input.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+    }
 }
+
+// MARK: - Apple Sign-In Delegate Bridge
+
+private class AppleSignInHandler: NSObject,
+    ASAuthorizationControllerDelegate,
+    ASAuthorizationControllerPresentationContextProviding {
+
+    private let continuation: CheckedContinuation<ASAuthorization, Error>
+
+    init(continuation: CheckedContinuation<ASAuthorization, Error>) {
+        self.continuation = continuation
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow } ?? UIWindow()
+    }
+
+    func authorizationController(controller: ASAuthorizationController,
+                                 didCompleteWithAuthorization authorization: ASAuthorization) {
+        continuation.resume(returning: authorization)
+    }
+
+    func authorizationController(controller: ASAuthorizationController,
+                                 didCompleteWithError error: Error) {
+        continuation.resume(throwing: error)
+    }
+}
+
+// MARK: - Auth Errors
 
 enum AuthError: LocalizedError {
     case missingClientID
     case noViewController
     case missingToken
+    case missingAppleToken
 
     var errorDescription: String? {
         switch self {
@@ -79,6 +182,9 @@ enum AuthError: LocalizedError {
             return "Could not find a view controller to present sign-in."
         case .missingToken:
             return "Google ID token was missing from the sign-in result."
+        case .missingAppleToken:
+            return "Apple identity token was missing from the sign-in result."
         }
     }
 }
+
