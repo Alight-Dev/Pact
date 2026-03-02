@@ -26,6 +26,9 @@ struct PactApp: App {
     @State private var showActivitiesSetup = false
     @State private var showPactLaunch = false
     @State private var pendingTeamName = ""
+    /// Set when a pact://join/{code} deep link arrives while the user is on HomeScreenView.
+    /// Drives a .sheet presentation of JoinShieldView over the home screen.
+    @State private var showJoinShieldSheet = false
 
     init() {
         FirebaseApp.configure()
@@ -63,6 +66,24 @@ struct PactApp: App {
                 if showHomeScreen {
                     HomeScreenView()
                         .transition(.opacity)
+                        // Deep link received while already on home screen → sheet
+                        .sheet(isPresented: $showJoinShieldSheet, onDismiss: {
+                            pendingJoinCode = ""
+                        }) {
+                            JoinShieldView(
+                                onBack: {
+                                    withAnimation { showJoinShieldSheet = false }
+                                    pendingJoinCode = ""
+                                },
+                                onJoined: {
+                                    // User joined a second team; listeners are updated
+                                    // via startTeamSession inside JoinShieldView.
+                                    withAnimation { showJoinShieldSheet = false }
+                                    pendingJoinCode = ""
+                                },
+                                initialCode: pendingJoinCode
+                            )
+                        }
                 } else if showPactLaunch {
                     PactLaunchView(
                         onFinished: {
@@ -116,7 +137,8 @@ struct PactApp: App {
                                 pendingJoinCode = ""
                                 showHomeScreen = true
                             }
-                        }
+                        },
+                        initialCode: pendingJoinCode
                     )
                     .transition(.opacity)
                 } else if showShieldSelection {
@@ -132,6 +154,12 @@ struct PactApp: App {
                                 showShieldSelection = false
                                 showJoinShield = true
                             }
+                        },
+                        onSkip: {
+                            withAnimation {
+                                showShieldSelection = false
+                                showHomeScreen = true
+                            }
                         }
                     )
                     .transition(.opacity)
@@ -139,7 +167,12 @@ struct PactApp: App {
                     OnboardingFlowView(onFinished: {
                         withAnimation {
                             showOnboarding = false
-                            showShieldSelection = true
+                            // If a deep link arrived during onboarding, go straight to join.
+                            if !pendingJoinCode.isEmpty {
+                                showJoinShield = true
+                            } else {
+                                showShieldSelection = true
+                            }
                         }
                     })
                     .transition(.opacity)
@@ -153,7 +186,12 @@ struct PactApp: App {
                         onContinue: {
                             withAnimation {
                                 showSignupDirect = false
-                                showShieldSelection = true
+                                // If a deep link arrived before sign-in, go straight to join.
+                                if !pendingJoinCode.isEmpty {
+                                    showJoinShield = true
+                                } else {
+                                    showShieldSelection = true
+                                }
                             }
                         }
                     )
@@ -163,8 +201,13 @@ struct PactApp: App {
                         onFinished: {
                             withAnimation {
                                 if authManager.currentUser != nil {
-                                    // Already signed in — skip onboarding
-                                    showShieldSelection = true
+                                    // Already signed in — skip onboarding.
+                                    // If a deep link is pending, go straight to join screen.
+                                    if !pendingJoinCode.isEmpty {
+                                        showJoinShield = true
+                                    } else {
+                                        showShieldSelection = true
+                                    }
                                 } else {
                                     showOnboarding = true
                                 }
@@ -183,12 +226,19 @@ struct PactApp: App {
             .environmentObject(firestoreService)
             .onOpenURL { url in
                 // Handle pact://join/{code} deep links.
-                // Always land on JoinShieldView with the code pre-filled so the user
-                // can review it before tapping "Join Shield" to confirm.
+                // • Already on HomeScreen → sheet over the current view.
+                // • Anywhere else → set showJoinShield; pendingJoinCode is preserved
+                //   through onboarding/sign-in and consumed by routeAfterAuth().
                 if url.scheme == "pact", url.host == "join",
                    let code = url.pathComponents.last, code.count == 6 {
                     pendingJoinCode = code
-                    withAnimation { showJoinShield = true }
+                    withAnimation {
+                        if showHomeScreen {
+                            showJoinShieldSheet = true
+                        } else {
+                            showJoinShield = true
+                        }
+                    }
                 } else {
                     GIDSignIn.sharedInstance.handle(url)
                 }

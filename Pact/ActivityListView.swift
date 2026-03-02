@@ -30,6 +30,8 @@ struct ActivityListView: View {
     @State private var minApprovers: Int = 1
     @State private var showDebugSheet: Bool = false
     @State private var showDeleteAccountAlert = false
+    @State private var pendingInviteCode: String? = nil
+    @State private var showShareSheet = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -213,8 +215,10 @@ struct ActivityListView: View {
                                             teamName: resolvedName,
                                             adminTimezone: TimeZone.current.identifier
                                         )
+                                        pendingInviteCode = result.inviteCode
+                                        showShareSheet = true
+                                        // onContinue() is called by the share sheet's onDismiss
                                     }
-                                    onContinue()
                                 } catch {
                                     createTeamError = error.localizedDescription
                                 }
@@ -299,6 +303,17 @@ struct ActivityListView: View {
             Text("This permanently deletes your account and resets the app. You cannot undo this.")
         }
         #endif
+        // Invite share sheet — presented after successful team creation
+        .sheet(isPresented: $showShareSheet, onDismiss: {
+            onContinue?()
+        }) {
+            if let code = pendingInviteCode {
+                ShareSheet(items: [
+                    "Join my Pact Shield! Use code \(code) to join.",
+                    URL(string: "pact://join/\(code)")!
+                ])
+            }
+        }
         // Add sheet
         .sheet(isPresented: $showingAddActivity) {
             AddActivitySheet { name, description, iconName, repeatDays, isOptional in
@@ -686,6 +701,18 @@ private struct ApproverSegmentedPicker: View {
                 .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
         )
     }
+}
+
+// MARK: - ShareSheet
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Preview

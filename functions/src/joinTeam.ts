@@ -102,6 +102,7 @@ export const joinTeam = onCall(
       shardStatus: "active",
       shieldTier: teamData.shieldTier ?? tierForStreak(0),
       currentStreakDays: teamData.currentStreakDays ?? 0,
+      adminTimezone,   // required by loadActiveMembership() for correct "today" calculation
     });
 
     await batch.commit();

@@ -14,6 +14,16 @@
 				<string>com.googleusercontent.apps.812398907380-c5jpjb8dociu8mcs5rmfts6nbrf6u7dl</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>cmc.Pact.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>pact</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
