@@ -482,6 +482,23 @@ struct TeamView: View {
     @EnvironmentObject var firestoreService: FirestoreService
     @State private var pendingSubmissions: [Submission] = []
     @State private var votedIds: Set<String> = []
+    @State private var showLeaveSheet = false
+    @State private var showAdminPickerSheet = false
+    @State private var selectedNewAdminUid: String? = nil
+    @State private var isLeavingTeam = false
+    @State private var leaveTeamError: String? = nil
+
+    private var currentUid: String? { Auth.auth().currentUser?.uid }
+
+    private var isAdmin: Bool {
+        guard let uid = currentUid else { return false }
+        return firestoreService.members.first(where: { $0.id == uid })?.role == "admin"
+    }
+
+    private var otherMembers: [TeamMember] {
+        guard let uid = currentUid else { return firestoreService.members }
+        return firestoreService.members.filter { $0.id != uid }
+    }
     
     private var inviteShareURL: URL {
         // Use the live invite code from Firestore when available,
@@ -539,38 +556,111 @@ struct TeamView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                TeamShieldHeader(teamName: shieldDisplayName, memberCount: firestoreService.members.count)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 60)
+        ZStack(alignment: .topTrailing) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    TeamShieldHeader(teamName: shieldDisplayName, memberCount: firestoreService.members.count)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 60)
 
-                if !pendingSubmissions.isEmpty {
-                    PendingApprovalsSection(submissions: $pendingSubmissions, onVote: handleVote)
+                    if !pendingSubmissions.isEmpty {
+                        PendingApprovalsSection(submissions: $pendingSubmissions, onVote: handleVote)
+                            .padding(.top, 32)
+                            .padding(.horizontal, 20)
+                            .transition(.opacity)
+                    } else {
+                        HighlightsSection(highlights: approvedSubmissions)
+                            .padding(.top, 32)
+                            .padding(.horizontal, 20)
+                            .transition(.opacity.combined(with: .move(edge: .trailing)))
+                    }
+
+                    ShieldMembersSection(shareURL: inviteShareURL, members: membersToShow)
                         .padding(.top, 32)
                         .padding(.horizontal, 20)
-                        .transition(.opacity)
-                } else {
-                    HighlightsSection(highlights: approvedSubmissions)
-                        .padding(.top, 32)
-                        .padding(.horizontal, 20)
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                        .padding(.bottom, 120)
                 }
-
-                ShieldMembersSection(shareURL: inviteShareURL, members: membersToShow)
-                    .padding(.top, 32)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 120)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .ignoresSafeArea(edges: .top)
+            .onChange(of: firestoreService.mappedSubmissions) { _, newSubmissions in
+                refreshPending(from: newSubmissions)
+            }
+            .onAppear {
+                refreshPending(from: firestoreService.mappedSubmissions)
+            }
+
+            // Leave / Manage Team menu — top-right, aligned with the shield header
+            Menu {
+                if isAdmin && !otherMembers.isEmpty {
+                    Button("Transfer Admin & Leave", role: .destructive) {
+                        selectedNewAdminUid = nil
+                        showAdminPickerSheet = true
+                    }
+                } else {
+                    Button(
+                        isAdmin && otherMembers.isEmpty ? "Delete Team" : "Leave Team",
+                        role: .destructive
+                    ) {
+                        showLeaveSheet = true
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.black)
+                    .padding(.trailing, 20)
+                    .padding(.top, 60)
+            }
         }
-        .background(Color.white)
-        .ignoresSafeArea(edges: .top)
-        .onChange(of: firestoreService.mappedSubmissions) { _, newSubmissions in
-            refreshPending(from: newSubmissions)
+        .alert(
+            isAdmin && otherMembers.isEmpty ? "Delete Team?" : "Leave Team?",
+            isPresented: $showLeaveSheet
+        ) {
+            Button(isAdmin && otherMembers.isEmpty ? "Delete" : "Leave", role: .destructive) {
+                performLeave(newAdminUid: nil)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if isAdmin && otherMembers.isEmpty {
+                Text("You are the only member. This will permanently delete the team.")
+            } else {
+                Text("You will leave this team. Other members will not be affected.")
+            }
         }
-        .onAppear {
-            refreshPending(from: firestoreService.mappedSubmissions)
+        .alert("Could Not Leave", isPresented: .init(
+            get: { leaveTeamError != nil },
+            set: { if !$0 { leaveTeamError = nil } }
+        )) {
+            Button("OK", role: .cancel) { leaveTeamError = nil }
+        } message: {
+            Text(leaveTeamError ?? "")
+        }
+        .sheet(isPresented: $showAdminPickerSheet) {
+            TeamAdminPickerSheet(
+                members: otherMembers,
+                selectedUid: $selectedNewAdminUid,
+                onConfirm: { uid in
+                    showAdminPickerSheet = false
+                    performLeave(newAdminUid: uid)
+                },
+                onCancel: { showAdminPickerSheet = false }
+            )
+        }
+    }
+
+    private func performLeave(newAdminUid: String?) {
+        guard let teamId = firestoreService.currentTeamId else { return }
+        isLeavingTeam = true
+        Task {
+            do {
+                try await firestoreService.leaveTeam(teamId: teamId, newAdminUid: newAdminUid)
+                await MainActor.run { firestoreService.clearTeamSession() }
+            } catch {
+                await MainActor.run { leaveTeamError = error.localizedDescription }
+            }
+            await MainActor.run { isLeavingTeam = false }
         }
     }
 
@@ -636,6 +726,70 @@ private struct TeamShieldHeader: View {
                 Text("12 day streak")
                     .font(.system(size: 15))
                     .foregroundStyle(Color(white: 0.50))
+            }
+        }
+    }
+}
+
+// MARK: - TeamAdminPickerSheet
+
+private struct TeamAdminPickerSheet: View {
+    let members: [TeamMember]
+    @Binding var selectedUid: String?
+    let onConfirm: (String) -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationView {
+            List(members) { member in
+                Button {
+                    selectedUid = member.id
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(member.avatarAssetName.isEmpty ? "avatar_felix" : member.avatarAssetName)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(member.nickname.isEmpty ? member.displayName : member.nickname)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.black)
+                            if !member.displayName.isEmpty {
+                                Text(member.displayName)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color(white: 0.55))
+                            }
+                        }
+
+                        Spacer()
+
+                        if selectedUid == member.id {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.black)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle("Choose New Admin")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel", action: onCancel)
+                        .foregroundStyle(.black)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Confirm & Leave") {
+                        if let uid = selectedUid { onConfirm(uid) }
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(selectedUid != nil ? Color.red : Color(white: 0.55))
+                    .disabled(selectedUid == nil)
+                }
             }
         }
     }

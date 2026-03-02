@@ -1,9 +1,10 @@
 // CF-9: leaveTeam — HTTP Callable
 //
 // Removes the calling user from their team.
+// If the caller is the admin and other members remain, they must supply
+// newAdminUid to transfer admin role before leaving.
 // If the user is the last member, the team document and its invite code are
-// permanently deleted (dissolved). Otherwise only the member + membership docs
-// are removed and team counts are decremented.
+// permanently deleted (dissolved).
 //
 // Returns { dissolved: boolean } — true when the team was fully deleted.
 
@@ -19,7 +20,10 @@ export const leaveTeam = onCall(
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Sign in first.");
 
-    const { teamId } = request.data as { teamId: string };
+    const { teamId, newAdminUid } = request.data as {
+      teamId: string;
+      newAdminUid?: string;
+    };
     if (!teamId) throw new HttpsError("invalid-argument", "teamId is required.");
 
     // 1. Load the team document
@@ -36,6 +40,8 @@ export const leaveTeam = onCall(
     if (!memberSnap.exists) {
       throw new HttpsError("not-found", "You are not a member of this team.");
     }
+    const memberData = memberSnap.data()!;
+    const isAdmin = memberData.role === "admin" || teamData.adminId === uid;
 
     // 3. Load user's membership record
     const membershipRef = db.collection("users").doc(uid)
@@ -44,6 +50,25 @@ export const leaveTeam = onCall(
     const inviteCode: string = teamData.inviteCode ?? "";
     const memberCount: number = teamData.memberCount ?? 0;
     const isLastMember = memberCount <= 1;
+
+    // 4. Admin-specific guards
+    if (isAdmin && !isLastMember) {
+      // Admin must nominate a successor before leaving
+      if (!newAdminUid) {
+        throw new HttpsError(
+          "failed-precondition",
+          "You are the team admin. Choose a new admin before leaving."
+        );
+      }
+      // Verify the nominated user is actually a member
+      const newAdminMemberSnap = await teamRef.collection("members").doc(newAdminUid).get();
+      if (!newAdminMemberSnap.exists) {
+        throw new HttpsError(
+          "invalid-argument",
+          "The selected user is not a member of this team."
+        );
+      }
+    }
 
     const batch = db.batch();
 
@@ -56,7 +81,13 @@ export const leaveTeam = onCall(
       batch.delete(memberRef);
       batch.delete(membershipRef);
     } else {
-      // Just remove this member; the team lives on
+      // Transfer admin role if needed
+      if (isAdmin && newAdminUid) {
+        batch.update(teamRef, { adminId: newAdminUid });
+        batch.update(teamRef.collection("members").doc(newAdminUid), { role: "admin" });
+      }
+
+      // Remove the leaving member
       batch.update(teamRef, {
         memberCount: FieldValue.increment(-1),
         todayTotalMembers: FieldValue.increment(-1),
@@ -72,7 +103,7 @@ export const leaveTeam = onCall(
 
     await batch.commit();
 
-    // 4. If not the last member, decrement eligibleVoterCount on today's
+    // 5. If not the last member, decrement eligibleVoterCount on today's
     //    pending submissions so majority thresholds remain correct.
     if (!isLastMember) {
       const adminTimezone: string = teamData.adminTimezone ?? "UTC";

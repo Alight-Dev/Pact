@@ -239,13 +239,16 @@ final class FirestoreService: ObservableObject {
     // MARK: - Team Leave (CF-9)
 
     /// Calls the `leaveTeam` Cloud Function.
+    /// Pass `newAdminUid` when the caller is the admin and other members remain.
     /// Returns `true` if the team was fully dissolved (caller was last member),
     /// `false` if other members remain.
     /// After this returns, call `clearTeamSession()` to wipe local state.
     @discardableResult
-    func leaveTeam(teamId: String) async throws -> Bool {
+    func leaveTeam(teamId: String, newAdminUid: String? = nil) async throws -> Bool {
         let callable = functions.httpsCallable("leaveTeam")
-        let result = try await callable.call(["teamId": teamId])
+        var params: [String: Any] = ["teamId": teamId]
+        if let uid = newAdminUid { params["newAdminUid"] = uid }
+        let result = try await callable.call(params)
         let data = result.data as? [String: Any]
         return data?["dissolved"] as? Bool ?? false
     }

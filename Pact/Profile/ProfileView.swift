@@ -5,6 +5,7 @@
 
 import SwiftUI
 import FirebaseAuth
+import FirebaseFunctions
 
 // MARK: - Mock data (screen time & activity stats for visual pop until backend wired)
 
@@ -38,11 +39,25 @@ struct ProfileView: View {
     @State private var selectedPeriod: TimePeriod = .week
     @State private var activeMembership: FirestoreService.ActiveMembership?
     @State private var showLeaveTeamConfirm = false
+    @State private var showAdminPickerSheet = false
+    @State private var selectedNewAdminUid: String? = nil
     @State private var isLeavingTeam = false
     @State private var leaveTeamError: String?
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
     @State private var isDeleting = false
+
+    private var currentUid: String? { Auth.auth().currentUser?.uid }
+
+    private var isAdmin: Bool {
+        guard let uid = currentUid else { return false }
+        return firestoreService.members.first(where: { $0.id == uid })?.role == "admin"
+    }
+
+    private var otherMembers: [TeamMember] {
+        guard let uid = currentUid else { return firestoreService.members }
+        return firestoreService.members.filter { $0.id != uid }
+    }
 
     private var nickname: String {
         UserDefaults.standard.string(forKey: "app_nickname") ?? "back"
@@ -126,7 +141,14 @@ struct ProfileView: View {
                     )
                     ProfileSettingsSection(
                         onSignOut: { try? authManager.signOut() },
-                        onLeaveTeam: { showLeaveTeamConfirm = true },
+                        onLeaveTeam: {
+                            selectedNewAdminUid = nil
+                            if isAdmin && !otherMembers.isEmpty {
+                                showAdminPickerSheet = true
+                            } else {
+                                showLeaveTeamConfirm = true
+                            }
+                        },
                         onDeleteAccount: { showDeleteConfirm = true }
                     )
                     .alert("Leave Team?", isPresented: $showLeaveTeamConfirm) {
@@ -200,6 +222,27 @@ struct ProfileView: View {
         .presentationDragIndicator(.visible)
         .task {
             activeMembership = try? await firestoreService.loadActiveMembership()
+        }
+        .sheet(isPresented: $showAdminPickerSheet) {
+            AdminPickerSheet(
+                members: otherMembers,
+                selectedUid: $selectedNewAdminUid,
+                onConfirm: { uid in
+                    showAdminPickerSheet = false
+                    guard let teamId = firestoreService.currentTeamId else { return }
+                    Task {
+                        isLeavingTeam = true
+                        do {
+                            try await firestoreService.leaveTeam(teamId: teamId, newAdminUid: uid)
+                            firestoreService.clearTeamSession()
+                        } catch {
+                            leaveTeamError = error.localizedDescription
+                        }
+                        isLeavingTeam = false
+                    }
+                },
+                onCancel: { showAdminPickerSheet = false }
+            )
         }
     }
 }
@@ -566,6 +609,72 @@ private struct ProfileSettingsSection: View {
         }
         .padding(16)
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: - AdminPickerSheet
+
+/// Presented when an admin wants to leave a team that still has other members.
+/// The admin must select a successor before the leave is finalised.
+private struct AdminPickerSheet: View {
+    let members: [TeamMember]
+    @Binding var selectedUid: String?
+    let onConfirm: (String) -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationView {
+            List(members) { member in
+                Button {
+                    selectedUid = member.id
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(member.avatarAssetName.isEmpty ? "avatar_felix" : member.avatarAssetName)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(member.nickname.isEmpty ? member.displayName : member.nickname)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.black)
+                            if !member.displayName.isEmpty {
+                                Text(member.displayName)
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Color(white: 0.55))
+                            }
+                        }
+
+                        Spacer()
+
+                        if selectedUid == member.id {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.black)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle("Choose New Admin")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel", action: onCancel)
+                        .foregroundStyle(.black)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Confirm & Leave") {
+                        if let uid = selectedUid { onConfirm(uid) }
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(selectedUid != nil ? Color.red : Color(white: 0.55))
+                    .disabled(selectedUid == nil)
+                }
+            }
+        }
     }
 }
 

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct OnboardingSignupView: View {
     var onBack: () -> Void
-    var onContinue: () -> Void
+    var onContinue: () async -> Void
 
     @EnvironmentObject var authManager: AuthManager
 
@@ -99,7 +99,9 @@ struct OnboardingSignupView: View {
                     VStack(spacing: 14) {
 
                         // Continue with Apple (placeholder — not yet functional)
-                        Button(action: onContinue) {
+                        Button {
+                            Task { await onContinue() }
+                        } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: "apple.logo")
                                     .font(.system(size: 17, weight: .semibold))
@@ -120,7 +122,7 @@ struct OnboardingSignupView: View {
                                 errorMessage = nil
                                 do {
                                     try await authManager.signInWithGoogle()
-                                    onContinue()
+                                    await onContinue()   // stays in loading state while membership check runs
                                 } catch {
                                     errorMessage = error.localizedDescription
                                 }
