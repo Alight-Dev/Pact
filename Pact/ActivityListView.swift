@@ -565,6 +565,7 @@ struct AddActivitySheet: View {
                             LazyVGrid(columns: columns, spacing: 12) {
                                 ForEach(icons, id: \.self) { icon in
                                     Button {
+                                        focusedField = nil
                                         selectedIcon = icon
                                     } label: {
                                         Image(systemName: icon)
@@ -605,6 +606,7 @@ struct AddActivitySheet: View {
                                 ForEach(0..<7, id: \.self) { index in
                                     let isSelected = selectedDays.contains(index)
                                     Button {
+                                        focusedField = nil
                                         if isSelected {
                                             selectedDays.remove(index)
                                         } else {
@@ -651,10 +653,7 @@ struct AddActivitySheet: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 48)
                 }
-                .scrollDismissesKeyboard(.interactively)
-                .onTapGesture {
-                    focusedField = nil
-                }
+                .scrollDismissesKeyboard(.immediately)
                 .onSubmit {
                     focusedField = nil
                 }
