@@ -30,6 +30,8 @@ private enum TimePeriod: String, CaseIterable {
 // MARK: - ProfileView
 
 struct ProfileView: View {
+    var onTeamTap: () -> Void = {}
+
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var firestoreService: FirestoreService
 
@@ -119,7 +121,8 @@ struct ProfileView: View {
                     TeamCard(
                         teamName: teamName,
                         shieldTier: shieldTier,
-                        memberAvatars: teamMemberAvatars
+                        memberAvatars: teamMemberAvatars,
+                        onTap: onTeamTap
                     )
                     ProfileSettingsSection(
                         onSignOut: { try? authManager.signOut() },
@@ -464,6 +467,7 @@ private struct TeamCard: View {
     let teamName: String
     let shieldTier: String
     let memberAvatars: [String]
+    var onTap: () -> Void = {}
 
     private let overlap: CGFloat = 24
 
@@ -507,6 +511,8 @@ private struct TeamCard: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color(white: 0.97))
             )
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .onTapGesture { onTap() }
         }
     }
 }
