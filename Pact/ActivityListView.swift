@@ -510,11 +510,16 @@ struct AddActivitySheet: View {
                                 .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
-                            TextField("e.g. Morning run", text: $name)
+                            TextField("e.g. Morning Run", text: $name)
                                 .font(.system(size: 16))
                                 .foregroundStyle(.black)
                                 .tint(.black)
-                                .textInputAutocapitalization(.never)
+                                .textInputAutocapitalization(.sentences)
+                                .onChange(of: name) { _, newValue in
+                                    if newValue.count > 20 {
+                                        name = String(newValue.prefix(20))
+                                    }
+                                }
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
@@ -536,11 +541,11 @@ struct AddActivitySheet: View {
                                 .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
-                            TextField("e.g. run at least 3km", text: $activityDescription)
+                            TextField("e.g. Run at least 3km", text: $activityDescription)
                                 .font(.system(size: 16))
                                 .foregroundStyle(.black)
                                 .tint(.black)
-                                .textInputAutocapitalization(.never)
+                                .textInputAutocapitalization(.sentences)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
@@ -565,6 +570,7 @@ struct AddActivitySheet: View {
                             LazyVGrid(columns: columns, spacing: 12) {
                                 ForEach(icons, id: \.self) { icon in
                                     Button {
+                                        focusedField = nil
                                         selectedIcon = icon
                                     } label: {
                                         Image(systemName: icon)
@@ -605,6 +611,7 @@ struct AddActivitySheet: View {
                                 ForEach(0..<7, id: \.self) { index in
                                     let isSelected = selectedDays.contains(index)
                                     Button {
+                                        focusedField = nil
                                         if isSelected {
                                             selectedDays.remove(index)
                                         } else {
@@ -651,10 +658,7 @@ struct AddActivitySheet: View {
                     .padding(.horizontal, 24)
                     .padding(.bottom, 48)
                 }
-                .scrollDismissesKeyboard(.interactively)
-                .onTapGesture {
-                    focusedField = nil
-                }
+                .scrollDismissesKeyboard(.immediately)
                 .onSubmit {
                     focusedField = nil
                 }
