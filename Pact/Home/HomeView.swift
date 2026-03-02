@@ -9,12 +9,12 @@ import FirebaseAuth
 
 // MARK: - Carousel data
 
-private enum HomeCard { case healthScore, teamProgress }
-private let cardCount = 2
+private enum HomeCard { case shieldProgress, healthScore, teamProgress }
+private let cardCount = 3
 private let carouselItems: [HomeCard] = Array(
-    repeating: [HomeCard.healthScore, .teamProgress], count: 100
+    repeating: [HomeCard.shieldProgress, .healthScore, .teamProgress], count: 100
 ).flatMap { $0 }
-private let carouselStart = 100   // index 100 → .healthScore  (100 % 2 == 0)
+private let carouselStart = 100   // index 100 → .shieldProgress  (100 % 3 == 0)
 
 // MARK: - Ring / score constants
 
@@ -45,6 +45,8 @@ struct HomeView: View {
     private var displayActivities: [TeamActivity] {
         firestoreService.teamActivities
     }
+
+    @StateObject private var shieldVM = ShieldProgressViewModel()
 
     @State private var cardSelection: Int = carouselStart
     @State private var animatedProgress: CGFloat = 0
@@ -160,6 +162,7 @@ struct HomeView: View {
                     }
                     .padding(.top, 24)
                     .onAppear {
+                        shieldVM.observe(firestoreService)
                         withAnimation(.timingCurve(0.19, 1, 0.22, 1, duration: 1.8).delay(0.3)) {
                             animatedProgress = ringProgress
                         }
@@ -177,7 +180,7 @@ struct HomeView: View {
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
-                    .frame(height: 200)
+                    .frame(height: 300)
                     .padding(.top, 20)
 
                     // MARK: Page indicator dots
@@ -209,8 +212,9 @@ struct HomeView: View {
     @ViewBuilder
     private func cardView(for card: HomeCard) -> some View {
         switch card {
-        case .healthScore:   healthScoreCard
-        case .teamProgress:  teamProgressCard
+        case .shieldProgress: ShieldProgressWheel(viewModel: shieldVM)
+        case .healthScore:    healthScoreCard
+        case .teamProgress:   teamProgressCard
         }
     }
 
