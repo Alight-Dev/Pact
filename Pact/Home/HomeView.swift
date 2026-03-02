@@ -35,8 +35,16 @@ struct HomeView: View {
     var onTeamTap: () -> Void
 
     @EnvironmentObject var authManager: AuthManager
+    @EnvironmentObject var firestoreService: FirestoreService
     @Query(sort: [SortDescriptor(\Activity.order), SortDescriptor(\Activity.createdAt)])
     private var activities: [Activity]
+
+    /// Prefers live Firestore activities (populated for both joiners and admins
+    /// once a session is active). Falls back to SwiftData only when no session
+    /// is running (e.g. admin mid-onboarding before team creation completes).
+    private var displayActivities: [TeamActivity] {
+        firestoreService.teamActivities
+    }
 
     @State private var cardSelection: Int = carouselStart
     @State private var animatedProgress: CGFloat = 0
@@ -64,9 +72,10 @@ struct HomeView: View {
         return nickname
     }
 
-    // TODO: Replace with real-time FirestoreService.currentTeam["name"] once listeners are started post-onboarding.
     private var teamName: String {
-        UserDefaults.standard.string(forKey: "app_team_name") ?? "Your Team"
+        if let name = firestoreService.currentTeam?["name"] as? String { return name }
+        if let cached = firestoreService.currentTeamName { return cached }
+        return UserDefaults.standard.string(forKey: "app_team_name") ?? "Your Team"
     }
 
     var body: some View {
@@ -310,7 +319,7 @@ struct HomeView: View {
                     Text("Today's Goal")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.black)
-                    Text(activities.first?.name ?? "No activities yet")
+                    Text(displayActivities.first?.name ?? activities.first?.name ?? "No activities yet")
                         .font(.system(size: 14))
                         .foregroundStyle(Color(white: 0.50))
                 }
@@ -320,17 +329,21 @@ struct HomeView: View {
             Divider()
                 .padding(.bottom, 14)
 
-            // Activity list
+            // Activity list — prefer live Firestore data, fall back to SwiftData
             VStack(spacing: 14) {
-                if activities.isEmpty {
+                if displayActivities.isEmpty && activities.isEmpty {
                     Text("No activities set up yet.")
                         .font(.system(size: 14))
                         .foregroundStyle(Color(white: 0.55))
-                } else {
-                    ForEach(activities) { activity in
+                } else if !displayActivities.isEmpty {
+                    ForEach(displayActivities) { activity in
                         activityRow(title: activity.name, completed: false)
                         // TODO: Replace `completed: false` with real submission status from
                         //       FirestoreService.todaysSubmissions once Firestore is deployed.
+                    }
+                } else {
+                    ForEach(activities) { activity in
+                        activityRow(title: activity.name, completed: false)
                     }
                 }
             }
@@ -346,7 +359,7 @@ struct HomeView: View {
                     .foregroundStyle(Color(white: 0.50))
                 Spacer()
                 // TODO: Replace 0 with count of approved submissions from Firestore.
-                Text("0/\(activities.count)")
+                Text("0/\(displayActivities.isEmpty ? activities.count : displayActivities.count)")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.black)
             }
@@ -408,5 +421,7 @@ private extension Color {
 #Preview {
     HomeView(onTeamTap: {})
         .modelContainer(for: Activity.self, inMemory: true)
+        .environmentObject(AuthManager())
+        .environmentObject(FirestoreService())
 }
 
