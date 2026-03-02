@@ -510,11 +510,11 @@ struct AddActivitySheet: View {
                                 .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
-                            TextField("e.g. Morning run", text: $name)
+                            TextField("e.g. Morning Run", text: $name)
                                 .font(.system(size: 16))
                                 .foregroundStyle(.black)
                                 .tint(.black)
-                                .textInputAutocapitalization(.never)
+                                .textInputAutocapitalization(.words)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
@@ -536,11 +536,11 @@ struct AddActivitySheet: View {
                                 .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
-                            TextField("e.g. run at least 3km", text: $activityDescription)
+                            TextField("e.g. Run at least 3km", text: $activityDescription)
                                 .font(.system(size: 16))
                                 .foregroundStyle(.black)
                                 .tint(.black)
-                                .textInputAutocapitalization(.never)
+                                .textInputAutocapitalization(.sentences)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
