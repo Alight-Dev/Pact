@@ -15,7 +15,7 @@
 - [x] Auth state listener (auto-detects sign-in/sign-out)
 - [ ] Apple Sign-In implementation (button exists in `OnboardingSignupView` but `AuthManager` only has Google)
 - [ ] Save full user profile to Firestore (`users/{uid}`) at end of onboarding (`OnboardingProfileSetupView.onContinue` → `FirestoreService.saveUserProfile`)
-- [ ] Session restore on app launch: if user is already signed in and has an active team, load membership (`loadActiveMembership`), start listeners (`startTeamSession`), and route directly to `HomeScreenView` — skipping onboarding and shield selection
+- [x] Session restore on app launch: if user is already signed in and has an active team, load membership (`loadActiveMembership`), start listeners (`startTeamSession`), and route directly to `HomeScreenView` — skipping onboarding and shield selection
 
 ---
 
@@ -57,7 +57,7 @@
 - [x] `FirestoreService.joinTeam` (calls CF-7)
 - [x] Deep link handling (`pact://join/{inviteCode}` in `PactApp.onOpenURL`)
 - [ ] Team preview screen before confirming join (show team name, admin nickname, member count from `/invites/{code}`)
-- [ ] After joining: start team session and route to `HomeScreenView`
+- [x] After joining: start team session and route to `HomeScreenView`
 
 ---
 
@@ -79,7 +79,8 @@
 - [ ] Wire progress ring to today's approved / total activities ratio (replace hardcoded `ringProgress = 0.35`)
 - [ ] Wire Health Score card to real weekly streak data from Firestore (replace placeholder text and `4/5`)
 - [ ] Wire Team Progress card avatars to real `FirestoreService.members` (replace `teamAvatars` mock array)
-- [ ] Wire "Today's Goal" card activity list to completion status from `FirestoreService.todaysSubmissions`
+- [x] Wire "Today's Goal" activity list to `FirestoreService.teamActivities` (joiner now sees real activities; falls back to SwiftData for admin mid-onboarding)
+- [ ] Wire "Today's Goal" card completion status to `FirestoreService.todaysSubmissions`
 - [ ] Wire "Your Completion" counter and progress bar to real approved submission count
 - [ ] Show today's goal name from Firestore (`currentTeam["currentGoalId"]` → goal doc)
 - [ ] "Complete Today's Task" CTA button that opens the live camera / `UploadView`
@@ -106,7 +107,7 @@
 - [x] Highlights section for approved submissions (carousel)
 - [x] Shield members list with progress bars
 - [ ] Replace mock submissions with real `FirestoreService.mappedSubmissions` (real-time)
-- [ ] Replace mock members with real `FirestoreService.members` (real-time)
+- [x] Replace mock members with real `FirestoreService.members` (real-time; falls back to mock on first render)
 - [ ] Wire "Approve"/"Reject" swipe and button actions to `FirestoreService.castVote`
 - [ ] Show actual proof photo from `submission.photoURL` in vote card (replace placeholder icon)
 - [ ] Hide vote actions on the current user's own submission (no self-approval)

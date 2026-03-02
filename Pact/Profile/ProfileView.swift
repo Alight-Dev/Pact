@@ -35,6 +35,9 @@ struct ProfileView: View {
 
     @State private var selectedPeriod: TimePeriod = .week
     @State private var activeMembership: FirestoreService.ActiveMembership?
+    @State private var showDeleteConfirm = false
+    @State private var deleteError: String?
+    @State private var isDeleting = false
 
     private var nickname: String {
         UserDefaults.standard.string(forKey: "app_nickname") ?? "back"
@@ -115,9 +118,35 @@ struct ProfileView: View {
                         shieldTier: shieldTier,
                         memberAvatars: teamMemberAvatars
                     )
-                    ProfileSettingsSection(onSignOut: {
-                        try? authManager.signOut()
-                    })
+                    ProfileSettingsSection(
+                        onSignOut: { try? authManager.signOut() },
+                        onDeleteAccount: { showDeleteConfirm = true }
+                    )
+                    .alert("Delete Account?", isPresented: $showDeleteConfirm) {
+                        Button("Delete", role: .destructive) {
+                            Task {
+                                isDeleting = true
+                                do {
+                                    firestoreService.stopListeners()
+                                    try await authManager.deleteAccount()
+                                } catch {
+                                    deleteError = error.localizedDescription
+                                }
+                                isDeleting = false
+                            }
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This permanently deletes your account and all local app data. Your Firestore team data is not removed. This cannot be undone.")
+                    }
+                    .alert("Delete Failed", isPresented: .init(
+                        get: { deleteError != nil },
+                        set: { if !$0 { deleteError = nil } }
+                    )) {
+                        Button("OK", role: .cancel) { deleteError = nil }
+                    } message: {
+                        Text(deleteError ?? "")
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
@@ -445,6 +474,7 @@ private struct TeamCard: View {
 
 private struct ProfileSettingsSection: View {
     var onSignOut: () -> Void
+    var onDeleteAccount: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -454,6 +484,11 @@ private struct ProfileSettingsSection: View {
             Divider()
             Button(action: onSignOut) {
                 settingsRow(title: "Sign Out", isRed: true, showChevron: false)
+            }
+            .buttonStyle(.plain)
+            Divider()
+            Button(action: onDeleteAccount) {
+                settingsRow(title: "Delete Account", isRed: true, showChevron: false)
             }
             .buttonStyle(.plain)
         }

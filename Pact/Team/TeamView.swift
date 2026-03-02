@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 // MARK: - Mock Data
 
@@ -420,6 +421,7 @@ private struct MemberRow: View {
 
 private struct ShieldMembersSection: View {
     let shareURL: URL
+    let members: [ShieldMember]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -442,7 +444,7 @@ private struct ShieldMembersSection: View {
             }
 
             VStack(spacing: 8) {
-                ForEach(mockMembers) { member in
+                ForEach(members) { member in
                     MemberRow(member: member)
                 }
             }
@@ -472,6 +474,26 @@ struct TeamView: View {
         return URL(string: "pact://join/\(code)")!
     }
 
+    /// Maps live Firestore members → ShieldMember for display.
+    private var liveMembers: [ShieldMember] {
+        let currentUid = Auth.auth().currentUser?.uid
+        let total = firestoreService.teamActivities.count
+        return firestoreService.members.map { member in
+            ShieldMember(
+                memberName: member.nickname.isEmpty ? member.displayName : member.nickname,
+                memberAvatarAsset: member.avatarAssetName.isEmpty ? "avatar_felix" : member.avatarAssetName,
+                activitiesCompleted: 0,   // TODO: wire to real submission counts
+                activitiesTotal: max(total, 1),
+                isCurrentUser: member.id == currentUid
+            )
+        }
+    }
+
+    /// Falls back to mock data only on the very first render before listeners load.
+    private var membersToShow: [ShieldMember] {
+        liveMembers.isEmpty ? mockMembers : liveMembers
+    }
+
     private var shieldDisplayName: String {
         if let name = firestoreService.currentTeam?["name"] as? String {
             return name
@@ -488,7 +510,7 @@ struct TeamView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                TeamShieldHeader(teamName: shieldDisplayName)
+                TeamShieldHeader(teamName: shieldDisplayName, memberCount: firestoreService.members.count)
                     .padding(.horizontal, 20)
                     .padding(.top, 60)
 
@@ -504,7 +526,7 @@ struct TeamView: View {
                         .transition(.opacity.combined(with: .move(edge: .trailing)))
                 }
 
-                ShieldMembersSection(shareURL: inviteShareURL)
+                ShieldMembersSection(shareURL: inviteShareURL, members: membersToShow)
                     .padding(.top, 32)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 120)
@@ -520,6 +542,7 @@ struct TeamView: View {
 
 private struct TeamShieldHeader: View {
     let teamName: String
+    let memberCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -535,8 +558,8 @@ private struct TeamShieldHeader: View {
                     .foregroundStyle(.black)
             }
 
-            // Team name
-            Text("Morning Forge Alliance")
+            // Member count
+            Text(memberCount == 1 ? "1 member" : "\(memberCount) members")
                 .font(.system(size: 16))
                 .foregroundStyle(Color(white: 0.50))
 

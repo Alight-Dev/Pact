@@ -212,6 +212,27 @@ struct PactApp: App {
                                     showOnboarding = true
                                 }
                             }
+                            // Background session restore — if the user already belongs to a
+                            // team, start listeners and animate straight to HomeScreen.
+                            // The user briefly sees ShieldSelection (~0.5–1 s) while the
+                            // Firestore round-trip completes; no extra state vars needed.
+                            if authManager.currentUser != nil && pendingJoinCode.isEmpty {
+                                Task {
+                                    if let membership = try? await firestoreService.loadActiveMembership() {
+                                        await MainActor.run {
+                                            withAnimation {
+                                                firestoreService.startTeamSession(
+                                                    teamId: membership.teamId,
+                                                    teamName: membership.teamName,
+                                                    adminTimezone: membership.adminTimezone
+                                                )
+                                                showShieldSelection = false
+                                                showHomeScreen = true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         },
                         onSkipToSignup: {
                             withAnimation {
