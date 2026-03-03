@@ -27,7 +27,10 @@ struct HomeScreenView: View {
                             selectedTab = .team
                         }
                     })
-                    .transition(.opacity)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading),
+                        removal: .move(edge: .leading)
+                    ))
                 case .team:
                     TeamView()
                         .transition(.asymmetric(
@@ -79,7 +82,7 @@ private struct FloatingTabBar: View {
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    tabButton(tab: .team, icon: "person", selectedIcon: "person.fill")
+                    tabButton(tab: .team, icon: "person.2", selectedIcon: "person.2.fill")
                 }
                 .padding(.horizontal, 6)
                 .frame(width: proxy.size.width * (2.2 / 3.0), height: 70)
