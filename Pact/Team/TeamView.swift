@@ -515,17 +515,20 @@ struct TeamView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 60)
 
+                    // Pending approvals — only shown when the user has items to vote on
                     if !pendingSubmissions.isEmpty {
                         PendingApprovalsSection(submissions: $pendingSubmissions, onVote: handleVote)
                             .padding(.top, 32)
                             .padding(.horizontal, 20)
                             .transition(.opacity)
-                    } else {
-                        HighlightsSection(highlights: approvedSubmissions)
-                            .padding(.top, 32)
-                            .padding(.horizontal, 20)
-                            .transition(.opacity.combined(with: .move(edge: .trailing)))
                     }
+
+                    // Highlights — always visible so approved proofs are never hidden
+                    // behind pending-approval cards
+                    HighlightsSection(highlights: approvedSubmissions)
+                        .padding(.top, pendingSubmissions.isEmpty ? 32 : 24)
+                        .padding(.horizontal, 20)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
 
                     ShieldMembersSection(shareURL: inviteShareURL, members: membersToShow)
                         .padding(.top, 32)

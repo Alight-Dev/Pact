@@ -50,6 +50,19 @@ final class FirestoreService: ObservableObject {
     @Published var adminTimezone: String?
     @Published var members: [TeamMember] = []
     @Published var teamActivities: [TeamActivity] = []
+    @Published var optedInActivityIds: Set<String> = []
+
+    /// Activities filtered to only those the current user is opted into.
+    /// Returns all activities when optedInActivityIds is empty (e.g. admin / creator).
+    var userActivities: [TeamActivity] {
+        guard !optedInActivityIds.isEmpty else { return teamActivities }
+        return teamActivities.filter { optedInActivityIds.contains($0.id) }
+    }
+
+    /// Activity names the current user is opted into (for filtering submissions).
+    var userActivityNames: Set<String> {
+        Set(userActivities.map(\.name))
+    }
 
     /// Convenience accessor exposing today's submissions as strongly-typed models.
     var mappedSubmissions: [Submission] {
@@ -190,6 +203,7 @@ final class FirestoreService: ObservableObject {
         listenToTeam(teamId: teamId)
         listenToMembers(teamId: teamId)
         listenToActivities(teamId: teamId)
+        Task { await loadOptedInActivityIds(teamId: teamId) }
 
         let todayDate = Self.todayString(in: adminTimezone)
         listenToTodaysSubmissions(teamId: teamId, date: todayDate)
@@ -267,6 +281,21 @@ final class FirestoreService: ObservableObject {
             "teamId": teamId,
             "activityIds": activityIds
         ])
+        optedInActivityIds = Set(activityIds)
+    }
+
+    /// Fetches the current user's `optedInActivityIds` from their member document
+    /// and updates the published property.
+    func loadOptedInActivityIds(teamId: String) async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        do {
+            let snap = try await db.collection("teams").document(teamId)
+                .collection("members").document(uid).getDocument()
+            let ids = (snap.data()?["optedInActivityIds"] as? [String]) ?? []
+            optedInActivityIds = Set(ids)
+        } catch {
+            optedInActivityIds = []
+        }
     }
 
     /// `false` if other members remain.
@@ -388,6 +417,7 @@ final class FirestoreService: ObservableObject {
         members           = []
         todaysSubmissions = []
         votedSubmitterIds.removeAll()
+        optedInActivityIds = []
         let keys = ["app_team_id", "app_team_name", "app_team_timezone", "app_invite_code"]
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
     }
@@ -396,6 +426,11 @@ final class FirestoreService: ObservableObject {
 
     /// Writes a vote document to `votes/{voterId}`.
     /// Security rules enforce no double-voting and no self-approval.
+    ///
+    /// Also performs a client-side approval check so the UI updates
+    /// immediately even when the `onVoteCast` Cloud Function is not deployed.
+    /// Both paths are idempotent — they check `status == "pending"` first, so
+    /// whichever completes first wins and the other becomes a no-op.
     func castVote(teamId: String, date: String, submitterUid: String, vote: String) async throws {
         guard let voterId = Auth.auth().currentUser?.uid else { throw FirestoreServiceError.notAuthenticated }
 
@@ -413,7 +448,7 @@ final class FirestoreService: ObservableObject {
             "votedAt": FieldValue.serverTimestamp(),
             "voterNickname": nickname,
         ]
-        // Write the vote document
+        // Write the vote document (also triggers onVoteCast Cloud Function if deployed)
         try await submissionRef
             .collection("votes").document(voterId)
             .setData(voteData)
@@ -423,6 +458,47 @@ final class FirestoreService: ObservableObject {
         try await submissionRef.updateData([
             "voterIds": FieldValue.arrayUnion([voterId])
         ])
+
+        // ── Client-side approval fallback ──────────────────────────────────────
+        // Check majority by counting votes in the subcollection, then mark the
+        // submission approved if the threshold is met.  This runs in parallel
+        // with the Cloud Function; both are idempotent (status=="pending" guard).
+        let submissionSnap = try await submissionRef.getDocument()
+        let submissionData = submissionSnap.data() ?? [:]
+        guard submissionData["status"] as? String == "pending" else { return }
+
+        // Use live member count − 1 as the authoritative eligible voter count.
+        // This corrects submissions whose eligibleVoterCount was mistakenly
+        // stored as members.count (which includes the non-voting submitter).
+        let effectiveEligibleVoterCount = max(1, members.count - 1)
+
+        // Count approve votes directly from the subcollection
+        let votesSnap = try await submissionRef.collection("votes").getDocuments()
+        let approveCount = votesSnap.documents.filter {
+            $0.data()["vote"] as? String == "approve"
+        }.count
+
+        // Majority: strictly more than half of eligible voters
+        guard Double(approveCount) > Double(effectiveEligibleVoterCount) / 2.0 else { return }
+
+        // Mark submission approved
+        try? await submissionRef.updateData([
+            "status": "approved",
+            "approvalMethod": "peer_vote",
+            "appUnlocked": true,
+            "approvedAt": FieldValue.serverTimestamp(),
+            "approveCount": approveCount,
+        ])
+
+        // Update submitter's member doc (mirrors what Cloud Function does)
+        try? await db
+            .collection("teams").document(teamId)
+            .collection("members").document(submitterUid)
+            .updateData([
+                "lastApprovedDate": date,
+                "consecutiveMisses": 0,
+                "shardStatus": "active",
+            ])
     }
 
     // MARK: - Proof Submission
@@ -453,8 +529,10 @@ final class FirestoreService: ObservableObject {
         _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
         let downloadURL = try await storageRef.downloadURL()
 
-        // Determine eligible voter count (all team members except the submitter)
-        let memberCount = max(1, members.count)
+        // Eligible voters = everyone except the submitter themselves.
+        // (Bug fix: previously used members.count which included the submitter,
+        // making majority impossible for 2-person teams: 1 > 2/2=1 is false.)
+        let memberCount = max(1, members.count - 1)
 
         // Write submission document — triggers onSubmissionCreated Cloud Function
         let submissionData: [String: Any] = [

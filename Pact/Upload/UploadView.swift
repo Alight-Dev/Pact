@@ -88,7 +88,7 @@ struct UploadProofView: View {
     // MARK: - Activity options
 
     private var activityOptions: [ActivityOption] {
-        let live = firestoreService.teamActivities.map {
+        let live = firestoreService.userActivities.map {
             ActivityOption(id: $0.id, name: $0.name, iconName: $0.iconName)
         }
         if !live.isEmpty { return live }

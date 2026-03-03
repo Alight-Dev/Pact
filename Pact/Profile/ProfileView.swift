@@ -39,6 +39,7 @@ struct ProfileView: View {
     @State private var selectedPeriod: TimePeriod = .week
     @State private var activeMembership: FirestoreService.ActiveMembership?
     @State private var showEditTeam = false
+    @State private var showEditActivities = false
     @State private var showLeaveTeamConfirm = false
     @State private var showAdminPickerSheet = false
     @State private var selectedNewAdminUid: String? = nil
@@ -47,6 +48,8 @@ struct ProfileView: View {
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
     @State private var isDeleting = false
+    @State private var isLoadingActivities = false
+    @State private var activitySaveError: String?
 
     private var currentUid: String? { Auth.auth().currentUser?.uid }
 
@@ -140,8 +143,11 @@ struct ProfileView: View {
                         memberAvatars: teamMemberAvatars,
                         onTap: onTeamTap
                     )
+
                     ProfileSettingsSection(
                         isAdmin: isAdmin,
+                        showEditActivities: !isAdmin && firestoreService.currentTeamId != nil,
+                        onEditActivities: { showEditActivities = true },
                         onEditTeam: { showEditTeam = true },
                         onSignOut: { try? authManager.signOut() },
                         onLeaveTeam: {
@@ -225,6 +231,7 @@ struct ProfileView: View {
         .presentationDragIndicator(.visible)
         .task {
             activeMembership = try? await firestoreService.loadActiveMembership()
+            await loadOptedInActivities()
         }
         .sheet(isPresented: $showAdminPickerSheet) {
             AdminPickerSheet(
@@ -251,6 +258,193 @@ struct ProfileView: View {
             EditTeamView()
                 .environmentObject(firestoreService)
         }
+        .sheet(isPresented: $showEditActivities) {
+            EditActivitiesView(
+                activities: firestoreService.teamActivities,
+                optedInIds: $firestoreService.optedInActivityIds,
+                isLoading: isLoadingActivities,
+                saveError: activitySaveError,
+                onToggle: { toggleActivity($0) }
+            )
+        }
+    }
+
+    private func loadOptedInActivities() async {
+        guard let teamId = firestoreService.currentTeamId else { return }
+        isLoadingActivities = true
+        await firestoreService.loadOptedInActivityIds(teamId: teamId)
+        isLoadingActivities = false
+    }
+
+    private func toggleActivity(_ activityId: String) {
+        let wasSelected = firestoreService.optedInActivityIds.contains(activityId)
+
+        if wasSelected && firestoreService.optedInActivityIds.count <= 1 {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                activitySaveError = "You must be opted into at least one activity."
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                if activitySaveError == "You must be opted into at least one activity." {
+                    withAnimation { activitySaveError = nil }
+                }
+            }
+            return
+        }
+
+        activitySaveError = nil
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+            if wasSelected {
+                firestoreService.optedInActivityIds.remove(activityId)
+            } else {
+                firestoreService.optedInActivityIds.insert(activityId)
+            }
+        }
+
+        guard let teamId = firestoreService.currentTeamId else { return }
+        Task {
+            do {
+                try await firestoreService.updateOptedInActivities(
+                    teamId: teamId,
+                    activityIds: Array(firestoreService.optedInActivityIds)
+                )
+            } catch {
+                withAnimation {
+                    if wasSelected {
+                        firestoreService.optedInActivityIds.insert(activityId)
+                    } else {
+                        firestoreService.optedInActivityIds.remove(activityId)
+                    }
+                    activitySaveError = "Failed to save. Try again."
+                }
+            }
+        }
+    }
+}
+
+// MARK: - EditActivitiesView
+
+private struct EditActivitiesView: View {
+    let activities: [TeamActivity]
+    @Binding var optedInIds: Set<String>
+    let isLoading: Bool
+    let saveError: String?
+    let onToggle: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color.white.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Select the activities you want to commit to. You must stay opted into at least one.")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color(white: 0.55))
+                            .lineSpacing(3)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+
+                        if isLoading {
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                Spacer()
+                            }
+                            .padding(.vertical, 40)
+                        } else if activities.isEmpty {
+                            Text("No activities set up yet.")
+                                .font(.system(size: 15))
+                                .foregroundStyle(Color(white: 0.55))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                        } else {
+                            VStack(spacing: 10) {
+                                ForEach(activities) { activity in
+                                    activityRow(activity)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+
+                        if let error = saveError {
+                            Text(error)
+                                .font(.system(size: 13))
+                                .foregroundStyle(.red.opacity(0.8))
+                                .padding(.horizontal, 20)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
+                    .padding(.bottom, 40)
+                }
+            }
+            .navigationTitle("Edit Activities")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.black)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+    }
+
+    @ViewBuilder
+    private func activityRow(_ activity: TeamActivity) -> some View {
+        let isSelected = optedInIds.contains(activity.id)
+
+        Button {
+            onToggle(activity.id)
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? Color.white.opacity(0.2) : Color(white: 0.93))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: activity.iconName)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(isSelected ? .white : .black)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(activity.name)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(isSelected ? .white : .black)
+
+                    if !activity.activityDescription.isEmpty {
+                        Text(activity.activityDescription)
+                            .font(.system(size: 13))
+                            .foregroundStyle(isSelected ? Color.white.opacity(0.7) : Color(white: 0.55))
+                            .lineLimit(2)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(isSelected ? .white : Color(white: 0.78))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color.black : Color(white: 0.96))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? Color.clear : Color.black.opacity(0.04),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -571,6 +765,8 @@ private struct TeamCard: View {
 
 private struct ProfileSettingsSection: View {
     var isAdmin: Bool
+    var showEditActivities: Bool = false
+    var onEditActivities: () -> Void = {}
     var onEditTeam: () -> Void
     var onSignOut: () -> Void
     var onLeaveTeam: () -> Void
@@ -579,6 +775,13 @@ private struct ProfileSettingsSection: View {
     var body: some View {
         VStack(spacing: 0) {
             settingsRow(title: "Edit Profile")
+            if showEditActivities {
+                Divider()
+                Button(action: onEditActivities) {
+                    settingsRow(title: "Edit Activities")
+                }
+                .buttonStyle(.plain)
+            }
             Divider()
             settingsRow(title: "Notifications")
             if isAdmin {
