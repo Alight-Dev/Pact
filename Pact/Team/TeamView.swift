@@ -460,19 +460,24 @@ struct TeamView: View {
     }
 
     /// Maps live Firestore members → ShieldMember for display.
+    /// Uses each member's optedInActivityIds count so the X/Y counter
+    /// reflects the activities they actually joined, not the full team total.
     private var liveMembers: [ShieldMember] {
         let currentUid = Auth.auth().currentUser?.uid
-        let total = firestoreService.teamActivities.count
+        let allTotal = firestoreService.teamActivities.count
         let approved = firestoreService.mappedSubmissions.filter {
             $0.status == "approved" || $0.status == "auto_approved"
         }
         return firestoreService.members.map { member in
+            let memberTotal = member.optedInActivityIds.isEmpty
+                ? allTotal
+                : member.optedInActivityIds.count
             let completedCount = approved.filter { $0.submitterUid == member.id }.count
             return ShieldMember(
                 memberName: member.nickname.isEmpty ? member.displayName : member.nickname,
                 memberAvatarAsset: member.avatarAssetName.isEmpty ? "avatar_felix" : member.avatarAssetName,
                 activitiesCompleted: completedCount,
-                activitiesTotal: max(total, 1),
+                activitiesTotal: max(memberTotal, 1),
                 isCurrentUser: member.id == currentUid
             )
         }

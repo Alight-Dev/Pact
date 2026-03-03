@@ -678,6 +678,7 @@ struct TeamMember: Identifiable {
     let avatarAssetName: String
     let role: String
     let joinedAt: Date?
+    let optedInActivityIds: [String]
 
     init?(document: DocumentSnapshot) {
         let data = document.data() ?? [:]
@@ -686,6 +687,7 @@ struct TeamMember: Identifiable {
         self.nickname = data["nickname"] as? String ?? ""
         self.avatarAssetName = data["avatarAssetName"] as? String ?? ""
         self.role = data["role"] as? String ?? "member"
+        self.optedInActivityIds = data["optedInActivityIds"] as? [String] ?? []
         if let ts = data["joinedAt"] as? Timestamp {
             self.joinedAt = ts.dateValue()
         } else {
