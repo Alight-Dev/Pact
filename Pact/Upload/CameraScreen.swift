@@ -290,9 +290,16 @@ struct CameraScreen: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: spacing) {
                     ForEach(activities) { activity in
-                        carouselPill(activity)
-                            .frame(width: itemWidth)
-                            .id(activity.id)
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedActivityID = activity.id
+                            }
+                        } label: {
+                            carouselPill(activity)
+                                .frame(width: itemWidth)
+                        }
+                        .buttonStyle(.plain)
+                        .id(activity.id)
                     }
                 }
                 .scrollTargetLayout()

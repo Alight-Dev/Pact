@@ -105,8 +105,8 @@ export const onVoteCast = onDocumentCreated(
       await getMessaging().send({
         token: submitterFcmToken,
         notification: {
-          title: "Submission approved! 🎉",
-          body: "Your teammates approved your proof. Apps unlocked.",
+          title: "Proof approved! 🎉",
+          body: "Your team voted you in. Keep the streak alive!",
         },
         data: {
           type: "submission_approved",
@@ -114,6 +114,36 @@ export const onVoteCast = onDocumentCreated(
           date,
         },
       });
+    }
+
+    // daily_complete check — notify all members if every submission is approved
+    if (allApproved) {
+      const submissionsSnap = await instanceRef.collection("submissions").get();
+      const teamMembersSnap = await db
+        .collection("teams").doc(teamId)
+        .collection("members").get();
+
+      const allDone = submissionsSnap.docs.every((d) => {
+        const s = d.data().status as string;
+        return s === "approved" || s === "auto_approved";
+      });
+
+      if (allDone && submissionsSnap.size >= teamMembersSnap.size) {
+        const allTokens: string[] = teamMembersSnap.docs
+          .map((d) => d.data().fcmToken as string | null)
+          .filter((t): t is string => !!t);
+
+        if (allTokens.length > 0) {
+          await getMessaging().sendEachForMulticast({
+            tokens: allTokens,
+            notification: {
+              title: "Pact complete! 🔥",
+              body: "Every teammate finished today. Streak safe!",
+            },
+            data: { type: "daily_complete", teamId, date },
+          });
+        }
+      }
     }
   }
 );

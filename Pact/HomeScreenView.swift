@@ -14,41 +14,71 @@ enum AppTab {
 // MARK: - Root Container
 
 struct HomeScreenView: View {
+    @EnvironmentObject var notificationRouter: NotificationRouter
     @State private var selectedTab: AppTab = .home
     @State private var showUpload: Bool = false
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            ZStack {
-                switch selectedTab {
-                case .home:
-                    HomeView(onTeamTap: {
-                        withAnimation(.spring(response: 0.15, dampingFraction: 0.75)) {
-                            selectedTab = .team
-                        }
-                    })
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .leading),
-                        removal: .move(edge: .leading)
-                    ))
-                case .team:
-                    TeamView()
+        ZStack {
+            ZStack(alignment: .bottom) {
+                ZStack {
+                    switch selectedTab {
+                    case .home:
+                        HomeView(onTeamTap: {
+                            withAnimation(.spring(response: 0.15, dampingFraction: 0.75)) {
+                                selectedTab = .team
+                            }
+                        })
                         .transition(.asymmetric(
-                            insertion: .move(edge: .trailing),
-                            removal: .move(edge: .trailing)
+                            insertion: .move(edge: .leading),
+                            removal: .move(edge: .leading)
                         ))
+                    case .team:
+                        TeamView()
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .trailing),
+                                removal: .move(edge: .trailing)
+                            ))
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            FloatingTabBar(selectedTab: $selectedTab, onUploadTapped: {
-                showUpload = true
-            })
-            .padding(.bottom, 24)
+                FloatingTabBar(selectedTab: $selectedTab, onUploadTapped: {
+                    showUpload = true
+                })
+                .padding(.bottom, 24)
+            }
+            .ignoresSafeArea(edges: .bottom)
+
+            // In-app notification banner
+            if let banner = notificationRouter.activeBanner {
+                InAppNotificationBanner(
+                    payload: banner,
+                    onTap: {
+                        withAnimation(.spring(response: 0.15, dampingFraction: 0.75)) {
+                            selectedTab = banner.tab
+                        }
+                        notificationRouter.activeBanner = nil
+                    },
+                    onDismiss: {
+                        notificationRouter.activeBanner = nil
+                    }
+                )
+                .zIndex(999)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.spring(response: 0.45, dampingFraction: 0.82),
+                           value: notificationRouter.activeBanner != nil)
+            }
         }
-        .ignoresSafeArea(edges: .bottom)
         .fullScreenCover(isPresented: $showUpload) {
             UploadProofView()
+        }
+        .onChange(of: notificationRouter.pendingTabSwitch) { _, tab in
+            guard let tab else { return }
+            withAnimation(.spring(response: 0.15, dampingFraction: 0.75)) {
+                selectedTab = tab
+            }
+            notificationRouter.pendingTabSwitch = nil
         }
     }
 }

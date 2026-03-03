@@ -61,8 +61,8 @@ export const onForgePactAgreement = onDocumentCreated(
       await getMessaging().sendEachForMulticast({
         tokens,
         notification: {
-          title: "🛡 Your Pact is Forged!",
-          body: "All members have agreed. Your daily challenge starts now.",
+          title: "🛡 Pact Forged!",
+          body: "All members agreed. The challenge starts today — don't break it.",
         },
         data: { type: "forge_pact_ready", teamId, goalId },
       });
