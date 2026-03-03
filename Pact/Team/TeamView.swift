@@ -638,7 +638,7 @@ struct TeamView: View {
         firestoreService.votedSubmitterIds.insert(submitterUid)
 
         guard let teamId = firestoreService.currentTeamId else { return }
-        let date = FirestoreService.todayDateString()
+        let date = FirestoreService.todayString(in: firestoreService.adminTimezone ?? "UTC")
         Task {
             try? await firestoreService.castVote(
                 teamId: teamId,

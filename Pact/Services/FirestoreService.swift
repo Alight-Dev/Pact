@@ -259,6 +259,16 @@ final class FirestoreService: ObservableObject {
     /// Calls the `leaveTeam` Cloud Function.
     /// Pass `newAdminUid` when the caller is the admin and other members remain.
     /// Returns `true` if the team was fully dissolved (caller was last member),
+    /// Calls the `updateOptedInActivities` Cloud Function to save selected
+    /// activity IDs on the member's document after joining a team.
+    func updateOptedInActivities(teamId: String, activityIds: [String]) async throws {
+        let callable = functions.httpsCallable("updateOptedInActivities")
+        let _ = try await callable.call([
+            "teamId": teamId,
+            "activityIds": activityIds
+        ])
+    }
+
     /// `false` if other members remain.
     /// After this returns, call `clearTeamSession()` to wipe local state.
     @discardableResult
@@ -435,7 +445,7 @@ final class FirestoreService: ObservableObject {
         }
 
         // Upload to Firebase Storage: proof/{teamId}/{date}/{uid}.jpg
-        let dateString = Self.todayDateString()
+        let dateString = Self.todayString(in: adminTimezone ?? "UTC")
         let storagePath = "proof/\(teamId)/\(dateString)/\(uid).jpg"
         let storageRef = Storage.storage().reference(withPath: storagePath)
         let metadata = StorageMetadata()
@@ -558,7 +568,7 @@ final class FirestoreService: ObservableObject {
     // MARK: - Helpers
 
     /// Returns today's date string in `yyyy-MM-dd` for the given timezone identifier.
-    private static func todayString(in timezoneIdentifier: String) -> String {
+    static func todayString(in timezoneIdentifier: String) -> String {
         let tz = TimeZone(identifier: timezoneIdentifier) ?? .current
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -648,8 +658,8 @@ struct Submission: Identifiable, Equatable {
 struct TeamActivity: Identifiable {
     let id: String          // Firestore document ID
     let name: String
-    let activityDescription: String
     let iconName: String
+    let activityDescription: String
     let repeatDays: [Int]
     let isOptional: Bool
     let order: Int
@@ -659,8 +669,8 @@ struct TeamActivity: Identifiable {
         guard let name = data["name"] as? String else { return nil }
         self.id = document.documentID
         self.name = name
-        self.activityDescription = data["description"] as? String ?? ""
         self.iconName = data["iconName"] as? String ?? "checkmark.circle"
+        self.activityDescription = data["description"] as? String ?? ""
         self.repeatDays = data["repeatDays"] as? [Int] ?? []
         self.isOptional = data["isOptional"] as? Bool ?? false
         self.order = data["order"] as? Int ?? 0
