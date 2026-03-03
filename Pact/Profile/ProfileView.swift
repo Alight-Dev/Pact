@@ -541,7 +541,9 @@ private struct TeamCard: View {
                 }
                 .frame(width: max(36, 36 + overlap * CGFloat(max(0, memberAvatars.count - 1))), height: 36)
 
-                VStack(alignment: .leading, spacing: 2) {
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 2) {
                     Text(teamName)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.black)
@@ -549,8 +551,6 @@ private struct TeamCard: View {
                         .font(.system(size: 14))
                         .foregroundStyle(.green)
                 }
-
-                Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))

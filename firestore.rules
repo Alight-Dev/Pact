@@ -74,7 +74,14 @@ service cloud.firestore {
             && isOwner(uid)
             && isTeamMember(teamId)
             && request.resource.data.status == "pending";
-          allow update, delete: if false; // Status updates by Cloud Functions only
+          // Client can re-submit (update photo/activity) while still pending —
+          // allows retrying after a network error. Blocked once CF sets approved/rejected.
+          allow update: if isSignedIn()
+            && isOwner(uid)
+            && isTeamMember(teamId)
+            && resource.data.status == "pending"
+            && request.resource.data.status == "pending";
+          allow delete: if false; // Deletions by Cloud Functions only
 
           match /votes/{voterId} {
             allow read:   if isSignedIn() && isTeamMember(teamId);

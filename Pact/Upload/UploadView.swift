@@ -21,18 +21,19 @@ struct UploadProofView: View {
                     ConfirmPhotoView(
                         image: image,
                         activity: activity,
+                        activities: activityOptions,
                         onRetake: {
                             capturedImage = nil
                             selectedActivity = nil
                         },
-                        onSubmit: {
+                        onSubmit: { chosenActivity in
                             guard let teamId = firestoreService.currentTeamId else {
                                 throw UploadError.noTeam
                             }
                             try await firestoreService.submitProof(
                                 teamId: teamId,
                                 image: image,
-                                activityName: activity.name
+                                activityName: chosenActivity.name
                             )
                             dismiss()
                         }
