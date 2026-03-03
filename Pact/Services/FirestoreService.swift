@@ -91,6 +91,7 @@ final class FirestoreService: ObservableObject {
             "dailyScreenTime": dailyScreenTime,
             "smartphoneYears": smartphoneYears,
             "appCategories": appCategories,
+            "onboardingCompleted": true,
         ]
         if let email { data["email"] = email }
 
@@ -101,6 +102,17 @@ final class FirestoreService: ObservableObject {
         try await db.collection("users").document(uid).updateData([
             "createdAt": FieldValue.serverTimestamp()
         ])
+    }
+
+    /// Returns whether the current user has completed onboarding (has a profile with nickname/avatar).
+    /// Used to skip onboarding for existing accounts and show it for brand-new accounts.
+    func hasCompletedOnboarding() async throws -> Bool {
+        guard let uid = Auth.auth().currentUser?.uid else { return false }
+        let snap = try await db.collection("users").document(uid).getDocument()
+        guard let data = snap.data() else { return false }
+        if data["onboardingCompleted"] as? Bool == true { return true }
+        if (data["nickname"] as? String)?.isEmpty == false { return true }
+        return false
     }
 
     // MARK: - FCM Token
