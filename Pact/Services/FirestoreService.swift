@@ -50,6 +50,19 @@ final class FirestoreService: ObservableObject {
     @Published var adminTimezone: String?
     @Published var members: [TeamMember] = []
     @Published var teamActivities: [TeamActivity] = []
+    @Published var optedInActivityIds: Set<String> = []
+
+    /// Activities filtered to only those the current user is opted into.
+    /// Returns all activities when optedInActivityIds is empty (e.g. admin / creator).
+    var userActivities: [TeamActivity] {
+        guard !optedInActivityIds.isEmpty else { return teamActivities }
+        return teamActivities.filter { optedInActivityIds.contains($0.id) }
+    }
+
+    /// Activity names the current user is opted into (for filtering submissions).
+    var userActivityNames: Set<String> {
+        Set(userActivities.map(\.name))
+    }
 
     /// Convenience accessor exposing today's submissions as strongly-typed models.
     var mappedSubmissions: [Submission] {
@@ -190,6 +203,7 @@ final class FirestoreService: ObservableObject {
         listenToTeam(teamId: teamId)
         listenToMembers(teamId: teamId)
         listenToActivities(teamId: teamId)
+        Task { await loadOptedInActivityIds(teamId: teamId) }
 
         let todayDate = Self.todayString(in: adminTimezone)
         listenToTodaysSubmissions(teamId: teamId, date: todayDate)
@@ -267,6 +281,21 @@ final class FirestoreService: ObservableObject {
             "teamId": teamId,
             "activityIds": activityIds
         ])
+        optedInActivityIds = Set(activityIds)
+    }
+
+    /// Fetches the current user's `optedInActivityIds` from their member document
+    /// and updates the published property.
+    func loadOptedInActivityIds(teamId: String) async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        do {
+            let snap = try await db.collection("teams").document(teamId)
+                .collection("members").document(uid).getDocument()
+            let ids = (snap.data()?["optedInActivityIds"] as? [String]) ?? []
+            optedInActivityIds = Set(ids)
+        } catch {
+            optedInActivityIds = []
+        }
     }
 
     /// `false` if other members remain.
@@ -388,6 +417,7 @@ final class FirestoreService: ObservableObject {
         members           = []
         todaysSubmissions = []
         votedSubmitterIds.removeAll()
+        optedInActivityIds = []
         let keys = ["app_team_id", "app_team_name", "app_team_timezone", "app_invite_code"]
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
     }
