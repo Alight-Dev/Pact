@@ -10,7 +10,7 @@ import SwiftUI
 struct OnboardingCreateOrJoinShieldView: View {
     var onCreateShield: () -> Void
     var onJoinShield: () -> Void
-    var onSkip: () -> Void
+    var onSkip: (() -> Void)? = nil
 
     @State private var logoScale: CGFloat = 0.4
     @State private var logoOffsetY: CGFloat = 260
@@ -131,13 +131,15 @@ struct OnboardingCreateOrJoinShieldView: View {
                         .padding(.top, 20)
                         .transition(.opacity)
 
-                    Button(action: onSkip) {
-                        Text("Skip for now")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Color(white: 0.55))
+                    if let onSkip {
+                        Button(action: onSkip) {
+                            Text("Skip for now")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color(white: 0.55))
+                        }
+                        .padding(.top, 12)
+                        .transition(.opacity)
                     }
-                    .padding(.top, 12)
-                    .transition(.opacity)
                 }
 
                 Spacer()
@@ -177,7 +179,6 @@ struct OnboardingCreateOrJoinShieldView: View {
 #Preview {
     OnboardingCreateOrJoinShieldView(
         onCreateShield: {},
-        onJoinShield: {},
-        onSkip: {}
+        onJoinShield: {}
     )
 }

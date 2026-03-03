@@ -9,7 +9,6 @@ import SwiftUI
 
 struct SplashView: View {
     var onFinished: () async -> Void
-    var onSkipToSignup: (() -> Void)? = nil
 
     @State private var logoScale: CGFloat = 0.3
     @State private var logoOffsetY: CGFloat = 1000 // Will be set properly in onAppear
@@ -23,32 +22,6 @@ struct SplashView: View {
         ZStack {
             Color.white
                 .ignoresSafeArea()
-
-            // Skip button — top right, for testing only
-            if let skipAction = onSkipToSignup {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: skipAction) {
-                            Text("Skip")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.black)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 7)
-                                .background(
-                                    Capsule()
-                                        .fill(Color(red: 0.94, green: 0.94, blue: 0.96))
-                                        .overlay(
-                                            Capsule().strokeBorder(Color.black.opacity(0.10), lineWidth: 1)
-                                        )
-                                )
-                        }
-                        .padding(.trailing, 24)
-                        .padding(.top, 16)
-                    }
-                    Spacer()
-                }
-            }
 
             // Logo — comes to rest in the upper-middle of the screen
             Image("SplashLogo")
