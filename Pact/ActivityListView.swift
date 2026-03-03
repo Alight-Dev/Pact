@@ -27,7 +27,7 @@ struct ActivityListView: View {
     @State private var isCreatingTeam = false
     @State private var createTeamError: String?
     @State private var allowAIFallback: Bool = true
-    @State private var minApprovers: Int = 1
+    @State private var minApprovers: Int = 0
     @State private var showDebugSheet: Bool = false
     @State private var showDeleteAccountAlert = false
     @State private var pendingInviteCode: String? = nil
@@ -73,53 +73,7 @@ struct ActivityListView: View {
                 }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 64, leading: 24, bottom: 36, trailing: 24))
-
-                // MARK: Initial Conditions card
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("INITIAL CONDITIONS")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.55))
-                        .kerning(0.6)
-                        .padding(.bottom, 14)
-
-                    // AI fallback row
-                    HStack {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Allow AI fallback")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(.black)
-                            Text("Auto-verifies after ~2–3 hrs of peer inactivity")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color(white: 0.55))
-                        }
-                        Spacer()
-                        Toggle("", isOn: $allowAIFallback)
-                            .labelsHidden()
-                            .tint(.black)
-                    }
-                    .padding(.bottom, 16)
-
-                    Divider()
-                        .padding(.bottom, 14)
-
-                    // Min approvers row
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Minimum required approvers")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.black)
-                        ApproverSegmentedPicker(selection: $minApprovers)
-                    }
-                }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.white)
-                        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
-                )
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
+                .listRowInsets(EdgeInsets(top: 16, leading: 24, bottom: 36, trailing: 24))
 
                 if activities.isEmpty {
                     VStack(spacing: 12) {
@@ -171,6 +125,52 @@ struct ActivityListView: View {
                         .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                     }
                 }
+
+                // MARK: Initial Conditions card
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("INITIAL CONDITIONS")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color(white: 0.55))
+                        .kerning(0.6)
+                        .padding(.bottom, 14)
+
+                    // AI fallback row
+                    HStack {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Allow AI fallback")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.black)
+                            Text("Auto-verifies after ~2–3 hrs of peer inactivity")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color(white: 0.55))
+                        }
+                        Spacer()
+                        Toggle("", isOn: $allowAIFallback)
+                            .labelsHidden()
+                            .tint(.black)
+                    }
+                    .padding(.bottom, 16)
+
+                    Divider()
+                        .padding(.bottom, 14)
+
+                    // Min approvers row
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Minimum required approvers")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.black)
+                        ApproverSegmentedPicker(selection: $minApprovers)
+                    }
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.white)
+                        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
+                )
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
 
                 // Bottom padding so the last card isn't hidden behind the Add button
                 Color.clear
