@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 import UserNotifications
 
 struct OnboardingRequestNotificationsView: View {
@@ -117,8 +118,11 @@ struct OnboardingRequestNotificationsView: View {
                     Task {
                         let granted = (try? await UNUserNotificationCenter.current()
                             .requestAuthorization(options: [.alert, .badge, .sound])) ?? false
-                        // Optionally, you could branch on `granted` if needed.
-                        _ = granted
+                        if granted {
+                            await MainActor.run {
+                                UIApplication.shared.registerForRemoteNotifications()
+                            }
+                        }
                         await MainActor.run { onContinue() }
                     }
                 } label: {
