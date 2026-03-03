@@ -8,13 +8,14 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
-import FirebaseMessaging
 import GoogleSignIn
 
 @main
 struct PactApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var authManager = AuthManager()
     @StateObject private var firestoreService = FirestoreService()
+    @StateObject private var notificationRouter = NotificationRouter()
     @State private var showOnboarding = false
     @State private var showSignupDirect = false
     @State private var showShieldSelection = false
@@ -280,6 +281,7 @@ struct PactApp: App {
             }
             .environmentObject(authManager)
             .environmentObject(firestoreService)
+            .environmentObject(notificationRouter)
             .onOpenURL { url in
                 // Handle pact://join/{code} deep links.
                 // Only show join UI when user is already signed in and has completed onboarding
@@ -316,13 +318,6 @@ struct PactApp: App {
                         showSignupDirect = false
                     }
                     firestoreService.stopListeners()
-                } else {
-                    // Refresh FCM token on sign-in
-                    Task {
-                        if let token = try? await Messaging.messaging().token() {
-                            await firestoreService.updateFCMToken(token)
-                        }
-                    }
                 }
             }
             // When clearTeamSession() sets currentTeamId to nil while the user
@@ -334,6 +329,11 @@ struct PactApp: App {
                         showHomeScreen = false
                         showShieldSelection = true
                     }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .fcmTokenRefreshed)) { note in
+                if let token = note.userInfo?["token"] as? String {
+                    Task { await firestoreService.updateFCMToken(token) }
                 }
             }
         }

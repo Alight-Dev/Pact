@@ -14,7 +14,7 @@
 - [x] Google Sign-In implemented (`AuthManager.signInWithGoogle`)
 - [x] Auth state listener (auto-detects sign-in/sign-out)
 - [ ] Apple Sign-In implementation (button exists in `OnboardingSignupView` but `AuthManager` only has Google)
-- [ ] Save full user profile to Firestore (`users/{uid}`) at end of onboarding (`OnboardingProfileSetupView.onContinue` → `FirestoreService.saveUserProfile`)
+- [x] Save full user profile to Firestore (`users/{uid}`) at end of onboarding (`OnboardingProfileSetupView.onContinue` → `FirestoreService.saveUserProfile`)
 - [x] Session restore on app launch: if user is already signed in and has an active team, load membership (`loadActiveMembership`), start listeners (`startTeamSession`), and route directly to `HomeScreenView` — skipping onboarding and shield selection
 
 ---
@@ -44,7 +44,7 @@
 - [x] `FirestoreService.createTeam` (calls CF-8)
 - [x] Wire `ActivityListView` "Continue" button to call `FirestoreService.createTeam`
 - [x] Show invite code after team creation (present iOS share sheet with invite code + `pact://join/{code}` deep link)
-- [ ] Add "Share Invite" button to `TeamView` so admin can re-share the invite code at any time (read `firestoreService.currentTeam?["inviteCode"] as? String`)
+- [x] Add "Share Invite" button to `TeamView` so admin can re-share the invite code at any time (`ShareLink` in `ShieldMembersSection` reads `inviteShareURL` from live Firestore or UserDefaults cache)
 - [ ] Wire `minApprovers` and `allowAIFallback` from `ActivityListView` "Initial Conditions" card into the `createTeam` Cloud Function payload (requires CF update too)
 - [ ] Deduplicate SwiftData activities before calling `createTeam` if navigation ever allows re-entry to `ActivityListView` (defensive guard)
 - [ ] `FamilyActivityPicker` integration in `ActivityListView` (admin selects which apps to restrict; store serialized selection in goal doc)
@@ -80,8 +80,8 @@
 - [ ] Wire Health Score card to real weekly streak data from Firestore (replace placeholder text and `4/5`)
 - [ ] Wire Team Progress card avatars to real `FirestoreService.members` (replace `teamAvatars` mock array)
 - [x] Wire "Today's Goal" activity list to `FirestoreService.teamActivities` (joiner now sees real activities; falls back to SwiftData for admin mid-onboarding)
-- [ ] Wire "Today's Goal" card completion status to `FirestoreService.todaysSubmissions`
-- [ ] Wire "Your Completion" counter and progress bar to real approved submission count
+- [x] Wire "Today's Goal" card completion status to `FirestoreService.todaysSubmissions` (`myCompletedActivityNames` filters `mappedSubmissions` by uid + approved status; rows show checkmark)
+- [x] Wire "Your Completion" counter and progress bar to real approved submission count (`completedCount` / `totalActivities` in `HomeView.todayGoalCard`)
 - [ ] Show today's goal name from Firestore (`currentTeam["currentGoalId"]` → goal doc)
 - [ ] "Complete Today's Task" CTA button that opens the live camera / `UploadView`
 - [ ] Show lock/unlock status indicator (locked until today's submission is approved)
@@ -90,13 +90,14 @@
 
 ## 7. Proof Submission (`UploadView`)
 
-- [ ] Replace stub with live camera capture view (AVFoundation; no photo library access)
-- [ ] Enforce live camera only — disable photo library picker
-- [ ] Preview captured photo before submission
-- [ ] Upload photo to Firebase Storage (`proof-photos/{teamId}/{date}/{uid}.jpg`)
-- [ ] Create submission document in Firestore (triggers CF-2: `onSubmissionCreated`)
-- [ ] Show submission status after submit: pending / approved / rejected / auto-approved
-- [ ] Prevent re-submission if user already submitted today
+- [x] Replace stub with live camera capture view (AVFoundation; no photo library access) — `CameraScreen.swift` with `CameraViewModel` + `AVCaptureSession`
+- [x] Enforce live camera only — no photo library picker; `UploadProofView` only renders `CameraScreen`
+- [x] Preview captured photo before submission — `ConfirmPhotoView` full-screen dark review screen
+- [x] Upload photo to Firebase Storage (`proof/{teamId}/{date}/{uid}.jpg`) — `FirestoreService.submitProof`
+- [x] Create submission document in Firestore (triggers CF-2: `onSubmissionCreated`) — `FirestoreService.submitProof`
+- [ ] Show submission status after submit: pending / approved / rejected / auto-approved (Home screen should show "Proof pending" badge if today's submission is in `pending` status)
+- [ ] Prevent re-submission if user already submitted today (check `mappedSubmissions` for existing uid doc before showing camera; show status instead)
+- [ ] "Complete Today's Task" CTA on `HomeView` todayGoalCard that opens `UploadProofView` fullScreenCover (currently card is display-only)
 
 ---
 
@@ -106,14 +107,14 @@
 - [x] Approve/Reject buttons and swipe gestures on cards
 - [x] Highlights section for approved submissions (carousel)
 - [x] Shield members list with progress bars
-- [ ] Replace mock submissions with real `FirestoreService.mappedSubmissions` (real-time)
+- [x] Replace mock submissions with real `FirestoreService.mappedSubmissions` (real-time) — `pendingSubmissions` and `approvedSubmissions` both derived from live listener
 - [x] Replace mock members with real `FirestoreService.members` (real-time; falls back to mock on first render)
-- [ ] Wire "Approve"/"Reject" swipe and button actions to `FirestoreService.castVote`
-- [ ] Show actual proof photo from `submission.photoURL` in vote card (replace placeholder icon)
-- [ ] Hide vote actions on the current user's own submission (no self-approval)
-- [ ] Disable vote buttons after user has already voted on a submission
-- [ ] Wire team name, shield tier, and streak counter in `TeamShieldHeader` to real Firestore data
-- [ ] Replace hardcoded "Morning Forge Alliance" team description and "Emerald Tier / 12 day streak" with live data
+- [x] Wire "Approve"/"Reject" swipe and button actions to `FirestoreService.castVote` — `TeamView.handleVote` calls `castVote`
+- [x] Show actual proof photo from `submission.photoURL` in vote card — `CachedProofImage(urlString: submission.photoUrl)` in both `SubmissionCard` and `HighlightCard`
+- [x] Hide vote actions on the current user's own submission (no self-approval) — `refreshPending` filters `sub.submitterUid != currentUid`
+- [x] Disable vote buttons after user has already voted on a submission — `refreshPending` checks `votedSubmitterIds` (in-session) and `sub.voterIds` (Firestore-backed)
+- [x] Wire team name, shield tier, and streak counter in `TeamShieldHeader` to real Firestore data — `shieldDisplayName`, `ShieldTier.current(for: streakDays)`, and `streakDays` all read from `firestoreService.currentTeam`
+- [x] Replace hardcoded "Morning Forge Alliance" team description and "Emerald Tier / 12 day streak" with live data — fully live via `TeamShieldHeader` params
 
 ---
 
@@ -189,15 +190,15 @@
 
 ## 15. Invite & Sharing
 
-- [ ] After team creation: present iOS share sheet with invite link (`pact://join/{code}`) and 6-digit code, pre-formatted for iMessage/WhatsApp
-- [ ] "Invite more members" button on `TeamView` (copies or shares invite link)
-- [ ] Show invite code in team settings or a dedicated invite screen
+- [x] After team creation: present iOS share sheet with invite link (`pact://join/{code}`) and 6-digit code — `ActivityListView` shows share sheet after `createTeam` resolves
+- [x] "Invite more members" button on `TeamView` (copies or shares invite link) — `ShareLink` in `ShieldMembersSection`
+- [x] Show invite code in team settings or a dedicated invite screen — invite URL surfaced via `TeamView` share button
 
 ---
 
 ## 16. Profile Screen
 
-- [ ] Wire `ProfileView` to display real user data from Firestore (`displayName`, `nickname`, `avatarAssetName`, `currentStreakDays`)
+- [ ] Wire `ProfileView` to display real user data from Firestore (`displayName`, `nickname`, `avatarAssetName`, `currentStreakDays`) — currently reads from `UserDefaults` only
 - [ ] Sign out button functional (calls `AuthManager.signOut`, clears session)
 - [ ] Show which team(s) the user belongs to
 

@@ -63,18 +63,21 @@ export const onSubmissionCreated = onDocumentCreated(
     if (tokens.length > 0) {
       const submitterNickname: string =
         submission.nickname ?? submission.displayName ?? "A teammate";
+      const activityName: string = submission.activityName ?? "their proof";
 
       await getMessaging().sendEachForMulticast({
         tokens,
         notification: {
           title: "New submission",
-          body: `${submitterNickname} just finished a task. Tap to approve.`,
+          body: `${submitterNickname} submitted their ${activityName} proof. Tap to vote →`,
         },
         data: {
           type: "vote_needed",
           teamId,
           date,
           submitterUid: uid,
+          activityName,
+          submitterNickname,
         },
       });
     }

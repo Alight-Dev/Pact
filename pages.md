@@ -40,6 +40,16 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 
 ---
 
+## Notifications
+
+| File | Purpose |
+|------|--------|
+| `Pact/AppDelegate.swift` | `UIApplicationDelegate` + `UNUserNotificationCenterDelegate` + `MessagingDelegate`. Intercepts foreground and background notification taps; posts to `NotificationCenter` via `.pactNotification`. Handles FCM token refresh via `.fcmTokenRefreshed`. Wired into SwiftUI via `@UIApplicationDelegateAdaptor`. |
+| `Pact/Notifications/NotificationRouter.swift` | `@MainActor ObservableObject` that subscribes to `.pactNotification` and drives `@Published var activeBanner` (foreground) and `@Published var pendingTabSwitch` (background tap). Also defines `Notification.Name` extensions `.pactNotification` and `.fcmTokenRefreshed`. |
+| `Pact/Notifications/InAppNotificationBanner.swift` | Snapchat-style top drop-down banner. Shows avatar (resolved from `firestoreService.members`), bold title, and grey body. Spring slide-in from top; auto-dismisses after 4 s; tap calls `onTap()` to switch tab. |
+
+---
+
 ## Main app
 
 | File | Purpose |
