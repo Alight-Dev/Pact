@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 import FirebaseFunctions
 
 struct JoinShieldView: View {
@@ -20,6 +21,7 @@ struct JoinShieldView: View {
     @State private var isJoining = false
     @State private var joinError: String?
     @State private var cursorVisible = true
+    @State private var showLeaveCurrentTeamAlert = false
 
     private var isComplete: Bool {
         code.count == 6
@@ -142,6 +144,14 @@ struct JoinShieldView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
         }
+        .alert("Leave current team?", isPresented: $showLeaveCurrentTeamAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Leave & Join", role: .destructive) {
+                performLeaveThenJoin()
+            }
+        } message: {
+            Text("Joining this team will leave your current team. Do you want to continue?")
+        }
         .onTapGesture { isFieldFocused = false }
         .onAppear {
             if !initialCode.isEmpty && code.isEmpty {
@@ -221,38 +231,88 @@ struct JoinShieldView: View {
     // MARK: - Actions
 
     private func performJoin() {
+        if firestoreService.currentTeamId != nil {
+            showLeaveCurrentTeamAlert = true
+            return
+        }
+        doJoin()
+    }
+
+    /// Leaves current team (assigning oldest other member as admin if caller is admin), then joins the new team.
+    private func performLeaveThenJoin() {
+        guard let currentTeamId = firestoreService.currentTeamId else {
+            doJoin()
+            return
+        }
+        let uid = Auth.auth().currentUser?.uid ?? ""
+        let isAdmin = firestoreService.currentTeam?["adminId"] as? String == uid
+            || firestoreService.members.first(where: { $0.id == uid })?.role == "admin"
+        let otherMembers = firestoreService.members.filter { $0.id != uid }
+
+        let newAdminUid: String?
+        if isAdmin && !otherMembers.isEmpty {
+            // Pick oldest member (earliest joinedAt) as new admin
+            let oldest = otherMembers
+                .sorted { m1, m2 in
+                    let d1 = m1.joinedAt ?? .distantFuture
+                    let d2 = m2.joinedAt ?? .distantFuture
+                    return d1 < d2
+                }
+                .first
+            newAdminUid = oldest?.id
+        } else {
+            newAdminUid = nil
+        }
+
         isJoining = true
         joinError = nil
         Task {
             do {
-                let joinResult = try await firestoreService.joinTeam(inviteCode: code)
-                let membership = try await firestoreService.loadActiveMembership()
+                _ = try await firestoreService.leaveTeam(teamId: currentTeamId, newAdminUid: newAdminUid)
+                await MainActor.run { firestoreService.clearTeamSession() }
+                try await doJoinAsync()
+            } catch {
                 await MainActor.run {
-                    if let membership {
-                        firestoreService.startTeamSession(
-                            teamId: membership.teamId,
-                            teamName: membership.teamName,
-                            adminTimezone: membership.adminTimezone
-                        )
-                    } else {
-                        firestoreService.startTeamSession(
-                            teamId: joinResult.teamId,
-                            teamName: joinResult.teamName,
-                            adminTimezone: TimeZone.current.identifier
-                        )
-                    }
-                    onJoined()
-                }
-            } catch let error as NSError {
-                if error.domain == FunctionsErrorDomain,
-                   let code = FunctionsErrorCode(rawValue: error.code),
-                   code == .alreadyExists {
-                    joinError = "You're already in a team. Leave your current team first to join another."
-                } else {
                     joinError = error.localizedDescription
                 }
             }
-            isJoining = false
+            await MainActor.run { isJoining = false }
+        }
+    }
+
+    private func doJoin() {
+        isJoining = true
+        joinError = nil
+        Task {
+            do {
+                try await doJoinAsync()
+            } catch {
+                await MainActor.run {
+                    joinError = error.localizedDescription
+                }
+            }
+            await MainActor.run { isJoining = false }
+        }
+    }
+
+    private func doJoinAsync() async throws {
+        let joinResult = try await firestoreService.joinTeam(inviteCode: code)
+        let membership = try await firestoreService.loadActiveMembership()
+        await MainActor.run {
+            if let membership {
+                firestoreService.startTeamSession(
+                    teamId: membership.teamId,
+                    teamName: membership.teamName,
+                    adminTimezone: membership.adminTimezone
+                )
+            } else {
+                firestoreService.startTeamSession(
+                    teamId: joinResult.teamId,
+                    teamName: joinResult.teamName,
+                    adminTimezone: TimeZone.current.identifier
+                )
+            }
+            onJoined()
         }
     }
 
