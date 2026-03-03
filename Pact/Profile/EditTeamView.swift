@@ -26,50 +26,6 @@ struct EditTeamView: View {
                 Color.white.ignoresSafeArea()
 
                 List {
-                    // MARK: Initial Conditions card
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("INITIAL CONDITIONS")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.55))
-                            .kerning(0.6)
-                            .padding(.bottom, 14)
-
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Allow AI fallback")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.black)
-                                Text("Auto-verifies after ~2–3 hrs of peer inactivity")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(Color(white: 0.55))
-                            }
-                            Spacer()
-                            Toggle("", isOn: $allowAIFallback)
-                                .labelsHidden()
-                                .tint(.black)
-                        }
-                        .padding(.bottom, 16)
-
-                        Divider()
-                            .padding(.bottom, 14)
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Minimum required approvers")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(.black)
-                            ApproverSegmentedPicker(selection: $minApprovers)
-                        }
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.white)
-                            .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
-                    )
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
-
                     if firestoreService.teamActivities.isEmpty {
                         VStack(spacing: 12) {
                             Image(systemName: "list.bullet.rectangle")
@@ -119,6 +75,50 @@ struct EditTeamView: View {
                             .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                         }
                     }
+
+                    // MARK: Initial Conditions card
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("INITIAL CONDITIONS")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.55))
+                            .kerning(0.6)
+                            .padding(.bottom, 14)
+
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Allow AI fallback")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.black)
+                                Text("Auto-verifies after ~2–3 hrs of peer inactivity")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color(white: 0.55))
+                            }
+                            Spacer()
+                            Toggle("", isOn: $allowAIFallback)
+                                .labelsHidden()
+                                .tint(.black)
+                        }
+                        .padding(.bottom, 16)
+
+                        Divider()
+                            .padding(.bottom, 14)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Minimum required approvers")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.black)
+                            ApproverSegmentedPicker(selection: $minApprovers)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.white)
+                            .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
+                    )
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
 
                     // Bottom padding so last card isn't hidden behind button
                     Color.clear

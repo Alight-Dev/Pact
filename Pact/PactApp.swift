@@ -19,6 +19,7 @@ struct PactApp: App {
     @State private var showSignupDirect = false
     @State private var showShieldSelection = false
     @State private var showJoinShield = false
+    @State private var showJoinShieldActivities = false
     @State private var showHomeScreen = false
     /// Invite code passed in via a pact://join/{code} deep-link when auto-join fails.
     @State private var pendingJoinCode: String = ""
@@ -78,10 +79,10 @@ struct PactApp: App {
                                     pendingJoinCode = ""
                                 },
                                 onJoined: {
-                                    // User joined a second team; listeners are updated
-                                    // via startTeamSession inside JoinShieldView.
+                                    // User joined; if they left a team first, we need to show home.
                                     withAnimation { showJoinShieldSheet = false }
                                     pendingJoinCode = ""
+                                    withAnimation { showHomeScreen = true }
                                 },
                                 initialCode: pendingJoinCode
                             )
@@ -129,6 +130,16 @@ struct PactApp: App {
                         }
                     )
                     .transition(.opacity)
+                } else if showJoinShieldActivities {
+                    JoinShieldActivitiesView(
+                        onContinue: {
+                            withAnimation {
+                                showJoinShieldActivities = false
+                                showHomeScreen = true
+                            }
+                        }
+                    )
+                    .transition(.opacity)
                 } else if showJoinShield {
                     JoinShieldView(
                         onBack: {
@@ -142,7 +153,7 @@ struct PactApp: App {
                             withAnimation {
                                 showJoinShield = false
                                 pendingJoinCode = ""
-                                showHomeScreen = true
+                                showJoinShieldActivities = true
                             }
                         },
                         initialCode: pendingJoinCode
@@ -278,13 +289,9 @@ struct PactApp: App {
                     pendingJoinCode = code
                     withAnimation {
                         if showHomeScreen {
-                            if firestoreService.currentTeamId != nil {
-                                // User is already in a team — cannot join another
-                                pendingJoinCode = ""
-                                showAlreadyInTeamAlert = true
-                            } else {
-                                showJoinShieldSheet = true
-                            }
+                            // Always show join sheet with code; if user is in a team,
+                            // JoinShieldView will show a warning when they tap Join Shield.
+                            showJoinShieldSheet = true
                         } else if showShieldSelection {
                             showJoinShield = true
                         }
@@ -299,6 +306,7 @@ struct PactApp: App {
                 if user == nil {
                     withAnimation {
                         showHomeScreen = false
+                        showJoinShieldActivities = false
                         showActivitiesSetup = false
                         showTeamName = false
                         showPactLaunch = false
