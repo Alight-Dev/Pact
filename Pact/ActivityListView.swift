@@ -213,7 +213,7 @@ struct ActivityListView: View {
                                             teamName: resolvedName,
                                             adminTimezone: TimeZone.current.identifier
                                         )
-                                        onContinue?(result.inviteCode)
+                                        onContinue(result.inviteCode)
                                     }
                                 } catch {
                                     createTeamError = error.localizedDescription
