@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 // MARK: - Tab Definition
 
@@ -17,6 +18,10 @@ struct HomeScreenView: View {
     @EnvironmentObject var notificationRouter: NotificationRouter
     @State private var selectedTab: AppTab = .home
     @State private var showUpload: Bool = false
+    #if DEBUG
+    @State private var debugNotifIndex: Int = 0
+    private let debugNotifTypes = ["vote_needed", "submission_approved", "daily_complete"]
+    #endif
 
     var body: some View {
         ZStack {
@@ -70,6 +75,49 @@ struct HomeScreenView: View {
                            value: notificationRouter.activeBanner != nil)
             }
         }
+        #if DEBUG
+        .overlay(alignment: .topTrailing) {
+            VStack(spacing: 8) {
+                // Instant in-app banner (cycles through types)
+                Button {
+                    let type = debugNotifTypes[debugNotifIndex % debugNotifTypes.count]
+                    debugNotifIndex += 1
+                    NotificationCenter.default.post(
+                        name: .pactNotification,
+                        object: nil,
+                        userInfo: [
+                            "type": type,
+                            "title": titleFor(type),
+                            "body": bodyFor(type),
+                            "submitterNickname": "Alex",
+                            "activityName": "Morning Run",
+                            "submitterUid": "",
+                            "_foreground": "1",
+                        ]
+                    )
+                } label: {
+                    Image(systemName: "bell.badge")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(10)
+                        .background(Circle().fill(Color.black.opacity(0.7)))
+                }
+
+                // Real iOS push notification in 10 seconds — background the app to see it
+                Button {
+                    scheduleTestLocalNotification()
+                } label: {
+                    Image(systemName: "clock.badge")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(10)
+                        .background(Circle().fill(Color.indigo.opacity(0.85)))
+                }
+            }
+            .padding(.top, 60)
+            .padding(.trailing, 16)
+        }
+        #endif
         .fullScreenCover(isPresented: $showUpload) {
             UploadProofView()
         }
@@ -81,6 +129,53 @@ struct HomeScreenView: View {
             notificationRouter.pendingTabSwitch = nil
         }
     }
+
+    #if DEBUG
+    private func scheduleTestLocalNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "New Submission"
+        content.body = "Alex submitted Morning Run. Tap to vote →"
+        content.sound = .default
+        content.userInfo = [
+            "type": "vote_needed",
+            "submitterNickname": "Alex",
+            "activityName": "Morning Run",
+            "submitterUid": "",
+        ]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 10, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "debug-test-\(UUID().uuidString)",
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error {
+                print("[Debug] Failed to schedule notification: \(error)")
+            } else {
+                print("[Debug] Test notification scheduled — fires in 10 seconds")
+            }
+        }
+    }
+
+    private func titleFor(_ type: String) -> String {
+        switch type {
+        case "vote_needed":         return "New Submission"
+        case "submission_approved": return "Proof approved! 🎉"
+        case "daily_complete":      return "Pact complete! 🔥"
+        default:                    return "Pact"
+        }
+    }
+    private func bodyFor(_ type: String) -> String {
+        switch type {
+        case "vote_needed":         return "Alex submitted Morning Run. Tap to vote →"
+        case "submission_approved": return "Your team voted you in. Keep the streak alive!"
+        case "daily_complete":      return "Every teammate finished today. Streak safe!"
+        default:                    return ""
+        }
+    }
+    #endif
 }
 
 // MARK: - Floating Tab Bar

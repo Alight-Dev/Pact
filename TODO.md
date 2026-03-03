@@ -13,7 +13,7 @@
 - [x] Firebase Auth setup and `AuthManager` observable
 - [x] Google Sign-In implemented (`AuthManager.signInWithGoogle`)
 - [x] Auth state listener (auto-detects sign-in/sign-out)
-- [ ] Apple Sign-In implementation (button exists in `OnboardingSignupView` but `AuthManager` only has Google)
+- [x] Apple Sign-In implementation — `signInWithApple()` via `AppleSignInHandler` delegate bridge, `deleteAccountWithApple()` with token revocation (App Store 5.1.1(v)), `providerID` computed property, Apple-aware `signOut()`; entitlement added to `Pact.entitlements`; button enabled in `OnboardingSignupView` above Google per HIG
 - [x] Save full user profile to Firestore (`users/{uid}`) at end of onboarding (`OnboardingProfileSetupView.onContinue` → `FirestoreService.saveUserProfile`)
 - [x] Session restore on app launch: if user is already signed in and has an active team, load membership (`loadActiveMembership`), start listeners (`startTeamSession`), and route directly to `HomeScreenView` — skipping onboarding and shield selection
 
@@ -43,7 +43,7 @@
 - [x] Activity/goal definition screen (`ActivityListView`)
 - [x] `FirestoreService.createTeam` (calls CF-8)
 - [x] Wire `ActivityListView` "Continue" button to call `FirestoreService.createTeam`
-- [x] Show invite code after team creation (present iOS share sheet with invite code + `pact://join/{code}` deep link)
+- [x] Show invite code after team creation — `TeamWelcomeView` presents invite code with copy button + optional "Share Invite" sheet; user can skip directly to app with "Go to Pact" (replaces forced `UIActivityViewController`)
 - [x] Add "Share Invite" button to `TeamView` so admin can re-share the invite code at any time (`ShareLink` in `ShieldMembersSection` reads `inviteShareURL` from live Firestore or UserDefaults cache)
 - [ ] Wire `minApprovers` and `allowAIFallback` from `ActivityListView` "Initial Conditions" card into the `createTeam` Cloud Function payload (requires CF update too)
 - [ ] Deduplicate SwiftData activities before calling `createTeam` if navigation ever allows re-entry to `ActivityListView` (defensive guard)
@@ -190,7 +190,7 @@
 
 ## 15. Invite & Sharing
 
-- [x] After team creation: present iOS share sheet with invite link (`pact://join/{code}`) and 6-digit code — `ActivityListView` shows share sheet after `createTeam` resolves
+- [x] After team creation: present invite code with optional share — `TeamWelcomeView` shows 6-digit code (copyable), "Share Invite" opens iOS share sheet with link, "Go to Pact" skips directly to app
 - [x] "Invite more members" button on `TeamView` (copies or shares invite link) — `ShareLink` in `ShieldMembersSection`
 - [x] Show invite code in team settings or a dedicated invite screen — invite URL surfaced via `TeamView` share button
 
@@ -199,7 +199,7 @@
 ## 16. Profile Screen
 
 - [ ] Wire `ProfileView` to display real user data from Firestore (`displayName`, `nickname`, `avatarAssetName`, `currentStreakDays`) — currently reads from `UserDefaults` only
-- [ ] Sign out button functional (calls `AuthManager.signOut`, clears session)
+- [x] Sign out button functional — `ProfileView` calls `authManager.signOut()`; `signOut()` is provider-aware (only calls `GIDSignIn.sharedInstance.signOut()` for Google; Firebase signOut covers Apple)
 - [ ] Show which team(s) the user belongs to
 
 ---

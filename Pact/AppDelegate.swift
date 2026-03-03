@@ -17,6 +17,17 @@ class AppDelegate: NSObject, UIApplicationDelegate,
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
+
+        // If the user already granted permission (e.g. completed onboarding on a previous
+        // build), register for remote notifications so FCM can obtain an APNs token and
+        // fire messaging(_:didReceiveRegistrationToken:) → saves fcmToken to Firestore.
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            DispatchQueue.main.async {
+                application.registerForRemoteNotifications()
+            }
+        }
+
         return true
     }
 

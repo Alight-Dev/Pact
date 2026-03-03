@@ -6,6 +6,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFunctions
+import AuthenticationServices
 
 // MARK: - Mock data (screen time & activity stats for visual pop until backend wired)
 
@@ -203,7 +204,13 @@ struct ProfileView: View {
                                         try? await firestoreService.leaveTeam(teamId: teamId)
                                     }
                                     firestoreService.clearTeamSession()
-                                    try await authManager.deleteAccount()
+                                    if authManager.providerID == "apple.com" {
+                                        try await authManager.deleteAccountWithApple()
+                                    } else {
+                                        try await authManager.deleteAccount()
+                                    }
+                                } catch let error as ASAuthorizationError where error.code == .canceled {
+                                    // User cancelled Apple re-auth — do nothing
                                 } catch {
                                     deleteError = error.localizedDescription
                                 }
