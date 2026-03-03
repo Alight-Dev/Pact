@@ -38,6 +38,12 @@ final class FirestoreService: ObservableObject {
     @Published var currentTeam: [String: Any]?
     @Published var todaysSubmissions: [[String: Any]] = []
 
+    /// Submitter UIDs the current user has voted on this session.
+    /// Set synchronously in `TeamView.handleVote` before the async Firestore
+    /// write, so it's available immediately on the next `.onAppear` call even
+    /// if the write hasn't completed yet.  Cleared on `clearTeamSession()`.
+    var votedSubmitterIds: Set<String> = []
+
     // Published, typed session state for the UI
     @Published var currentTeamId: String?
     @Published var currentTeamName: String?
@@ -371,6 +377,7 @@ final class FirestoreService: ObservableObject {
         currentTeam       = nil
         members           = []
         todaysSubmissions = []
+        votedSubmitterIds.removeAll()
         let keys = ["app_team_id", "app_team_name", "app_team_timezone", "app_invite_code"]
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
     }
@@ -385,18 +392,27 @@ final class FirestoreService: ObservableObject {
         let userSnap = try await db.collection("users").document(voterId).getDocument()
         let nickname = userSnap.data()?["nickname"] as? String ?? ""
 
-        let data: [String: Any] = [
+        let submissionRef = db
+            .collection("teams").document(teamId)
+            .collection("dailyInstances").document(date)
+            .collection("submissions").document(submitterUid)
+
+        let voteData: [String: Any] = [
             "voterId": voterId,
             "vote": vote, // "approve" or "reject"
             "votedAt": FieldValue.serverTimestamp(),
             "voterNickname": nickname,
         ]
-        try await db
-            .collection("teams").document(teamId)
-            .collection("dailyInstances").document(date)
-            .collection("submissions").document(submitterUid)
+        // Write the vote document
+        try await submissionRef
             .collection("votes").document(voterId)
-            .setData(data)
+            .setData(voteData)
+
+        // Record this voter's UID on the submission document so the client can
+        // filter out already-voted submissions across tab switches and app restarts.
+        try await submissionRef.updateData([
+            "voterIds": FieldValue.arrayUnion([voterId])
+        ])
     }
 
     // MARK: - Proof Submission
@@ -601,6 +617,9 @@ struct Submission: Identifiable, Equatable {
     let approvalsReceived: Int
     let approvalsRequired: Int
     let photoUrl: String?
+    /// UIDs of users who have already cast a vote on this submission.
+    /// Written via `arrayUnion` in `castVote()` so it survives view lifecycle.
+    let voterIds: [String]
 
     init?(dictionary: [String: Any]) {
         guard let id = dictionary["uid"] as? String ?? dictionary["submitterUid"] as? String else {
@@ -621,6 +640,7 @@ struct Submission: Identifiable, Equatable {
             ?? dictionary["eligibleVoterCount"] as? Int
             ?? 0
         self.photoUrl = dictionary["photoUrl"] as? String
+        self.voterIds = dictionary["voterIds"] as? [String] ?? []
     }
 }
 

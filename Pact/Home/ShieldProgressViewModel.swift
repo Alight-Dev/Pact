@@ -18,6 +18,19 @@ enum ShieldTier: String, CaseIterable {
     case obsidian = "Obsidian"
     case mythic   = "Mythic"
 
+    var color: Color {
+        switch self {
+        case .none:     return Color(white: 0.50)
+        case .bronze:   return Color(red: 0.80, green: 0.50, blue: 0.20)
+        case .silver:   return Color(white: 0.55)
+        case .gold:     return Color(red: 0.85, green: 0.70, blue: 0.10)
+        case .platinum: return Color(red: 0.60, green: 0.80, blue: 0.90)
+        case .diamond:  return Color(red: 0.40, green: 0.70, blue: 1.00)
+        case .obsidian: return Color(red: 0.45, green: 0.20, blue: 0.80)
+        case .mythic:   return Color(red: 1.00, green: 0.40, blue: 0.20)
+        }
+    }
+
     var threshold: Int {
         switch self {
         case .none:     return 0

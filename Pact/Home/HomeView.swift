@@ -133,7 +133,7 @@ struct HomeView: View {
                     .padding(.top, 16)
 
                     // MARK: Progress Ring + Streak
-                    VStack(spacing: 8) {
+                    VStack(spacing: 14) {
                         HStack {
                             Spacer()
                             ZStack {
@@ -180,7 +180,7 @@ struct HomeView: View {
                                 .foregroundStyle(Color(white: 0.55))
                         }
                     }
-                    .padding(.top, 24)
+                    .padding(.top, 12)
                     .onAppear {
                         shieldVM.observe(firestoreService)
                     }
@@ -200,7 +200,7 @@ struct HomeView: View {
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
                     .frame(height: 300)
-                    .padding(.top, 20)
+                    .padding(.top, 10)
 
                     // MARK: Page indicator dots
                     HStack(spacing: 8) {
@@ -212,15 +212,16 @@ struct HomeView: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 10)
+                    .padding(.top, 2)
 
                     // MARK: Today's Goal
                     todayGoalCard
                         .padding(.horizontal, 20)
-                        .padding(.top, 20)
+                        .padding(.top, 10)
+                        .padding(.bottom, 30)
 
                     // Bottom breathing room for the tab bar
-                    Spacer(minLength: 110)
+                    Spacer(minLength: 30)
                 }
             }
         }
@@ -311,6 +312,20 @@ struct HomeView: View {
         .onTapGesture { onTeamTap() }
     }
 
+    // MARK: - Submission completion helpers
+
+    /// Activity names for which the current user has a peer-approved or auto-approved
+    /// submission today. Used to tick off rows and fill the progress bar.
+    private var myCompletedActivityNames: Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        return Set(
+            firestoreService.mappedSubmissions
+                .filter { $0.submitterUid == uid &&
+                    ($0.status == "approved" || $0.status == "auto_approved") }
+                .map { $0.activityName }
+        )
+    }
+
     // MARK: - Activity row helper
 
     @ViewBuilder
@@ -370,13 +385,17 @@ struct HomeView: View {
                         .foregroundStyle(Color(white: 0.55))
                 } else if !displayActivities.isEmpty {
                     ForEach(displayActivities) { activity in
-                        activityRow(title: activity.name, completed: false)
-                        // TODO: Replace `completed: false` with real submission status from
-                        //       FirestoreService.todaysSubmissions once Firestore is deployed.
+                        activityRow(
+                            title: activity.name,
+                            completed: myCompletedActivityNames.contains(activity.name)
+                        )
                     }
                 } else {
                     ForEach(activities) { activity in
-                        activityRow(title: activity.name, completed: false)
+                        activityRow(
+                            title: activity.name,
+                            completed: myCompletedActivityNames.contains(activity.name)
+                        )
                     }
                 }
             }
@@ -386,19 +405,19 @@ struct HomeView: View {
                 .padding(.bottom, 14)
 
             // Your completion label + count
+            let totalActivities = displayActivities.isEmpty ? activities.count : displayActivities.count
+            let completedCount = myCompletedActivityNames.count
             HStack {
                 Text("Your Completion")
                     .font(.system(size: 14))
                     .foregroundStyle(Color(white: 0.50))
                 Spacer()
-                // TODO: Replace 0 with count of approved submissions from Firestore.
-                Text("0/\(displayActivities.isEmpty ? activities.count : displayActivities.count)")
+                Text("\(completedCount)/\(totalActivities)")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.black)
             }
             .padding(.bottom, 8)
 
-            // TODO: Replace 0.0 with real completion fraction (approvedCount / activities.count).
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
@@ -406,7 +425,12 @@ struct HomeView: View {
                         .frame(height: 8)
                     Capsule()
                         .fill(Color.black)
-                        .frame(width: geo.size.width * 0.0, height: 8)
+                        .frame(
+                            width: geo.size.width * (totalActivities > 0
+                                ? CGFloat(completedCount) / CGFloat(totalActivities)
+                                : 0),
+                            height: 8
+                        )
                 }
             }
             .frame(height: 8)

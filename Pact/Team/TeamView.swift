@@ -37,34 +37,7 @@ private struct HighlightCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Group {
-                if let urlStr = highlight.photoUrl, let url = URL(string: urlStr) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable()
-                                .scaledToFill()
-                                .frame(height: 260)
-                                .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                        default:
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color(white: 0.94))
-                                .frame(height: 260)
-                                .overlay { ProgressView().tint(Color(white: 0.55)) }
-                        }
-                    }
-                } else {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color(white: 0.94))
-                            .frame(height: 260)
-                        Image(systemName: "photo")
-                            .font(.system(size: 48))
-                            .foregroundStyle(Color(white: 0.70))
-                    }
-                }
-            }
+            CachedProofImage(urlString: highlight.photoUrl)
             .frame(height: 260)
             .overlay(alignment: .topTrailing) {
                 Text("APPROVED")
@@ -174,36 +147,7 @@ private struct SubmissionCard: View {
     var body: some View {
         VStack(spacing: 0) {
             // Photo area
-            Group {
-                if let urlStr = submission.photoUrl, let url = URL(string: urlStr) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable()
-                                .scaledToFill()
-                                .frame(height: 260)
-                                .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                        default:
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color(white: 0.94))
-                                .frame(height: 260)
-                                .overlay {
-                                    ProgressView().tint(Color(white: 0.55))
-                                }
-                        }
-                    }
-                } else {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color(white: 0.94))
-                            .frame(height: 260)
-                        Image(systemName: "photo")
-                            .font(.system(size: 48))
-                            .foregroundStyle(Color(white: 0.70))
-                    }
-                }
-            }
+            CachedProofImage(urlString: submission.photoUrl)
             .frame(height: 260)
             .overlay(alignment: .topLeading) {
                 // APPROVE label
@@ -481,7 +425,6 @@ private struct ShieldMembersSection: View {
 struct TeamView: View {
     @EnvironmentObject var firestoreService: FirestoreService
     @State private var pendingSubmissions: [Submission] = []
-    @State private var votedIds: Set<String> = []
     @State private var showLeaveSheet = false
     @State private var showAdminPickerSheet = false
     @State private var selectedNewAdminUid: String? = nil
@@ -520,11 +463,15 @@ struct TeamView: View {
     private var liveMembers: [ShieldMember] {
         let currentUid = Auth.auth().currentUser?.uid
         let total = firestoreService.teamActivities.count
+        let approved = firestoreService.mappedSubmissions.filter {
+            $0.status == "approved" || $0.status == "auto_approved"
+        }
         return firestoreService.members.map { member in
-            ShieldMember(
+            let completedCount = approved.filter { $0.submitterUid == member.id }.count
+            return ShieldMember(
                 memberName: member.nickname.isEmpty ? member.displayName : member.nickname,
                 memberAvatarAsset: member.avatarAssetName.isEmpty ? "avatar_felix" : member.avatarAssetName,
-                activitiesCompleted: 0,   // TODO: wire to real submission counts
+                activitiesCompleted: completedCount,
                 activitiesTotal: max(total, 1),
                 isCurrentUser: member.id == currentUid
             )
@@ -559,7 +506,12 @@ struct TeamView: View {
         ZStack(alignment: .topTrailing) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    TeamShieldHeader(teamName: shieldDisplayName, memberCount: firestoreService.members.count)
+                    TeamShieldHeader(
+                        teamName: shieldDisplayName,
+                        memberCount: firestoreService.members.count,
+                        tier: ShieldTier.current(for: firestoreService.currentTeam?["currentStreakDays"] as? Int ?? 0),
+                        streakDays: firestoreService.currentTeam?["currentStreakDays"] as? Int ?? 0
+                    )
                         .padding(.horizontal, 20)
                         .padding(.top, 60)
 
@@ -665,16 +617,26 @@ struct TeamView: View {
     }
 
     private func refreshPending(from all: [Submission]) {
-        let currentUid = Auth.auth().currentUser?.uid
+        let currentUid = Auth.auth().currentUser?.uid ?? ""
         pendingSubmissions = all.filter { sub in
             sub.status == "pending"
                 && sub.submitterUid != currentUid
-                && !votedIds.contains(sub.submitterUid)
+                // Layer 1 — synchronous, app-level: set immediately when the user
+                // votes, before the async Firestore write. Survives tab switches
+                // within the same app session.
+                && !firestoreService.votedSubmitterIds.contains(sub.submitterUid)
+                // Layer 2 — Firestore-backed: populated by castVote() arrayUnion.
+                // Survives app restarts once the write has completed.
+                && !sub.voterIds.contains(currentUid)
         }
     }
 
     private func handleVote(submitterUid: String, vote: String) {
-        votedIds.insert(submitterUid)
+        // Mark as voted SYNCHRONOUSLY in the app-level store before any async
+        // work — guarantees the card won't reappear on the next .onAppear even
+        // if the user navigates away before the Firestore write completes.
+        firestoreService.votedSubmitterIds.insert(submitterUid)
+
         guard let teamId = firestoreService.currentTeamId else { return }
         let date = FirestoreService.todayDateString()
         Task {
@@ -693,6 +655,8 @@ struct TeamView: View {
 private struct TeamShieldHeader: View {
     let teamName: String
     let memberCount: Int
+    let tier: ShieldTier
+    let streakDays: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -713,17 +677,19 @@ private struct TeamShieldHeader: View {
                 .font(.system(size: 16))
                 .foregroundStyle(Color(white: 0.50))
 
-            // Tier + streak
+            // Tier + streak (live from Firestore)
             HStack(spacing: 6) {
-                Text("Emerald Tier")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.20, green: 0.75, blue: 0.45))
+                if tier != .none {
+                    Text("\(tier.rawValue) Tier")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(tier.color)
 
-                Text("•")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color(white: 0.65))
+                    Text("•")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color(white: 0.65))
+                }
 
-                Text("12 day streak")
+                Text(streakDays == 1 ? "1 day streak" : "\(streakDays) day streak")
                     .font(.system(size: 15))
                     .foregroundStyle(Color(white: 0.50))
             }
