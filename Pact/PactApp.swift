@@ -26,7 +26,8 @@ struct PactApp: App {
     @State private var pendingJoinCode: String = ""
     @State private var showTeamName = false
     @State private var showActivitiesSetup = false
-    @State private var showPactLaunch = false
+    @State private var showTeamWelcome = false
+    @State private var welcomeInviteCode = ""
     @State private var pendingTeamName = ""
     /// Set when a pact://join/{code} deep link arrives while the user is on HomeScreenView.
     /// Drives a .sheet presentation of JoinShieldView over the home screen.
@@ -93,11 +94,14 @@ struct PactApp: App {
                         } message: {
                             Text("You're already in a team. Leave your current team first to join a new one.")
                         }
-                } else if showPactLaunch {
-                    PactLaunchView(
+                } else if showTeamWelcome {
+                    TeamWelcomeView(
+                        teamName: pendingTeamName,
+                        inviteCode: welcomeInviteCode,
                         onFinished: {
                             withAnimation {
-                                showPactLaunch = false
+                                showTeamWelcome = false
+                                welcomeInviteCode = ""
                                 showHomeScreen = true
                             }
                         }
@@ -106,10 +110,11 @@ struct PactApp: App {
                 } else if showActivitiesSetup {
                     ActivityListView(
                         teamName: pendingTeamName,
-                        onContinue: {
+                        onContinue: { inviteCode in
                             withAnimation {
                                 showActivitiesSetup = false
-                                showPactLaunch = true
+                                welcomeInviteCode = inviteCode
+                                showTeamWelcome = true
                             }
                         }
                     )
@@ -311,7 +316,8 @@ struct PactApp: App {
                         showJoinShieldActivities = false
                         showActivitiesSetup = false
                         showTeamName = false
-                        showPactLaunch = false
+                        showTeamWelcome = false
+                        welcomeInviteCode = ""
                         showShieldSelection = false
                         showJoinShield = false
                         showOnboarding = false

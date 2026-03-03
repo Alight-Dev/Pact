@@ -61,8 +61,9 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 | `Pact/Upload/UploadView.swift` | Upload tab (center “+” button). Currently an empty stub with an “Upload” label. |
 | `Pact/Upload/CameraPermissionExplainerView.swift` | Intermediate sheet shown before the iOS camera permission dialog. Explains live-capture requirement with animated viewfinder, scan-line, green corner brackets, and staggered feature rows. Green accent. |
 | `Pact/Team/TeamView.swift` | Team tab. Currently an empty stub with a “Team” label. |
-| `Pact/ActivityListView.swift` | Activities setup screen shown after onboarding when a user chooses “Create a Shield”. Users define daily activities here, then tap Continue to see a short Pact launch splash before landing on the Home tab. |
-| `Pact/Onboarding/PactLaunchView.swift` | Post-activities splash/loading screen with maroon accents that briefly celebrates the new pact, then auto-transitions into `HomeScreenView`. |
+| `Pact/ActivityListView.swift` | Activities setup screen shown after onboarding when a user chooses “Create a Shield”. Users define daily activities here, then tap Continue which calls the `onContinue(inviteCode)` closure to transition to `TeamWelcomeView`. |
+| `Pact/Onboarding/TeamWelcomeView.swift` | Post-team-creation welcome screen. Animated logo entrance (rises to upper area), then content fades in: “Welcome to Pact.” heading, invite code card with copy button, “Share Invite” (optional share sheet) and “Go to Pact” (proceeds to HomeScreen). Replaces the old forced share sheet + PactLaunchView combo. |
+| `Pact/Onboarding/PactLaunchView.swift` | Post-activities splash/loading screen with maroon accents (currently unused — superseded by TeamWelcomeView). |
 
 ---
 
