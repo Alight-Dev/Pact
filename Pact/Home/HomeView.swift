@@ -38,11 +38,11 @@ struct HomeView: View {
     @Query(sort: [SortDescriptor(\Activity.order), SortDescriptor(\Activity.createdAt)])
     private var activities: [Activity]
 
-    /// Prefers live Firestore activities (populated for both joiners and admins
-    /// once a session is active). Falls back to SwiftData only when no session
-    /// is running (e.g. admin mid-onboarding before team creation completes).
+    /// Prefers live Firestore activities filtered to the user's opted-in set.
+    /// Falls back to all team activities when optedInActivityIds is empty (admin/creator).
+    /// Falls back to SwiftData only when no session is running.
     private var displayActivities: [TeamActivity] {
-        firestoreService.teamActivities
+        firestoreService.userActivities
     }
 
     @StateObject private var shieldVM = ShieldProgressViewModel()
