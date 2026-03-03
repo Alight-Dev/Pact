@@ -253,12 +253,14 @@ final class FirestoreService: ObservableObject {
     /// Calls the `leaveTeam` Cloud Function.
     /// Pass `newAdminUid` when the caller is the admin and other members remain.
     /// Returns `true` if the team was fully dissolved (caller was last member),
-    /// Writes the selected activity IDs to the member's document after joining.
+    /// Calls the `updateOptedInActivities` Cloud Function to save selected
+    /// activity IDs on the member's document after joining a team.
     func updateOptedInActivities(teamId: String, activityIds: [String]) async throws {
-        guard let uid = Auth.auth().currentUser?.uid else { throw FirestoreServiceError.notAuthenticated }
-        try await db.collection("teams").document(teamId)
-            .collection("members").document(uid)
-            .updateData(["optedInActivityIds": activityIds])
+        let callable = functions.httpsCallable("updateOptedInActivities")
+        let _ = try await callable.call([
+            "teamId": teamId,
+            "activityIds": activityIds
+        ])
     }
 
     /// `false` if other members remain.

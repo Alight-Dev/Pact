@@ -14,6 +14,7 @@ export { createTeam }                    from "./createTeam";
 export { joinTeam }                      from "./joinTeam";
 export { leaveTeam }                     from "./leaveTeam";
 export { addGoal, updateGoal, deleteGoal } from "./manageGoal";
+export { updateOptedInActivities }       from "./updateOptedInActivities";
 
 // Firestore Triggers
 export { onForgePactAgreement }  from "./onForgePactAgreement";
