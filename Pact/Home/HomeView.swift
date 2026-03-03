@@ -21,8 +21,7 @@ private let carouselStart = 100   // index 100 → .healthScore  (100 % 2 == 0)
 private let ringDiameter: CGFloat  = 190
 private let ringWidth: CGFloat     = 14
 private let logoSize: CGFloat      = 100
-// TODO: Wire ringProgress to today's activity completion ratio (completed/total) from SwiftData or Firestore.
-private let ringProgress: CGFloat  = 0.35
+// ringProgress is now driven by ShieldProgressViewModel (no hardcoded value).
 // TODO: Wire health score to real weekly streak data from Firestore.
 private let scoreProgress: CGFloat = 0.80   // 4 out of 5
 
@@ -45,6 +44,8 @@ struct HomeView: View {
     private var displayActivities: [TeamActivity] {
         firestoreService.teamActivities
     }
+
+    @StateObject private var shieldVM = ShieldProgressViewModel()
 
     @State private var cardSelection: Int = carouselStart
     @State private var animatedProgress: CGFloat = 0
@@ -131,41 +132,62 @@ struct HomeView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
 
-                    // MARK: Progress Ring + Logo
-                    HStack {
-                        Spacer()
-                        ZStack {
-                            // Track ring (light grey)
-                            Circle()
-                                .stroke(Color(white: 0.88), lineWidth: ringWidth)
-                                .frame(width: ringDiameter, height: ringDiameter)
+                    // MARK: Progress Ring + Streak
+                    VStack(spacing: 8) {
+                        HStack {
+                            Spacer()
+                            ZStack {
+                                Circle()
+                                    .stroke(Color(white: 0.88), lineWidth: ringWidth)
+                                    .frame(width: ringDiameter, height: ringDiameter)
 
-                            // Progress arc (black, flat ends)
-                            Circle()
-                                .trim(from: 0, to: animatedProgress)
-                                .stroke(
-                                    Color.black,
-                                    style: StrokeStyle(lineWidth: ringWidth, lineCap: .butt)
-                                )
-                                .frame(width: ringDiameter, height: ringDiameter)
-                                .rotationEffect(.degrees(-90))
+                                Circle()
+                                    .trim(from: 0, to: animatedProgress)
+                                    .stroke(
+                                        Color.black,
+                                        style: StrokeStyle(lineWidth: ringWidth, lineCap: .round)
+                                    )
+                                    .frame(width: ringDiameter, height: ringDiameter)
+                                    .rotationEffect(.degrees(-90))
 
-                            // Pact logo centred inside the ring
-                            Image("PactLogo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: logoSize, height: logoSize)
+                                VStack(spacing: 2) {
+                                    Text("\(shieldVM.streakDays)")
+                                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.black)
+                                    Text("Day Streak")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundStyle(Color(white: 0.55))
+                                }
+                            }
+                            Spacer()
                         }
-                        Spacer()
+
+                        Text(shieldVM.currentTier.rawValue)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.black)
+
+                        if shieldVM.isMaxTier {
+                            Text("Max Tier Achieved")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color(white: 0.55))
+                        } else if shieldVM.currentTier == .none {
+                            Text("Start your streak to earn a rank")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color(white: 0.55))
+                        } else if let next = shieldVM.nextTier {
+                            Text("\(shieldVM.daysUntilNextTier) days until \(next.rawValue)")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color(white: 0.55))
+                        }
                     }
                     .padding(.top, 24)
                     .onAppear {
-                        withAnimation(.timingCurve(0.19, 1, 0.22, 1, duration: 1.8).delay(0.3)) {
-                            animatedProgress = ringProgress
-                        }
+                        shieldVM.observe(firestoreService)
                     }
-                    .onDisappear {
-                        animatedProgress = 0
+                    .onChange(of: shieldVM.progressToNextTier) { _, newValue in
+                        withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                            animatedProgress = newValue
+                        }
                     }
 
                     // MARK: Infinite swipe carousel
@@ -177,7 +199,7 @@ struct HomeView: View {
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
-                    .frame(height: 200)
+                    .frame(height: 300)
                     .padding(.top, 20)
 
                     // MARK: Page indicator dots
@@ -209,8 +231,8 @@ struct HomeView: View {
     @ViewBuilder
     private func cardView(for card: HomeCard) -> some View {
         switch card {
-        case .healthScore:   healthScoreCard
-        case .teamProgress:  teamProgressCard
+        case .healthScore:    healthScoreCard
+        case .teamProgress:   teamProgressCard
         }
     }
 
