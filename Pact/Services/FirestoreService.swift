@@ -429,7 +429,7 @@ final class FirestoreService: ObservableObject {
         }
 
         // Upload to Firebase Storage: proof/{teamId}/{date}/{uid}.jpg
-        let dateString = Self.todayDateString()
+        let dateString = Self.todayString(in: adminTimezone ?? "UTC")
         let storagePath = "proof/\(teamId)/\(dateString)/\(uid).jpg"
         let storageRef = Storage.storage().reference(withPath: storagePath)
         let metadata = StorageMetadata()
@@ -552,7 +552,7 @@ final class FirestoreService: ObservableObject {
     // MARK: - Helpers
 
     /// Returns today's date string in `yyyy-MM-dd` for the given timezone identifier.
-    private static func todayString(in timezoneIdentifier: String) -> String {
+    static func todayString(in timezoneIdentifier: String) -> String {
         let tz = TimeZone(identifier: timezoneIdentifier) ?? .current
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
