@@ -460,6 +460,46 @@ final class FirestoreService: ObservableObject {
         return formatter.string(from: Date())
     }
 
+    // MARK: - Goal CRUD (Edit Team)
+
+    func addGoal(teamId: String, payload: ActivityPayload) async throws {
+        let callable = functions.httpsCallable("addGoal")
+        let params: [String: Any] = [
+            "teamId": teamId,
+            "payload": [
+                "name": payload.name,
+                "description": payload.description,
+                "iconName": payload.iconName,
+                "repeatDays": payload.repeatDays,
+                "isOptional": payload.isOptional,
+                "order": payload.order
+            ]
+        ]
+        try await callable.call(params)
+    }
+
+    func updateGoal(teamId: String, goalId: String, payload: ActivityPayload) async throws {
+        let callable = functions.httpsCallable("updateGoal")
+        let params: [String: Any] = [
+            "teamId": teamId,
+            "goalId": goalId,
+            "payload": [
+                "name": payload.name,
+                "description": payload.description,
+                "iconName": payload.iconName,
+                "repeatDays": payload.repeatDays,
+                "isOptional": payload.isOptional,
+                "order": payload.order
+            ]
+        ]
+        try await callable.call(params)
+    }
+
+    func deleteGoal(teamId: String, goalId: String) async throws {
+        let callable = functions.httpsCallable("deleteGoal")
+        try await callable.call(["teamId": teamId, "goalId": goalId])
+    }
+
     // MARK: - Goal Sync → SwiftData
 
     /// Reads `teams/{teamId}/goals` once and upserts them into the local SwiftData `Activity` store.
@@ -588,14 +628,22 @@ struct Submission: Identifiable, Equatable {
 struct TeamActivity: Identifiable {
     let id: String          // Firestore document ID
     let name: String
+    let activityDescription: String
     let iconName: String
+    let repeatDays: [Int]
+    let isOptional: Bool
+    let order: Int
 
     init?(document: QueryDocumentSnapshot) {
         let data = document.data()
         guard let name = data["name"] as? String else { return nil }
         self.id = document.documentID
         self.name = name
+        self.activityDescription = data["description"] as? String ?? ""
         self.iconName = data["iconName"] as? String ?? "checkmark.circle"
+        self.repeatDays = data["repeatDays"] as? [Int] ?? []
+        self.isOptional = data["isOptional"] as? Bool ?? false
+        self.order = data["order"] as? Int ?? 0
     }
 }
 

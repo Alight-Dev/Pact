@@ -415,6 +415,7 @@ struct ActivityRowView: View {
 struct AddActivitySheet: View {
     var existingActivity: Activity? = nil
     var onSave: (String, String, String, [Int], Bool) -> Void
+    private var isEditing: Bool
 
     @State private var name: String
     @State private var activityDescription: String
@@ -433,11 +434,26 @@ struct AddActivitySheet: View {
     init(existingActivity: Activity? = nil, onSave: @escaping (String, String, String, [Int], Bool) -> Void) {
         self.existingActivity = existingActivity
         self.onSave = onSave
+        self.isEditing = existingActivity != nil
         _name = State(initialValue: existingActivity?.name ?? "")
         _activityDescription = State(initialValue: existingActivity?.activityDescription ?? "")
         _selectedIcon = State(initialValue: existingActivity?.iconName ?? "figure.run")
         _selectedDays = State(initialValue: Set(existingActivity?.repeatDays ?? []))
         _isOptional = State(initialValue: existingActivity?.isOptional ?? false)
+    }
+
+    /// Values-based init for editing a `TeamActivity` from Firestore (no SwiftData dependency).
+    init(name: String = "", description: String = "", iconName: String = "figure.run",
+         repeatDays: [Int] = [], isOptional: Bool = false,
+         onSave: @escaping (String, String, String, [Int], Bool) -> Void) {
+        self.existingActivity = nil
+        self.onSave = onSave
+        self.isEditing = !name.isEmpty
+        _name = State(initialValue: name)
+        _activityDescription = State(initialValue: description)
+        _selectedIcon = State(initialValue: iconName)
+        _selectedDays = State(initialValue: Set(repeatDays))
+        _isOptional = State(initialValue: isOptional)
     }
 
     private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
@@ -476,7 +492,7 @@ struct AddActivitySheet: View {
 
                     Spacer()
 
-                    Text(existingActivity == nil ? "New Activity" : "Edit Activity")
+                    Text(isEditing ? "Edit Activity" : "New Activity")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.black)
 
@@ -670,7 +686,7 @@ struct AddActivitySheet: View {
 
 // MARK: - ApproverSegmentedPicker
 
-private struct ApproverSegmentedPicker: View {
+struct ApproverSegmentedPicker: View {
     @Binding var selection: Int  // 0 = 1 Person, 1 = 50% of Team, 2 = Entire Team
 
     private let segments = ["1 Person", "50% of Team", "Entire Team"]
