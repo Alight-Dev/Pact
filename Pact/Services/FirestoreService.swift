@@ -535,12 +535,17 @@ final class FirestoreService: ObservableObject {
         let memberCount = max(1, members.count - 1)
 
         // Write submission document — triggers onSubmissionCreated Cloud Function
+        // Copy activity name once so we own it before any work (avoids EXC_BAD_ACCESS if caller was deallocated).
+        // Use a neutral fallback so we never store "Activity" (which can be confused with a group/activity name).
+        let activityNameCopy = String(activityName)
+        let nameToStore = activityNameCopy.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalActivityName = nameToStore.isEmpty ? "Proof" : nameToStore
         let submissionData: [String: Any] = [
             "submitterUid": uid,
             "displayName": displayName,
             "nickname": nickname,
             "avatarAssetName": avatarAssetName,
-            "activityName": activityName,
+            "activityName": finalActivityName,
             "photoUrl": downloadURL.absoluteString,
             "status": "pending",
             "approveCount": 0,

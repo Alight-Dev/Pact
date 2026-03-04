@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct ConfirmPhotoView: View {
+    @EnvironmentObject var firestoreService: FirestoreService
     let image: UIImage
     let activities: [ActivityOption]
     let onRetake: () -> Void
-    let onSubmit: (ActivityOption) async throws -> Void
+    /// Called after a successful submit so the parent can dismiss.
+    let onSuccess: () -> Void
 
     @State private var selectedActivity: ActivityOption
     @State private var isUploading = false
@@ -16,12 +18,12 @@ struct ConfirmPhotoView: View {
         activity: ActivityOption,
         activities: [ActivityOption],
         onRetake: @escaping () -> Void,
-        onSubmit: @escaping (ActivityOption) async throws -> Void
+        onSuccess: @escaping () -> Void
     ) {
         self.image = image
         self.activities = activities
         self.onRetake = onRetake
-        self.onSubmit = onSubmit
+        self.onSuccess = onSuccess
         _selectedActivity = State(initialValue: activity)
     }
 
@@ -163,9 +165,16 @@ struct ConfirmPhotoView: View {
     private var bottomBar: some View {
         Button {
             isUploading = true
+            let capturedName = String(selectedActivity.name)
+            guard let teamId = firestoreService.currentTeamId else {
+                uploadError = UploadError.noTeam.errorDescription
+                isUploading = false
+                return
+            }
             Task {
                 do {
-                    try await onSubmit(selectedActivity)
+                    try await firestoreService.submitProof(teamId: teamId, image: image, activityName: capturedName)
+                    onSuccess()
                 } catch {
                     uploadError = error.localizedDescription
                     isUploading = false
@@ -268,6 +277,7 @@ private struct ActivitySelectionSheet: View {
             ActivityOption(id: "study", name: "Study", iconName: "book.fill")
         ],
         onRetake: {},
-        onSubmit: { _ in }
+        onSuccess: {}
     )
+    .environmentObject(FirestoreService())
 }

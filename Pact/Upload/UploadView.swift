@@ -26,17 +26,7 @@ struct UploadProofView: View {
                             capturedImage = nil
                             selectedActivity = nil
                         },
-                        onSubmit: { chosenActivity in
-                            guard let teamId = firestoreService.currentTeamId else {
-                                throw UploadError.noTeam
-                            }
-                            try await firestoreService.submitProof(
-                                teamId: teamId,
-                                image: image,
-                                activityName: chosenActivity.name
-                            )
-                            dismiss()
-                        }
+                        onSuccess: { dismiss() }
                     )
                     .transition(.opacity)
                 } else {
@@ -88,8 +78,11 @@ struct UploadProofView: View {
     // MARK: - Activity options
 
     private var activityOptions: [ActivityOption] {
-        let live = firestoreService.userActivities.map {
-            ActivityOption(id: $0.id, name: $0.name, iconName: $0.iconName)
+        let live = firestoreService.userActivities.map { activity in
+            // Ensure we never pass an empty name (would trigger "Proof" fallback and confuse with group name)
+            let displayName = activity.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let name = displayName.isEmpty ? "Unnamed" : displayName
+            return ActivityOption(id: activity.id, name: name, iconName: activity.iconName)
         }
         if !live.isEmpty { return live }
 
