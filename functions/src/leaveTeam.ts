@@ -51,22 +51,29 @@ export const leaveTeam = onCall(
     const memberCount: number = teamData.memberCount ?? 0;
     const isLastMember = memberCount <= 1;
 
-    // 4. Admin-specific guards
+    // 4. Admin-specific logic: auto-pick oldest other member as new admin
+    let resolvedNewAdminUid: string | undefined = newAdminUid;
     if (isAdmin && !isLastMember) {
-      // Admin must nominate a successor before leaving
-      if (!newAdminUid) {
-        throw new HttpsError(
-          "failed-precondition",
-          "You are the team admin. Choose a new admin before leaving."
-        );
-      }
-      // Verify the nominated user is actually a member
-      const newAdminMemberSnap = await teamRef.collection("members").doc(newAdminUid).get();
-      if (!newAdminMemberSnap.exists) {
-        throw new HttpsError(
-          "invalid-argument",
-          "The selected user is not a member of this team."
-        );
+      if (newAdminUid) {
+        // Caller specified a successor — verify they're a member
+        const newAdminMemberSnap = await teamRef.collection("members").doc(newAdminUid).get();
+        if (!newAdminMemberSnap.exists) {
+          throw new HttpsError(
+            "invalid-argument",
+            "The selected user is not a member of this team."
+          );
+        }
+      } else {
+        // Auto-pick the oldest other member (earliest joinedAt) as new admin
+        const otherMembersSnap = await teamRef
+          .collection("members")
+          .orderBy("joinedAt", "asc")
+          .limit(2)
+          .get();
+        const otherMember = otherMembersSnap.docs.find((d) => d.id !== uid);
+        if (otherMember) {
+          resolvedNewAdminUid = otherMember.id;
+        }
       }
     }
 
@@ -82,9 +89,9 @@ export const leaveTeam = onCall(
       batch.delete(membershipRef);
     } else {
       // Transfer admin role if needed
-      if (isAdmin && newAdminUid) {
-        batch.update(teamRef, { adminId: newAdminUid });
-        batch.update(teamRef.collection("members").doc(newAdminUid), { role: "admin" });
+      if (isAdmin && resolvedNewAdminUid) {
+        batch.update(teamRef, { adminId: resolvedNewAdminUid });
+        batch.update(teamRef.collection("members").doc(resolvedNewAdminUid), { role: "admin" });
       }
 
       // Remove the leaving member

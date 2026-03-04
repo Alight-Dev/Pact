@@ -238,38 +238,22 @@ struct JoinShieldView: View {
         doJoin()
     }
 
-    /// Leaves current team (assigning oldest other member as admin if caller is admin), then joins the new team.
+    /// Leaves current team (CF auto-picks new admin), then joins the new team.
     private func performLeaveThenJoin() {
-        guard let currentTeamId = firestoreService.currentTeamId else {
-            doJoin()
-            return
-        }
-        let uid = Auth.auth().currentUser?.uid ?? ""
-        let isAdmin = firestoreService.currentTeam?["adminId"] as? String == uid
-            || firestoreService.members.first(where: { $0.id == uid })?.role == "admin"
-        let otherMembers = firestoreService.members.filter { $0.id != uid }
-
-        let newAdminUid: String?
-        if isAdmin && !otherMembers.isEmpty {
-            // Pick oldest member (earliest joinedAt) as new admin
-            let oldest = otherMembers
-                .sorted { m1, m2 in
-                    let d1 = m1.joinedAt ?? .distantFuture
-                    let d2 = m2.joinedAt ?? .distantFuture
-                    return d1 < d2
-                }
-                .first
-            newAdminUid = oldest?.id
-        } else {
-            newAdminUid = nil
-        }
-
         isJoining = true
         joinError = nil
         Task {
             do {
-                _ = try await firestoreService.leaveTeam(teamId: currentTeamId, newAdminUid: newAdminUid)
-                await MainActor.run { firestoreService.clearTeamSession() }
+                // If local state is stale (currentTeamId == nil), load from server
+                var teamIdToLeave = firestoreService.currentTeamId
+                if teamIdToLeave == nil {
+                    let membership = try await firestoreService.loadActiveMembership()
+                    teamIdToLeave = membership?.teamId
+                }
+                if let teamIdToLeave {
+                    _ = try await firestoreService.leaveTeam(teamId: teamIdToLeave, newAdminUid: nil)
+                    await MainActor.run { firestoreService.clearTeamSession() }
+                }
                 try await doJoinAsync()
             } catch {
                 await MainActor.run {
@@ -288,7 +272,14 @@ struct JoinShieldView: View {
                 try await doJoinAsync()
             } catch {
                 await MainActor.run {
-                    joinError = error.localizedDescription
+                    let nsError = error as NSError
+                    if nsError.domain == FunctionsErrorDomain &&
+                        nsError.code == FunctionsErrorCode.alreadyExists.rawValue {
+                        // User is already in a team — prompt them to leave first
+                        showLeaveCurrentTeamAlert = true
+                    } else {
+                        joinError = error.localizedDescription
+                    }
                 }
             }
             await MainActor.run { isJoining = false }

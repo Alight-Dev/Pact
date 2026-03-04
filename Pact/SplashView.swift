@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct SplashView: View {
+    /// If provided, called after the logo settles (~1.4 s). Returning `true`
+    /// skips the tagline/button and auto-triggers `onFinished`.
+    var shouldAutoRoute: (() -> Bool)? = nil
     var onFinished: () async -> Void
 
     @State private var logoScale: CGFloat = 0.3
@@ -143,24 +146,33 @@ struct SplashView: View {
             }
         }
 
-        // Phase 3: Reveal tagline
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            withAnimation(.easeOut(duration: 0.45)) {
-                showTagline = true
+        // After logo settles: either auto-route (returning user) or reveal the full splash.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+            if shouldAutoRoute?() == true {
+                isLoading = true
+                Task { await onFinished() }
+                return
             }
-        }
 
-        // Phase 4: Highlight sweep under main line
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.15) {
-            withAnimation(.easeOut(duration: 0.6)) {
-                textHighlightVisible = true
+            // Phase 3: Reveal tagline (0.6 s after checkpoint → 2.0 s from start)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                withAnimation(.easeOut(duration: 0.45)) {
+                    showTagline = true
+                }
             }
-        }
 
-        // Phase 5: Reveal CTA button
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.7) {
-            withAnimation(.spring(response: 0.55, dampingFraction: 0.9, blendDuration: 0.25)) {
-                showButton = true
+            // Phase 4: Highlight sweep (0.75 s → 2.15 s from start)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                withAnimation(.easeOut(duration: 0.6)) {
+                    textHighlightVisible = true
+                }
+            }
+
+            // Phase 5: Reveal CTA button (1.3 s → 2.7 s from start)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.9, blendDuration: 0.25)) {
+                    showButton = true
+                }
             }
         }
     }
