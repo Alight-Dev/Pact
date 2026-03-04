@@ -137,11 +137,28 @@ final class FirestoreService: ObservableObject {
     // MARK: - FCM Token
 
     /// Appends the FCM token to the user's `fcmTokens` array.
-    /// Call this after sign-in and on each app launch.
+    /// Also keeps every active member doc's `fcmToken` field in sync so Cloud
+    /// Functions always have a fresh token, regardless of whether currentTeamId
+    /// has been populated yet (e.g. cold-launch race where the token fires before
+    /// startTeamSession() is called).
     func updateFCMToken(_ token: String) async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         try? await db.collection("users").document(uid)
             .updateData(["fcmTokens": FieldValue.arrayUnion([token])])
+
+        // Query all active memberships directly — don't rely on currentTeamId
+        // being set yet. Handles the cold-start timing gap.
+        let membershipsSnap = try? await db
+            .collection("users").document(uid)
+            .collection("teamMemberships")
+            .whereField("shardStatus", isEqualTo: "active")
+            .getDocuments()
+        for doc in membershipsSnap?.documents ?? [] {
+            let teamId = doc.documentID
+            try? await db.collection("teams").document(teamId)
+                .collection("members").document(uid)
+                .updateData(["fcmToken": token])
+        }
     }
 
     // MARK: - Membership & Session
@@ -207,6 +224,15 @@ final class FirestoreService: ObservableObject {
 
         let todayDate = Self.todayString(in: adminTimezone)
         listenToTodaysSubmissions(teamId: teamId, date: todayDate)
+
+        // Eagerly write the latest FCM token to the member doc on every session
+        // start. Fixes the case where the token was null because it arrived before
+        // this session was established (cold-launch race condition).
+        Task {
+            if let token = try? await Messaging.messaging().token() {
+                await updateFCMToken(token)
+            }
+        }
     }
 
     // MARK: - Team Creation (CF-8)

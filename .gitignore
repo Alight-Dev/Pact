@@ -29,3 +29,7 @@ firebase-debug.log
 # Cloud Functions build artifacts
 functions/lib/
 functions/node_modules/
+
+# Root-level Node (firebase-tools for deploy)
+node_modules/
+package-lock.json

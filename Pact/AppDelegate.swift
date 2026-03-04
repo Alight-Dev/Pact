@@ -54,6 +54,22 @@ class AppDelegate: NSObject, UIApplicationDelegate,
         completion()
     }
 
+    // MARK: - APNs Token Bridge (required for FCM to generate its registration token)
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        print("[FCM] APNs registration failed: \(error)")
+    }
+
     // MARK: - MessagingDelegate
 
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
