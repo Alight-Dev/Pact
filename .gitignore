@@ -30,7 +30,6 @@ firebase-debug.log
 functions/lib/
 functions/node_modules/
 
-# Root-level artifacts created by npx/firebase-tools (not part of the project)
+# Root-level Node (firebase-tools for deploy)
 node_modules/
 package-lock.json
-package.json

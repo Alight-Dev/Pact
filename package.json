@@ -1,0 +1,11 @@
+{
+  "name": "pact",
+  "private": true,
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  },
+  "scripts": {
+    "deploy": "firebase deploy --only functions",
+    "deploy:functions": "firebase deploy --only functions"
+  }
+}
