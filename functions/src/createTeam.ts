@@ -35,6 +35,19 @@ export const createTeam = onCall(
     if (!teamName?.trim()) throw new HttpsError("invalid-argument", "teamName is required.");
     if (!activities?.length) throw new HttpsError("invalid-argument", "At least one activity is required.");
 
+    // Enforce one-team-at-a-time on the server
+    const existingMemberships = await db
+      .collection("users").doc(uid)
+      .collection("teamMemberships")
+      .limit(1)
+      .get();
+    if (!existingMemberships.empty) {
+      throw new HttpsError(
+        "already-exists",
+        "You are already in a team. Leave your current team before creating a new one."
+      );
+    }
+
     // Read the caller's user profile for denormalized fields
     const userSnap = await db.collection("users").doc(uid).get();
     const userData = userSnap.data() ?? {};
