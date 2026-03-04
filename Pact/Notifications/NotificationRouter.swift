@@ -68,7 +68,7 @@ final class NotificationRouter: ObservableObject {
 
     private func destinationTab(for type: String) -> AppTab {
         switch type {
-        case "vote_needed":
+        case "vote_needed", "team_joined":
             return .team
         default:
             return .home
@@ -78,6 +78,7 @@ final class NotificationRouter: ObservableObject {
     private func titleFor(type: String) -> String {
         switch type {
         case "vote_needed":           return "New Submission"
+        case "team_joined":           return "New Teammate!"
         case "submission_approved":   return "Proof approved! 🎉"
         case "forge_pact_ready":      return "🛡 Pact Forged!"
         case "daily_complete":        return "Pact complete! 🔥"
@@ -91,6 +92,9 @@ final class NotificationRouter: ObservableObject {
             let nick     = userInfo["submitterNickname"] ?? "A teammate"
             let activity = userInfo["activityName"] ?? "their proof"
             return "\(nick) submitted \(activity). Tap to vote →"
+        case "team_joined":
+            let nick = userInfo["joinerNickname"] ?? "Someone"
+            return "\(nick) just joined your team."
         case "submission_approved":
             return "Your team voted you in. Keep the streak alive!"
         case "forge_pact_ready":
