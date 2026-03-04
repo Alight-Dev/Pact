@@ -26,6 +26,7 @@ struct PactApp: App {
     @State private var pendingJoinCode: String = ""
     @State private var showTeamName = false
     @State private var showActivitiesSetup = false
+    @State private var showCreatorActivitySelection = false
     @State private var showTeamWelcome = false
     @State private var welcomeInviteCode = ""
     @State private var pendingTeamName = ""
