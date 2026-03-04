@@ -17,10 +17,17 @@ struct EditTeamView: View {
     @State private var saveError: String?
     @State private var allowAIFallback: Bool = true
     @State private var minApprovers: Int = 0
+    @State private var activityToDelete: TeamActivity? = nil
+    @State private var showDeleteWarning = false
 
     private var teamId: String? { firestoreService.currentTeamId }
 
+    private func membersOptedIn(to activity: TeamActivity) -> [TeamMember] {
+        firestoreService.members.filter { $0.optedInActivityIds.contains(activity.id) }
+    }
+
     var body: some View {
+        ZStack {
         NavigationView {
             ZStack(alignment: .bottom) {
                 Color.white.ignoresSafeArea()
@@ -52,10 +59,11 @@ struct EditTeamView: View {
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            // Swipe right → Delete
+                            // Swipe right → Delete (with warning)
                             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
-                                    deleteActivity(activity)
+                                    activityToDelete = activity
+                                    showDeleteWarning = true
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -200,6 +208,145 @@ struct EditTeamView: View {
                 activityToEdit = nil
             }
         }
+        // Custom delete confirmation overlay
+        if showDeleteWarning, let activity = activityToDelete {
+            deleteConfirmationOverlay(for: activity)
+        }
+        } // outer ZStack
+    }
+
+    // MARK: - Delete Confirmation Overlay
+
+    @ViewBuilder
+    private func deleteConfirmationOverlay(for activity: TeamActivity) -> some View {
+        let opted = membersOptedIn(to: activity)
+
+        Color.black.opacity(0.4)
+            .ignoresSafeArea()
+            .onTapGesture {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    showDeleteWarning = false
+                    activityToDelete = nil
+                }
+            }
+
+        VStack(spacing: 0) {
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color(white: 0.96))
+                        .frame(width: 56, height: 56)
+                    Image(systemName: "trash")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(.black)
+                }
+
+                Text("Delete \(activity.name)?")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.black)
+                    .multilineTextAlignment(.center)
+
+                if opted.isEmpty {
+                    Text("No one is currently opted in to this activity. This action cannot be undone.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(white: 0.5))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(2)
+                } else {
+                    Text("The following members will be affected:")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(white: 0.5))
+                        .multilineTextAlignment(.center)
+
+                    VStack(spacing: 8) {
+                        ForEach(opted) { member in
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(white: 0.92))
+                                        .frame(width: 36, height: 36)
+                                    Text(memberInitial(member))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(.black)
+                                }
+
+                                Text(member.nickname.isEmpty ? member.displayName : member.nickname)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(.black)
+
+                                Spacer()
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(white: 0.96))
+                            )
+                        }
+                    }
+
+                    Text("This action cannot be undone.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(white: 0.6))
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 28)
+            .padding(.bottom, 20)
+
+            Divider()
+
+            HStack(spacing: 12) {
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        showDeleteWarning = false
+                        activityToDelete = nil
+                    }
+                } label: {
+                    Text("Cancel")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color(white: 0.96))
+                        )
+                }
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        deleteActivity(activity)
+                        showDeleteWarning = false
+                        activityToDelete = nil
+                    }
+                } label: {
+                    Text("Delete")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.black)
+                        )
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.white)
+                .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
+        )
+        .padding(.horizontal, 32)
+        .transition(.scale(scale: 0.9).combined(with: .opacity))
+    }
+
+    private func memberInitial(_ member: TeamMember) -> String {
+        let name = member.nickname.isEmpty ? member.displayName : member.nickname
+        return String(name.prefix(1)).uppercased()
     }
 
     // MARK: - Firestore Operations
