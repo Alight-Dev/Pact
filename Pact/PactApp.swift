@@ -26,6 +26,7 @@ struct PactApp: App {
     @State private var pendingJoinCode: String = ""
     @State private var showTeamName = false
     @State private var showActivitiesSetup = false
+    @State private var showCreatorActivitySelection = false
     @State private var showTeamWelcome = false
     @State private var welcomeInviteCode = ""
     @State private var pendingTeamName = ""
@@ -107,6 +108,16 @@ struct PactApp: App {
                         }
                     )
                     .transition(.opacity)
+                } else if showCreatorActivitySelection {
+                    JoinShieldActivitiesView(
+                        onContinue: {
+                            withAnimation {
+                                showCreatorActivitySelection = false
+                                showTeamWelcome = true
+                            }
+                        }
+                    )
+                    .transition(.opacity)
                 } else if showActivitiesSetup {
                     ActivityListView(
                         teamName: pendingTeamName,
@@ -114,7 +125,7 @@ struct PactApp: App {
                             withAnimation {
                                 showActivitiesSetup = false
                                 welcomeInviteCode = inviteCode
-                                showTeamWelcome = true
+                                showCreatorActivitySelection = true
                             }
                         }
                     )
@@ -314,6 +325,7 @@ struct PactApp: App {
                     withAnimation {
                         showHomeScreen = false
                         showJoinShieldActivities = false
+                        showCreatorActivitySelection = false
                         showActivitiesSetup = false
                         showTeamName = false
                         showTeamWelcome = false

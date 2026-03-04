@@ -147,7 +147,7 @@ struct ProfileView: View {
 
                     ProfileSettingsSection(
                         isAdmin: isAdmin,
-                        showEditActivities: !isAdmin && firestoreService.currentTeamId != nil,
+                        showEditActivities: firestoreService.currentTeamId != nil,
                         onEditActivities: { showEditActivities = true },
                         onEditTeam: { showEditTeam = true },
                         onSignOut: { try? authManager.signOut() },
