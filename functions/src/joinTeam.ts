@@ -6,6 +6,7 @@
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 import { tierForStreak, todayInTimezone } from "./types";
 
 const db = getFirestore();
@@ -120,7 +121,39 @@ export const joinTeam = onCall(
 
     await batch.commit();
 
-    // 5. Update eligibleVoterCount on today's pending submissions
+    // 5. Notify existing members that a new member joined.
+    //    Read member docs AFTER batch.commit() so the new member doc exists,
+    //    then filter by uid so we don't notify the joiner themselves.
+    const allMembersSnap = await db.collection("teams").doc(teamId).collection("members").get();
+    const existingMemberTokens: string[] = allMembersSnap.docs
+      .filter((d) => d.id !== uid)
+      .map((d) => d.data().fcmToken as string | null)
+      .filter((t): t is string => !!t);
+
+    if (existingMemberTokens.length > 0) {
+      await getMessaging().sendEachForMulticast({
+        tokens: existingMemberTokens,
+        notification: {
+          title: "New Teammate!",
+          body: `${nickname} just joined your team.`,
+        },
+        data: {
+          type: "team_joined",
+          teamId,
+          joinerUid: uid,
+          joinerNickname: nickname,
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: "default",
+            },
+          },
+        },
+      });
+    }
+
+    // 6. Update eligibleVoterCount on today's pending submissions
     //    (so majority can never be achieved with stale voter count)
     const todayDate = todayInTimezone(adminTimezone);
     const submissionsSnap = await db

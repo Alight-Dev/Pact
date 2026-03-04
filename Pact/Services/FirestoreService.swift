@@ -137,11 +137,18 @@ final class FirestoreService: ObservableObject {
     // MARK: - FCM Token
 
     /// Appends the FCM token to the user's `fcmTokens` array.
+    /// Also keeps the member doc's `fcmToken` field in sync so Cloud Functions
+    /// (onSubmissionCreated, onVoteCast, etc.) always have a fresh token.
     /// Call this after sign-in and on each app launch.
     func updateFCMToken(_ token: String) async {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         try? await db.collection("users").document(uid)
             .updateData(["fcmTokens": FieldValue.arrayUnion([token])])
+        if let teamId = currentTeamId {
+            try? await db.collection("teams").document(teamId)
+                .collection("members").document(uid)
+                .updateData(["fcmToken": token])
+        }
     }
 
     // MARK: - Membership & Session
