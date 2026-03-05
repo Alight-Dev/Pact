@@ -478,11 +478,11 @@ struct HomeView: View {
             Divider()
                 .padding(.bottom, 14)
 
-            // Your completion label + count
+            // Your completion label + count (only count approved submissions for current opted-in activities)
             let totalActivities = displayActivities.isEmpty ? activities.count : displayActivities.count
             let completedCount = displayActivities.isEmpty
                 ? myCompletedActivityNames.count
-                : myCompletedActivityIds.count
+                : myCompletedActivityIds.intersection(firestoreService.optedInActivityIds).count
             HStack {
                 Text("Your Completion")
                     .font(.system(size: 14))
