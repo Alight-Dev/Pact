@@ -9,6 +9,8 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
+import { isDayFullyApproved } from "./streakHelpers";
+import { processDateForStreak } from "./dailyStreakProcessor";
 
 const db = getFirestore();
 
@@ -71,18 +73,14 @@ export const onVoteCast = onDocumentCreated(
       });
 
       // Increment approvedCount on dailyInstances, decrement pendingCount
-      const instanceSnap = await instanceRef.get();
-      const instance = instanceSnap.data() ?? {};
-
-      const newApprovedCount = (instance.approvedCount ?? 0) + 1;
-      const expectedSubmissionCount: number = instance.expectedSubmissionCount ?? instance.totalMembers ?? 1;
-      const allApproved = newApprovedCount >= expectedSubmissionCount;
-
       await instanceRef.update({
         approvedCount: FieldValue.increment(1),
         pendingCount: FieldValue.increment(-1),
-        allApproved,
       });
+
+      // allApproved from opted-in semantics: every (member × opted-in activity) has an approved submission
+      const { allApproved } = await isDayFullyApproved(teamId, date);
+      await instanceRef.update({ allApproved });
 
       // Update today's summary on the team doc
       await db.collection("teams").doc(teamId).update({
@@ -122,36 +120,33 @@ export const onVoteCast = onDocumentCreated(
         });
       }
 
-      // daily_complete check — notify all members if every expected submission is approved
+      // When the current day becomes fully approved, process this date for streak immediately
+      // so the UI (progress wheel) updates without waiting for the nightly scheduler.
       if (allApproved) {
-        const submissionsSnap = await instanceRef.collection("submissions").get();
+        const teamSnap = await db.collection("teams").doc(teamId).get();
+        const teamData = teamSnap.data() ?? {};
+        await processDateForStreak(teamId, date, teamData, now, {
+          resetTodayCounters: false,
+        });
+
         const teamMembersSnap = await db
           .collection("teams").doc(teamId)
           .collection("members").get();
+        const allTokens: string[] = teamMembersSnap.docs
+          .map((d) => d.data().fcmToken as string | null)
+          .filter((t): t is string => !!t);
 
-        const allDone = submissionsSnap.docs.every((d) => {
-          const s = d.data().status as string;
-          return s === "approved" || s === "auto_approved";
-        });
-
-        if (allDone && submissionsSnap.size >= expectedSubmissionCount) {
-          const allTokens: string[] = teamMembersSnap.docs
-            .map((d) => d.data().fcmToken as string | null)
-            .filter((t): t is string => !!t);
-
-          if (allTokens.length > 0) {
-            await getMessaging().sendEachForMulticast({
-              tokens: allTokens,
-              notification: {
-                title: "Pact complete! 🔥",
-                body: "Every teammate finished today. Streak safe!",
-              },
-              data: { type: "daily_complete", teamId, date },
-            });
-          }
+        if (allTokens.length > 0) {
+          await getMessaging().sendEachForMulticast({
+            tokens: allTokens,
+            notification: {
+              title: "Pact complete! 🔥",
+              body: "Every teammate finished today. Streak safe!",
+            },
+            data: { type: "daily_complete", teamId, date },
+          });
         }
       }
-
     } else {
       // ── Submission rejected ───────────────────────────────────────────────
 

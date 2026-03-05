@@ -31,19 +31,23 @@ export const onSubmissionCreated = onDocumentCreated(
     if (!instanceSnap.exists) {
       const teamSnap = await teamRef.get();
       const teamData = teamSnap.data() ?? {};
-      const totalMembers: number = teamData.memberCount ?? 1;
-
-      // Expected submissions per day = each member × each activity
       const goalsSnap = await teamRef.collection("goals").get();
-      const activityCount = goalsSnap.size;
-      const expectedSubmissionCount = totalMembers * Math.max(activityCount, 1);
+      const goalIds = goalsSnap.docs.map((d) => d.id);
+      const membersSnapForInstance = await teamRef.collection("members").get();
+      const totalMembers = membersSnapForInstance.size;
+      // Expected submissions = sum over members of (opted-in count or all goals if empty)
+      const expectedSubmissionCount = membersSnapForInstance.docs.reduce((sum, doc) => {
+        const optedIn: string[] = doc.data().optedInActivityIds ?? [];
+        const count = optedIn.length > 0 ? optedIn.length : Math.max(goalIds.length, 1);
+        return sum + count;
+      }, 0);
 
       await instanceRef.set({
         teamId,
         date,
         goalId: teamData.currentGoalId ?? null,
         totalMembers,
-        expectedSubmissionCount,
+        expectedSubmissionCount: Math.max(expectedSubmissionCount, 1),
         approvedCount: 0,
         pendingCount: 0,
         missedCount: 0,
