@@ -33,6 +33,7 @@ final class FirestoreService: ObservableObject {
     private var submissionsListener: ListenerRegistration?
     private var membersListener: ListenerRegistration?
     private var activitiesListener: ListenerRegistration?
+    private var goalListener: ListenerRegistration?
 
     // Published so views can observe live data
     @Published var currentTeam: [String: Any]?
@@ -51,6 +52,10 @@ final class FirestoreService: ObservableObject {
     @Published var members: [TeamMember] = []
     @Published var teamActivities: [TeamActivity] = []
     @Published var optedInActivityIds: Set<String> = []
+
+    /// Forge Pact agreement state for the current goal (goals/{goalId}).
+    /// Used by ForgePactView for "X of Y members agreed" and to hide "I Agree" when user already agreed.
+    @Published var currentGoalForgeState: GoalForgeState?
 
     /// Activities filtered to only those the current user is opted into.
     /// Returns all activities when optedInActivityIds is empty (e.g. admin / creator).
@@ -74,6 +79,7 @@ final class FirestoreService: ObservableObject {
         submissionsListener?.remove()
         membersListener?.remove()
         activitiesListener?.remove()
+        goalListener?.remove()
     }
 
     // MARK: - User Profile
@@ -362,21 +368,57 @@ final class FirestoreService: ObservableObject {
     // MARK: - Real-Time Listeners
 
     /// Attaches a real-time listener to `teams/{teamId}`.
-    /// Publishes updates to `currentTeam`.
+    /// Publishes updates to `currentTeam`. When `currentGoalId` is present, also starts the goal forge state listener.
     func listenToTeam(teamId: String) {
         teamListener?.remove()
         teamListener = db.collection("teams").document(teamId)
             .addSnapshotListener { [weak self] snapshot, _ in
                 guard let data = snapshot?.data() else {
-                    self?.currentTeam = nil
+                    Task { @MainActor in
+                        self?.currentTeam = nil
+                        self?.goalListener?.remove()
+                        self?.goalListener = nil
+                        self?.currentGoalForgeState = nil
+                    }
                     return
                 }
-                self?.currentTeam = data
+                Task { @MainActor in
+                    self?.currentTeam = data
+                    if let tz = data["adminTimezone"] as? String {
+                        self?.adminTimezone = tz
+                        UserDefaults.standard.set(tz, forKey: "app_team_timezone")
+                    }
+                    if let goalId = data["currentGoalId"] as? String {
+                        self?.listenToCurrentGoal(teamId: teamId, goalId: goalId)
+                    } else {
+                        self?.goalListener?.remove()
+                        self?.goalListener = nil
+                        self?.currentGoalForgeState = nil
+                    }
+                }
+            }
+    }
 
-                // Keep adminTimezone in sync with the server-side value.
-                if let tz = data["adminTimezone"] as? String {
-                    self?.adminTimezone = tz
-                    UserDefaults.standard.set(tz, forKey: "app_team_timezone")
+    /// Listens to `teams/{teamId}/goals/{goalId}` for agreedCount, forgeStatus, agreedMemberIds.
+    /// Used by ForgePactView for live "X of Y agreed" and to know if current user already agreed.
+    private func listenToCurrentGoal(teamId: String, goalId: String) {
+        goalListener?.remove()
+        goalListener = db.collection("teams").document(teamId)
+            .collection("goals").document(goalId)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let data = snapshot?.data() else {
+                    Task { @MainActor in self?.currentGoalForgeState = nil }
+                    return
+                }
+                Task { @MainActor in
+                    let agreedCount = data["agreedCount"] as? Int ?? 0
+                    let forgeStatus = data["forgeStatus"] as? String ?? "pending_forge"
+                    let agreedMemberIds = (data["agreedMemberIds"] as? [String]) ?? []
+                    self?.currentGoalForgeState = GoalForgeState(
+                        agreedCount: agreedCount,
+                        forgeStatus: forgeStatus,
+                        agreedMemberIds: Set(agreedMemberIds)
+                    )
                 }
             }
     }
@@ -427,11 +469,14 @@ final class FirestoreService: ObservableObject {
         submissionsListener?.remove()
         membersListener?.remove()
         activitiesListener?.remove()
+        goalListener?.remove()
         teamListener = nil
         submissionsListener = nil
         membersListener = nil
         activitiesListener = nil
+        goalListener = nil
         teamActivities = []
+        currentGoalForgeState = nil
     }
 
     /// Stops all real-time listeners AND clears every team-related @Published
@@ -447,6 +492,7 @@ final class FirestoreService: ObservableObject {
         todaysSubmissions = []
         votedSubmissionIds.removeAll()
         optedInActivityIds = []
+        currentGoalForgeState = nil
         let keys = ["app_team_id", "app_team_name", "app_team_timezone", "app_invite_code"]
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
     }
@@ -778,6 +824,13 @@ struct Submission: Identifiable, Equatable {
         self.photoUrl = dictionary["photoUrl"] as? String
         self.voterIds = dictionary["voterIds"] as? [String] ?? []
     }
+}
+
+/// Forge Pact agreement state for the current goal. Sourced from `goals/{goalId}`.
+struct GoalForgeState {
+    let agreedCount: Int
+    let forgeStatus: String
+    let agreedMemberIds: Set<String>
 }
 
 /// A team goal/activity pulled from `teams/{teamId}/goals`, used in the upload proof flow.
