@@ -6,6 +6,7 @@
 import UIKit
 import UserNotifications
 import FirebaseMessaging
+import GoogleSignIn
 
 class AppDelegate: NSObject, UIApplicationDelegate,
                    UNUserNotificationCenterDelegate,
@@ -18,6 +19,11 @@ class AppDelegate: NSObject, UIApplicationDelegate,
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
 
+        // Capture deep link from cold start so PactApp can process it when the UI is ready.
+        if let url = launchOptions?[.url] as? URL, isJoinDeepLink(url) {
+            DeepLinkManager.shared.setPendingURL(url)
+        }
+
         // If the user already granted permission (e.g. completed onboarding on a previous
         // build), register for remote notifications so FCM can obtain an APNs token and
         // fire messaging(_:didReceiveRegistrationToken:) → saves fcmToken to Firestore.
@@ -29,6 +35,20 @@ class AppDelegate: NSObject, UIApplicationDelegate,
         }
 
         return true
+    }
+
+    /// Called when the app is opened via URL (e.g. from background or when another app opens our scheme).
+    /// We store the URL so PactApp can process it; SwiftUI's onOpenURL may also fire.
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        if isJoinDeepLink(url) {
+            DeepLinkManager.shared.setPendingURL(url)
+            return true
+        }
+        return GIDSignIn.sharedInstance.handle(url)
     }
 
     // MARK: - UNUserNotificationCenterDelegate

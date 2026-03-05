@@ -6,8 +6,86 @@
 //
 
 import SwiftUI
+import UIKit
 import FirebaseAuth
 import FirebaseFunctions
+
+// MARK: - Native one-time code field (OTP/SMS AutoFill works reliably only on UITextField)
+
+private struct OneTimeCodeTextField: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var isFocused: Bool
+
+    func makeUIView(context: Context) -> UITextField {
+        let field = UITextField()
+        field.delegate = context.coordinator
+        field.keyboardType = .numberPad
+        field.textContentType = .oneTimeCode
+        field.autocorrectionType = .no
+        field.autocapitalizationType = .none
+        field.font = .systemFont(ofSize: 24, weight: .bold)
+        field.textColor = .clear
+        field.tintColor = .clear
+        field.backgroundColor = .clear
+        field.accessibilityLabel = "Invite code"
+        field.accessibilityHint = "6-digit code from your team admin or message"
+        field.addTarget(context.coordinator, action: #selector(Coordinator.editingChanged), for: .editingChanged)
+        return field
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        let filtered = text.filter { $0.isNumber }
+        if uiView.text != filtered {
+            uiView.text = filtered
+        }
+        if isFocused && !uiView.isFirstResponder {
+            uiView.becomeFirstResponder()
+        } else if !isFocused && uiView.isFirstResponder {
+            uiView.resignFirstResponder()
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: OneTimeCodeTextField
+
+        init(_ parent: OneTimeCodeTextField) {
+            self.parent = parent
+        }
+
+        @objc func editingChanged(_ field: UITextField) {
+            let filtered = (field.text ?? "").filter { $0.isNumber }
+            let limited = String(filtered.prefix(6))
+            if field.text != limited {
+                field.text = limited
+            }
+            parent.text = limited
+            if limited.count == 6 {
+                parent.isFocused = false
+            }
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            parent.isFocused = false
+        }
+
+        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            let current = textField.text ?? ""
+            let proposed = (current as NSString).replacingCharacters(in: range, with: string)
+            let filtered = proposed.filter { $0.isNumber }
+            let limited = String(filtered.prefix(6))
+            if limited != proposed {
+                textField.text = limited
+                parent.text = limited
+                return false
+            }
+            return true
+        }
+    }
+}
 
 struct JoinShieldView: View {
     var onBack: () -> Void
@@ -17,7 +95,7 @@ struct JoinShieldView: View {
     @EnvironmentObject var firestoreService: FirestoreService
 
     @State private var code: String = ""
-    @FocusState private var isFieldFocused: Bool
+    @State private var isCodeFieldFocused: Bool = false
     @State private var isJoining = false
     @State private var joinError: String?
     @State private var cursorVisible = true
@@ -73,23 +151,11 @@ struct JoinShieldView: View {
                         .padding(.horizontal, 24)
                         .padding(.top, 40)
 
-                        // MARK: Code input
+                        // MARK: Code input — native UITextField behind boxes for OTP/SMS AutoFill
                         ZStack {
-                            TextField("", text: Binding(
-                                get: { code },
-                                set: { handleCodeChange($0) }
-                            ))
-                            .keyboardType(.numberPad)
-                            .textContentType(.oneTimeCode)
-                            .textInputAutocapitalization(.characters)
-                            .disableAutocorrection(true)
-                            .foregroundColor(.clear)
-                            .tint(.clear)
-                            .focused($isFieldFocused)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 72)
-                            .opacity(0.011)
-                            .allowsHitTesting(true)
+                            OneTimeCodeTextField(text: $code, isFocused: $isCodeFieldFocused)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 72)
 
                             codeBoxesView
                                 .allowsHitTesting(false)
@@ -97,7 +163,7 @@ struct JoinShieldView: View {
                         .padding(.horizontal, 24)
                         .padding(.top, 28)
                         .contentShape(Rectangle())
-                        .onTapGesture { isFieldFocused = true }
+                        .onTapGesture { isCodeFieldFocused = true }
 
                         // MARK: Error
                         if let error = joinError {
@@ -152,12 +218,23 @@ struct JoinShieldView: View {
         } message: {
             Text("Joining this team will leave your current team. Do you want to continue?")
         }
-        .onTapGesture { isFieldFocused = false }
+        .onTapGesture { isCodeFieldFocused = false }
         .onAppear {
             if !initialCode.isEmpty && code.isEmpty {
-                code = initialCode
+                let filtered = initialCode.filter { $0.isASCII && $0.isNumber }
+                code = String(filtered.prefix(6))
             }
-            DispatchQueue.main.async { isFieldFocused = true }
+            // Auto-focus native field so keyboard and OTP/SMS suggestion bar appear immediately.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                isCodeFieldFocused = true
+            }
+        }
+        .onChange(of: initialCode) { _, newCode in
+            // Deep link may set initialCode after the view loads; keep field in sync.
+            if !newCode.isEmpty {
+                let filtered = newCode.filter { $0.isASCII && $0.isNumber }
+                code = String(filtered.prefix(6))
+            }
         }
         .preferredColorScheme(.light)
     }
@@ -190,7 +267,7 @@ struct JoinShieldView: View {
         let characters = Array(code)
         let isFilled = index < characters.count
         let character: String = isFilled ? String(characters[index]) : ""
-        let isActive = isFieldFocused && index == min(code.count, 5)
+        let isActive = isCodeFieldFocused && index == min(code.count, 5)
 
         return ZStack {
             if isFilled {
@@ -307,17 +384,6 @@ struct JoinShieldView: View {
         }
     }
 
-    // MARK: - Input Handling
-
-    private func handleCodeChange(_ newValue: String) {
-        let filtered = newValue.filter { $0.isASCII && $0.isNumber }
-        let limited = String(filtered.prefix(6))
-        code = limited
-
-        if code.count == 6 {
-            isFieldFocused = false
-        }
-    }
 }
 
 #Preview {
