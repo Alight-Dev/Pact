@@ -151,7 +151,7 @@ nickname: string              // denormalized
 avatarAssetName: string       // denormalized
 role: "admin" | "member"
 joinedAt: Timestamp
-optedInActivityIds: string[]  // for optional activities (Phase 2)
+optedInActivityIds: string[]  // goal IDs the member is committed to; empty = all team goals (used for streak and allApproved)
 
 // Shard state (updated by dailyStreakProcessor CF)
 shardStatus: "active" | "dimmed" | "cracked"
@@ -223,11 +223,11 @@ teamId: string
 date: string
 goalId: string                // snapshot of active goal for this day
 totalMembers: number          // snapshot of memberCount at day start
-expectedSubmissionCount: number  // totalMembers * activityCount; used for allApproved
+expectedSubmissionCount: number  // sum over members of (opted-in activity count, or all goals if optedInActivityIds empty)
 approvedCount: number         // incremented by CF on each approval
 pendingCount: number          // decremented on approval/rejection
 missedCount: number           // set by dailyStreakProcessor at cutoff
-allApproved: boolean          // true when approvedCount >= expectedSubmissionCount
+allApproved: boolean          // true when every (member × opted-in activity) has an approved submission for this day (computed by streak helper)
 streakProcessed: boolean      // true after streak CF has run for this day
 createdAt: Timestamp
 cutoffAt: Timestamp

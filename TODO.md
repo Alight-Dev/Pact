@@ -64,11 +64,11 @@
 ## 5. Forge Pact Agreement
 
 - [x] `FirestoreService.forgePact` (writes `forgePactAgreements/{uid}` doc)
-- [ ] "Forge Pact" UI screen: show current goal details and a large "Forge Pact" CTA button
-- [ ] Show agreement progress: "X of Y members agreed" (listen to `goals/{goalId}.agreedCount`)
-- [ ] Disable/hide "Forge Pact" button once user has already agreed
-- [ ] Notify team when all members agreed and goal becomes active (handled by CF-3 FCM push)
-- [ ] Route newly created teams to the Forge Pact screen before showing `HomeScreenView`
+- [x] "Forge Pact" UI screen: show current goal details and a large "Forge Pact" CTA button
+- [x] Show agreement progress: "X of Y members agreed" (listen to `goals/{goalId}.agreedCount`)
+- [x] Disable/hide "Forge Pact" button once user has already agreed
+- [x] Notify team when all members agreed and goal becomes active (handled by CF-3 FCM push)
+- [x] Route newly created teams to the Forge Pact screen before showing `HomeScreenView`
 
 ---
 

@@ -33,6 +33,7 @@ struct PactApp: App {
     @State private var showAppBlocking = false
     @State private var appBlockingGoesToTeamWelcome = false
     @State private var showTeamWelcome = false
+    @State private var showForgePact = false
     @State private var welcomeInviteCode = ""
     @State private var pendingTeamName = ""
     /// Set when a pact://join/{code} deep link arrives while the user is on HomeScreenView.
@@ -81,6 +82,7 @@ struct PactApp: App {
     @ViewBuilder
     private var activeScreen: some View {
         if showHomeScreen { homeScreen }
+        else if showForgePact { forgePact }
         else if showTeamWelcome { teamWelcome }
         else if showAppBlocking { appBlocking }
         else if showActivitiesSetup { activitiesSetup }
@@ -137,6 +139,7 @@ struct PactApp: App {
             if user == nil {
                 withAnimation {
                     showHomeScreen = false
+                    showForgePact = false
                     showJoinShieldActivities = false
                     showActivitiesSetup = false
                     showAppBlocking = false
@@ -190,7 +193,7 @@ struct PactApp: App {
                     onJoined: {
                         withAnimation { showJoinShieldSheet = false }
                         pendingJoinCode = ""
-                        withAnimation { showHomeScreen = true }
+                        withAnimation { showForgePact = true }
                     },
                     initialCode: pendingJoinCode
                 )
@@ -203,6 +206,17 @@ struct PactApp: App {
     }
 
     @ViewBuilder
+    private var forgePact: some View {
+        ForgePactView(onContinue: {
+            withAnimation {
+                showForgePact = false
+                showHomeScreen = true
+            }
+        })
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
     private var teamWelcome: some View {
         TeamWelcomeView(
             teamName: pendingTeamName,
@@ -211,7 +225,7 @@ struct PactApp: App {
                 withAnimation {
                     showTeamWelcome = false
                     welcomeInviteCode = ""
-                    showHomeScreen = true
+                    showForgePact = true
                 }
             }
         )
@@ -257,6 +271,7 @@ struct PactApp: App {
                 withAnimation {
                     showTeamName = false
                     showShieldSelection = true
+                    showForgePact = true
                 }
             },
             onContinue: { name in
@@ -376,7 +391,7 @@ struct PactApp: App {
                             teamName: membership.teamName,
                             adminTimezone: membership.adminTimezone
                         )
-                        showHomeScreen = true
+                        showForgePact = true
                     }
                 } else {
                     withAnimation {
@@ -416,7 +431,7 @@ struct PactApp: App {
                                 teamName: membership.teamName,
                                 adminTimezone: membership.adminTimezone
                             )
-                            showHomeScreen = true
+                            showForgePact = true
                         }
                     } else {
                         withAnimation { showShieldSelection = true }
