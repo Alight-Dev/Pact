@@ -274,7 +274,7 @@ private struct SubmissionCard: View {
 
 private struct SwipeableCardStack: View {
     @Binding var submissions: [Submission]
-    let onVote: (String, String) -> Void
+    let onVote: (String, String) -> Void  // (submissionId, vote)
 
     var body: some View {
         let visible = Array(submissions.prefix(3))
@@ -288,7 +288,7 @@ private struct SwipeableCardStack: View {
                 SubmissionCard(
                     submission: submission,
                     onSwipe: { approved in
-                        onVote(submission.submitterUid, approved ? "approve" : "reject")
+                        onVote(submission.id, approved ? "approve" : "reject")
                         withAnimation(.spring()) {
                             submissions.removeAll { $0.id == submission.id }
                         }
@@ -632,18 +632,18 @@ struct TeamView: View {
                 // Layer 1 — synchronous, app-level: set immediately when the user
                 // votes, before the async Firestore write. Survives tab switches
                 // within the same app session.
-                && !firestoreService.votedSubmitterIds.contains(sub.submitterUid)
+                && !firestoreService.votedSubmissionIds.contains(sub.id)
                 // Layer 2 — Firestore-backed: populated by castVote() arrayUnion.
                 // Survives app restarts once the write has completed.
                 && !sub.voterIds.contains(currentUid)
         }
     }
 
-    private func handleVote(submitterUid: String, vote: String) {
+    private func handleVote(submissionId: String, vote: String) {
         // Mark as voted SYNCHRONOUSLY in the app-level store before any async
         // work — guarantees the card won't reappear on the next .onAppear even
         // if the user navigates away before the Firestore write completes.
-        firestoreService.votedSubmitterIds.insert(submitterUid)
+        firestoreService.votedSubmissionIds.insert(submissionId)
 
         guard let teamId = firestoreService.currentTeamId else { return }
         let date = FirestoreService.todayString(in: firestoreService.adminTimezone ?? "UTC")
@@ -651,7 +651,7 @@ struct TeamView: View {
             try? await firestoreService.castVote(
                 teamId: teamId,
                 date: date,
-                submitterUid: submitterUid,
+                submissionId: submissionId,
                 vote: vote
             )
         }

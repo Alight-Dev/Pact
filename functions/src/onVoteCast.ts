@@ -1,6 +1,6 @@
 // CF-1: onVoteCast — Firestore onCreate trigger
 //
-// Fires when a member casts a vote on a submission.
+// Fires when a member casts a vote on a submission (submission doc ID = uid_activityId).
 // 1. Increments approve/rejectCount on the submission.
 // 2. Checks majority: approveCount > eligibleVoterCount / 2
 // 3. On approval: updates submission status, unlocks app, updates daily counts,
@@ -15,11 +15,11 @@ const db = getFirestore();
 export const onVoteCast = onDocumentCreated(
   {
     document:
-      "teams/{teamId}/dailyInstances/{date}/submissions/{submitterUid}/votes/{voterId}",
+      "teams/{teamId}/dailyInstances/{date}/submissions/{submissionId}/votes/{voterId}",
     region: "us-central1",
   },
   async (event) => {
-    const { teamId, date, submitterUid } = event.params;
+    const { teamId, date, submissionId } = event.params;
     const vote = event.data?.data();
     if (!vote) return;
 
@@ -28,7 +28,7 @@ export const onVoteCast = onDocumentCreated(
     const submissionRef = db
       .collection("teams").doc(teamId)
       .collection("dailyInstances").doc(date)
-      .collection("submissions").doc(submitterUid);
+      .collection("submissions").doc(submissionId);
 
     // Increment the appropriate tally
     const incrementField =
@@ -42,6 +42,8 @@ export const onVoteCast = onDocumentCreated(
     const submissionSnap = await submissionRef.get();
     const submission = submissionSnap.data();
     if (!submission || submission.status !== "pending") return;
+
+    const submitterUid: string = submission.submitterUid ?? submissionId.split("_")[0] ?? "";
 
     const approveCount: number = submission.approveCount ?? 0;
     const eligibleVoterCount: number = submission.eligibleVoterCount ?? 1;
@@ -69,8 +71,8 @@ export const onVoteCast = onDocumentCreated(
     const instance = instanceSnap.data() ?? {};
 
     const newApprovedCount = (instance.approvedCount ?? 0) + 1;
-    const totalMembers: number = instance.totalMembers ?? 1;
-    const allApproved = newApprovedCount >= totalMembers;
+    const expectedSubmissionCount: number = instance.expectedSubmissionCount ?? instance.totalMembers ?? 1;
+    const allApproved = newApprovedCount >= expectedSubmissionCount;
 
     await instanceRef.update({
       approvedCount: FieldValue.increment(1),
@@ -116,7 +118,7 @@ export const onVoteCast = onDocumentCreated(
       });
     }
 
-    // daily_complete check — notify all members if every submission is approved
+    // daily_complete check — notify all members if every expected submission is approved
     if (allApproved) {
       const submissionsSnap = await instanceRef.collection("submissions").get();
       const teamMembersSnap = await db
@@ -128,7 +130,7 @@ export const onVoteCast = onDocumentCreated(
         return s === "approved" || s === "auto_approved";
       });
 
-      if (allDone && submissionsSnap.size >= teamMembersSnap.size) {
+      if (allDone && submissionsSnap.size >= expectedSubmissionCount) {
         const allTokens: string[] = teamMembersSnap.docs
           .map((d) => d.data().fcmToken as string | null)
           .filter((t): t is string => !!t);
