@@ -5,6 +5,7 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
 // MARK: - Notification Names
 
@@ -19,12 +20,18 @@ extension Notification.Name {
 final class NotificationRouter: ObservableObject {
 
     struct BannerPayload: Identifiable {
+        enum IconType {
+            case avatar
+            case sfSymbol(name: String, color: Color)
+        }
+
         let id = UUID()
         let title: String
         let body: String
         let tab: AppTab
         let submitterUid: String?
         let isForeground: Bool
+        let iconType: IconType
     }
 
     @Published var activeBanner: BannerPayload?
@@ -53,13 +60,26 @@ final class NotificationRouter: ObservableObject {
         let submitterUid = userInfo["submitterUid"]
         let tab          = destinationTab(for: type)
 
+        let iconType: BannerPayload.IconType
+        switch type {
+        case "submission_approved":
+            iconType = .sfSymbol(name: "checkmark.circle.fill",
+                                 color: Color(red: 0.18, green: 0.72, blue: 0.42))
+        case "submission_rejected":
+            iconType = .sfSymbol(name: "xmark.circle.fill",
+                                 color: Color(red: 0.90, green: 0.25, blue: 0.25))
+        default:
+            iconType = .avatar
+        }
+
         if isForeground {
             activeBanner = BannerPayload(
                 title: title,
                 body: body,
                 tab: tab,
                 submitterUid: submitterUid,
-                isForeground: true
+                isForeground: true,
+                iconType: iconType
             )
         } else {
             pendingTabSwitch = tab

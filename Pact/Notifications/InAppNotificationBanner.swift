@@ -66,21 +66,33 @@ struct InAppNotificationBanner: View {
     @ViewBuilder
     private var avatarView: some View {
         let size: CGFloat = 40
-        if let assetName = member?.avatarAssetName, !assetName.isEmpty {
-            Text(assetName)
-                .font(.system(size: 22))
-                .frame(width: size, height: size)
-                .background(Color(white: 0.92))
-                .clipShape(Circle())
-        } else {
+        switch payload.iconType {
+        case .sfSymbol(let name, let color):
             Circle()
-                .fill(Color(white: 0.88))
+                .fill(color.opacity(0.12))
                 .frame(width: size, height: size)
                 .overlay(
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(Color(white: 0.55))
+                    Image(systemName: name)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(color)
                 )
+        case .avatar:
+            if let assetName = member?.avatarAssetName, !assetName.isEmpty {
+                Text(assetName)
+                    .font(.system(size: 22))
+                    .frame(width: size, height: size)
+                    .background(Color(white: 0.92))
+                    .clipShape(Circle())
+            } else {
+                Circle()
+                    .fill(Color(white: 0.88))
+                    .frame(width: size, height: size)
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Color(white: 0.55))
+                    )
+            }
         }
     }
 
