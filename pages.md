@@ -77,4 +77,6 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 
 ---
 
+| `Pact/Submission/SubmissionDetailView.swift` | Sheet showing the current user's today's submission. Displays proof photo (`AsyncImage`), a colour-coded status pill (pending/approved/rejected), and approval count. Shows a "Replace Photo" button when status is `rejected`, which opens `UploadProofView` full-screen. Accessed by tapping the status row in `HomeView.todayGoalCard` or by tapping `+` in the tab bar when a non-rejected submission already exists. |
+
 *Add new screens/sheets here when you create them.*

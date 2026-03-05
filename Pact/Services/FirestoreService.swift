@@ -74,6 +74,20 @@ final class FirestoreService: ObservableObject {
         todaysSubmissions.compactMap { Submission(dictionary: $0) }
     }
 
+    /// The current user's submission for today, if any.
+    var myTodaySubmission: Submission? {
+        guard let uid = Auth.auth().currentUser?.uid else { return nil }
+        return mappedSubmissions.first { $0.submitterUid == uid }
+    }
+
+    /// Whether the current user is allowed to submit proof today.
+    /// Returns false when a pending or approved submission already exists.
+    /// Returns true when no submission exists, or when the existing one was rejected.
+    var canSubmitToday: Bool {
+        guard let sub = myTodaySubmission else { return true }
+        return sub.status == "rejected"
+    }
+
     deinit {
         teamListener?.remove()
         submissionsListener?.remove()
@@ -586,6 +600,11 @@ final class FirestoreService: ObservableObject {
     func submitProof(teamId: String, image: UIImage, activityName: String, activityId: String) async throws {
         guard let uid = Auth.auth().currentUser?.uid else { throw FirestoreServiceError.notAuthenticated }
 
+        // Block duplicate submissions — only rejected submissions may be retried.
+        if let existing = myTodaySubmission, existing.status != "rejected" {
+            throw FirestoreServiceError.submissionAlreadyExists
+        }
+
         // Fetch caller's profile for denormalized fields
         let userSnap = try await db.collection("users").document(uid).getDocument()
         let userData = userSnap.data() ?? [:]
@@ -862,12 +881,14 @@ enum FirestoreServiceError: LocalizedError {
     case invalidResponse
     case notAuthenticated
     case inviteNotFound
+    case submissionAlreadyExists
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse:   return "Received an unexpected response from the server."
-        case .notAuthenticated:  return "You must be signed in to perform this action."
-        case .inviteNotFound:    return "Invite code not found or expired."
+        case .invalidResponse:        return "Received an unexpected response from the server."
+        case .notAuthenticated:       return "You must be signed in to perform this action."
+        case .inviteNotFound:         return "Invite code not found or expired."
+        case .submissionAlreadyExists: return "You've already submitted proof today."
         }
     }
 }

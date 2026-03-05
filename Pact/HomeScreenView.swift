@@ -20,6 +20,11 @@ struct HomeScreenView: View {
     @State private var showUpload: Bool = false
     @State private var showPactFormedOverlay: Bool = false
     @State private var previousForgeStatus: String?
+    @State private var showSubmissionDetail: Bool = false
+    #if DEBUG
+    @State private var debugNotifIndex: Int = 0
+    private let debugNotifTypes = ["vote_needed", "submission_approved", "daily_complete"]
+    #endif
 
     var body: some View {
         ZStack {
@@ -47,7 +52,11 @@ struct HomeScreenView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 FloatingTabBar(selectedTab: $selectedTab, onUploadTapped: {
-                    showUpload = true
+                    if firestoreService.canSubmitToday {
+                        showUpload = true
+                    } else {
+                        showSubmissionDetail = true
+                    }
                 })
                 .padding(.bottom, 24)
             }
@@ -78,6 +87,9 @@ struct HomeScreenView: View {
         }
         .fullScreenCover(isPresented: $showPactFormedOverlay) {
             PactFormedView(onDismiss: { showPactFormedOverlay = false })
+        }
+        .sheet(isPresented: $showSubmissionDetail) {
+            SubmissionDetailView()
         }
         .onAppear {
             previousForgeStatus = firestoreService.currentGoalForgeState?.forgeStatus
