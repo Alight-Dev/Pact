@@ -15,8 +15,19 @@ import {
   yesterdayInTimezone,
   todayInTimezone,
 } from "./types";
+import { isDayFullyApproved } from "./streakHelpers";
 
 const db = getFirestore();
+
+/** Options when processing a date for streak (e.g. from onVoteCast when today becomes complete). */
+export interface ProcessDateOptions {
+  /** If true, reset todayApprovedCount and todayDate on the team doc (set when scheduler processes yesterday). Default true. */
+  resetTodayCounters?: boolean;
+  /** When resetTodayCounters is true, the team doc's todayDate is set to this (e.g. today in team timezone). */
+  today?: string;
+  /** If true, run even when instance.streakProcessed is already true (re-apply team/member updates only; do not set streakProcessed). */
+  force?: boolean;
+}
 
 export const dailyStreakProcessor = onSchedule(
   {
@@ -34,29 +45,32 @@ export const dailyStreakProcessor = onSchedule(
   }
 );
 
-async function processTeam(
+/**
+ * Processes a single date for streak: updates team currentStreakDays/shieldTier,
+ * member shards, and teamMemberships. Call from scheduler (for yesterday) or from
+ * onVoteCast when the current day becomes allApproved (so the UI updates immediately).
+ */
+export async function processDateForStreak(
   teamId: string,
+  date: string,
   teamData: FirebaseFirestore.DocumentData,
-  now: Timestamp
+  now: Timestamp,
+  options: ProcessDateOptions = {}
 ): Promise<void> {
-  const timezone: string = teamData.adminTimezone ?? "UTC";
-  const yesterday = yesterdayInTimezone(timezone);
-  const today = todayInTimezone(timezone);
-
-  const instanceRef = db
-    .collection("teams").doc(teamId)
-    .collection("dailyInstances").doc(yesterday);
+  const { resetTodayCounters = true, force = false } = options;
+  const teamRef = db.collection("teams").doc(teamId);
+  const instanceRef = teamRef.collection("dailyInstances").doc(date);
   const instanceSnap = await instanceRef.get();
 
-  // Skip if instance doesn't exist or already processed
   if (!instanceSnap.exists) return;
   const instance = instanceSnap.data()!;
-  if (instance.streakProcessed) return;
+  if (instance.streakProcessed && !force) return;
 
-  // Mark processed immediately to prevent double-runs
-  await instanceRef.update({ streakProcessed: true });
+  if (!force) {
+    await instanceRef.update({ streakProcessed: true });
+  }
 
-  const allApproved: boolean = instance.allApproved ?? false;
+  const { allApproved, memberApproved } = await isDayFullyApproved(teamId, date);
   const currentStreak: number = teamData.currentStreakDays ?? 0;
   const currentTier: string = teamData.shieldTier ?? "bronze";
 
@@ -71,23 +85,20 @@ async function processTeam(
     newTier = dropTierOneLevel(currentTier as any);
   }
 
-  const teamRef = db.collection("teams").doc(teamId);
-
-  // Update team streak + tier
-  await teamRef.update({
+  const updateData: Record<string, unknown> = {
     currentStreakDays: newStreak,
-    lastStreakDate: yesterday,
+    lastStreakDate: date,
     bestStreakDays: Math.max(teamData.bestStreakDays ?? 0, newStreak),
     shieldTier: newTier,
     streakComputedAt: now,
-    // Reset today's counters
-    todayApprovedCount: 0,
-    todayDate: today,
-  });
+  };
+  if (resetTodayCounters && options.today != null) {
+    updateData.todayApprovedCount = 0;
+    updateData.todayDate = options.today;
+  }
+  await teamRef.update(updateData);
 
-  // Update each member's shard status
   const membersSnap = await teamRef.collection("members").get();
-
   await Promise.all(
     membersSnap.docs.map(async (memberDoc) => {
       const member = memberDoc.data();
@@ -97,40 +108,20 @@ async function processTeam(
       let consecutiveMisses: number = member.consecutiveMisses ?? 0;
 
       if (allApproved) {
-        // Everyone approved — reset shard to active for this member
         shardStatus = "active";
         consecutiveMisses = 0;
       } else {
-        // Per-activity: member is "approved" for the day if they have all required submissions approved
-        const submissionsSnap = await db
-          .collection("teams").doc(teamId)
-          .collection("dailyInstances").doc(yesterday)
-          .collection("submissions")
-          .get();
-        const goalsSnap = await teamRef.collection("goals").get();
-        const expectedCount = goalsSnap.size;
-        const memberApprovedSubmissions = submissionsSnap.docs.filter(
-          (d) => (d.data().submitterUid === uid || d.id.startsWith(uid + "_"))
-            && (d.data().status === "approved" || d.data().status === "auto_approved")
-        );
-        const memberApproved = expectedCount > 0 && memberApprovedSubmissions.length >= expectedCount;
-
-        if (!memberApproved) {
+        const memberOk = memberApproved.get(uid) ?? false;
+        if (!memberOk) {
           consecutiveMisses += 1;
-          shardStatus =
-            consecutiveMisses >= 2 ? "cracked" : "dimmed";
+          shardStatus = consecutiveMisses >= 2 ? "cracked" : "dimmed";
         } else {
           consecutiveMisses = 0;
           shardStatus = "active";
         }
       }
 
-      await memberDoc.ref.update({
-        shardStatus,
-        consecutiveMisses,
-      });
-
-      // Fan-out to teamMemberships
+      await memberDoc.ref.update({ shardStatus, consecutiveMisses });
       await db
         .collection("users").doc(uid)
         .collection("teamMemberships").doc(teamId)
@@ -141,22 +132,43 @@ async function processTeam(
         });
     })
   );
+}
+
+async function processTeam(
+  teamId: string,
+  teamData: FirebaseFirestore.DocumentData,
+  now: Timestamp
+): Promise<void> {
+  const timezone: string = teamData.adminTimezone ?? "UTC";
+  const yesterday = yesterdayInTimezone(timezone);
+  const today = todayInTimezone(timezone);
+
+  await processDateForStreak(teamId, yesterday, teamData, now, {
+    resetTodayCounters: true,
+    today,
+  });
+
+  const teamRef = db.collection("teams").doc(teamId);
+  const membersSnap = await teamRef.collection("members").get();
 
   // Proactively create today's dailyInstance if it doesn't exist yet
   const todayRef = teamRef.collection("dailyInstances").doc(today);
   const todaySnap = await todayRef.get();
   if (!todaySnap.exists) {
     const goalsSnap = await teamRef.collection("goals").get();
-    const activityCount = goalsSnap.size;
-    const totalMembers: number = teamData.memberCount ?? 1;
-    const expectedSubmissionCount = totalMembers * Math.max(activityCount, 1);
+    const goalIds = goalsSnap.docs.map((d) => d.id);
+    const expectedSubmissionCount = membersSnap.docs.reduce((sum, doc) => {
+      const optedIn: string[] = doc.data().optedInActivityIds ?? [];
+      const count = optedIn.length > 0 ? optedIn.length : Math.max(goalIds.length, 1);
+      return sum + count;
+    }, 0);
 
     await todayRef.set({
       teamId,
       date: today,
       goalId: teamData.currentGoalId ?? null,
-      totalMembers,
-      expectedSubmissionCount,
+      totalMembers: membersSnap.size,
+      expectedSubmissionCount: Math.max(expectedSubmissionCount, 1),
       approvedCount: 0,
       pendingCount: 0,
       missedCount: 0,
