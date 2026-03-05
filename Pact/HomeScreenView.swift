@@ -15,8 +15,11 @@ enum AppTab {
 
 struct HomeScreenView: View {
     @EnvironmentObject var notificationRouter: NotificationRouter
+    @EnvironmentObject var firestoreService: FirestoreService
     @State private var selectedTab: AppTab = .home
     @State private var showUpload: Bool = false
+    @State private var showPactFormedOverlay: Bool = false
+    @State private var previousForgeStatus: String?
 
     var body: some View {
         ZStack {
@@ -72,6 +75,18 @@ struct HomeScreenView: View {
         }
         .fullScreenCover(isPresented: $showUpload) {
             UploadProofView()
+        }
+        .fullScreenCover(isPresented: $showPactFormedOverlay) {
+            PactFormedView(onDismiss: { showPactFormedOverlay = false })
+        }
+        .onAppear {
+            previousForgeStatus = firestoreService.currentGoalForgeState?.forgeStatus
+        }
+        .onChange(of: firestoreService.currentGoalForgeState?.forgeStatus) { _, newStatus in
+            if newStatus == "active" && previousForgeStatus != "active" {
+                showPactFormedOverlay = true
+            }
+            previousForgeStatus = newStatus
         }
         .onChange(of: notificationRouter.pendingTabSwitch) { _, tab in
             guard let tab else { return }
@@ -164,4 +179,6 @@ private struct FloatingTabBar: View {
 
 #Preview {
     HomeScreenView()
+        .environmentObject(NotificationRouter())
+        .environmentObject(FirestoreService())
 }

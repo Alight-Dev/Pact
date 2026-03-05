@@ -1,5 +1,6 @@
 rules_version = '2';
-// Deploy after editing: firebase deploy --only firestore:rules
+// IMPORTANT: Deploy after editing or the app will get "Permission denied" on Forge Pact / writes:
+//   firebase deploy --only firestore:rules
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -54,12 +55,15 @@ service cloud.firestore {
 
       match /goals/{goalId} {
         allow read: if isSignedIn() && isTeamMember(teamId);
-        // Clients can write forgePactAgreements (their own doc only)
-        allow write: if false;
+        // Goal doc itself: Cloud Functions only (Admin SDK bypasses rules)
+        allow create, update, delete: if false;
 
-        match /forgePactAgreements/{uid} {
+        // Forge Pact: each member creates one doc (doc ID = their uid). CF-3 reacts to activate goal.
+        match /forgePactAgreements/{agreementUid} {
           allow read:   if isSignedIn() && isTeamMember(teamId);
-          allow create: if isSignedIn() && isOwner(uid) && isTeamMember(teamId);
+          allow create: if isSignedIn()
+            && request.auth.uid == agreementUid
+            && isTeamMember(teamId);
           allow update, delete: if false; // Immutable
         }
       }
