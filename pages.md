@@ -66,6 +66,7 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 | `Pact/Onboarding/ForgePactView.swift` | Forge Pact agreement screen. Shows team name and goal, live "X of Y members agreed" counter, rounded "I Agree" CTA, and "Go to Pact" so users can proceed without waiting. When everyone agrees, presents PactFormedView then continues to Home. |
 | `Pact/Onboarding/PactFormedView.swift` | Full-screen "The Pact is Formed" celebration. Shown when the goal becomes active (everyone agreed). Interrupts ForgePactView (then continues to Home) or HomeScreenView (any tab). Animated title and subtitle; Continue dismisses. |
 | `Pact/Onboarding/PactLaunchView.swift` | Post-activities splash/loading screen with maroon accents (currently unused — superseded by TeamWelcomeView). |
+| `Pact/Onboarding/AppBlockingSelectionView.swift` | App blocking setup screen shown after team creation (before TeamWelcomeView) and after activity selection when joining (before HomeScreen). Users open FamilyActivityPicker to choose which apps get locked each morning; selection saved to UserDefaults. Skippable. |
 
 ---
 
