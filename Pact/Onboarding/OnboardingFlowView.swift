@@ -151,19 +151,18 @@ struct OnboardingFlowView: View {
                         }
                     }
                 )
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal: .move(edge: .leading)
-                ))
+                .transition(slideTransition)
 
             case .requestNotifications:
                 OnboardingRequestNotificationsView(
                     onBack: {
+                        isGoingForward = false
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .projectionResult
                         }
                     },
                     onContinue: {
+                        isGoingForward = true
                         withAnimation(.easeInOut(duration: 0.35)) {
                             step = .screenTimeAccessIntro
                         }
