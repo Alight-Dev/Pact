@@ -73,9 +73,6 @@ struct UploadProofView: View {
         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: showPermissionExplainer)
         .animation(.easeInOut(duration: 0.22), value: capturedImage != nil)
         .onAppear { checkCameraPermission() }
-        .task {
-            guard firestoreService.canSubmitToday else { dismiss(); return }
-        }
     }
 
     // MARK: - Activity options

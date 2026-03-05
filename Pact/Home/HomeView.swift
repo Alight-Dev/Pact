@@ -51,7 +51,6 @@ struct HomeView: View {
     @State private var animatedProgress: CGFloat = 0
     @State private var showProfile = false
     @State private var switchToTeamAfterDismiss = false
-    @State private var showSubmissionDetail = false
 
     private var currentDot: Int { cardSelection % cardCount }
 
@@ -315,10 +314,6 @@ struct HomeView: View {
 
     // MARK: - Submission completion helpers
 
-    private var myTodaySubmission: Submission? {
-        firestoreService.myTodaySubmission
-    }
-
     /// Activity IDs for which the current user has a peer-approved or auto-approved
     /// submission today. Used to tick off rows and fill the progress bar.
     private var myCompletedActivityIds: Set<String> {
@@ -341,6 +336,12 @@ struct HomeView: View {
                     ($0.status == "approved" || $0.status == "auto_approved") }
                 .map { $0.activityName }
         )
+    }
+
+    /// All of the current user's submissions for today (any status).
+    private var myTodaySubmissions: [Submission] {
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        return firestoreService.mappedSubmissions.filter { $0.submitterUid == uid }
     }
 
     // MARK: - Activity row helper
@@ -383,14 +384,12 @@ struct HomeView: View {
         }
     }
 
-    private func submissionStatusText(for sub: Submission, totalVoters: Int) -> String {
+    private func submissionStatusText(for sub: Submission) -> String {
         switch sub.status {
-        case "approved", "auto_approved":
-            return "Approved — Unlocked!"
-        case "rejected":
-            return "Rejected — tap + to retry"
+        case "approved", "auto_approved": return "Approved — Unlocked!"
+        case "rejected":                  return "Rejected — tap + to retry"
         default:
-            return "Waiting for votes — \(sub.approvalsReceived) of \(totalVoters) approved"
+            return "Pending · \(sub.approvalsReceived)/\(sub.approvalsRequired) approved"
         }
     }
 
@@ -447,32 +446,29 @@ struct HomeView: View {
             }
             .padding(.bottom, 16)
 
-            // Submission status row (shown when a submission exists for today)
-            if let sub = myTodaySubmission {
+            // Submission status rows (one per submission today)
+            if !myTodaySubmissions.isEmpty {
                 Divider()
                     .padding(.bottom, 12)
-
-                Button {
-                    showSubmissionDetail = true
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: submissionStatusIcon(for: sub.status))
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(submissionStatusColor(for: sub.status))
-                        Text(submissionStatusText(for: sub, totalVoters: max(1, sub.approvalsRequired)))
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color(white: 0.30))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.60))
+                VStack(spacing: 10) {
+                    ForEach(myTodaySubmissions) { sub in
+                        HStack(spacing: 10) {
+                            Image(systemName: submissionStatusIcon(for: sub.status))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(submissionStatusColor(for: sub.status))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(sub.activityName)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Color(white: 0.30))
+                                Text(submissionStatusText(for: sub))
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color(white: 0.50))
+                            }
+                            Spacer()
+                        }
                     }
                 }
-                .buttonStyle(.plain)
                 .padding(.bottom, 14)
-                .sheet(isPresented: $showSubmissionDetail) {
-                    SubmissionDetailView()
-                }
             }
 
             Divider()
