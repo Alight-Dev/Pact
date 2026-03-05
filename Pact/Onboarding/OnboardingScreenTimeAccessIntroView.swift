@@ -7,6 +7,7 @@
 //  but skippable.
 //
 
+import FamilyControls
 import SwiftUI
 
 struct OnboardingScreenTimeAccessIntroView: View {
@@ -170,7 +171,7 @@ struct OnboardingScreenTimeAccessIntroView: View {
 
                 // MARK: Primary + secondary actions
                 VStack(spacing: 14) {
-                    Button(action: onConnectTapped) {
+                    Button(action: requestFamilyControlsAuthorization) {
                         Text("Connect with Screen Time")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(Color.white)
@@ -200,6 +201,20 @@ struct OnboardingScreenTimeAccessIntroView: View {
             }
         }
         .preferredColorScheme(.light)
+    }
+
+    private func requestFamilyControlsAuthorization() {
+        let center = AuthorizationCenter.shared
+        Task {
+            do {
+                try await center.requestAuthorization(for: .individual)
+            } catch {
+                print("Authorization failed: \(error)")
+            }
+            await MainActor.run {
+                onConnectTapped()
+            }
+        }
     }
 }
 

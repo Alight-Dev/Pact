@@ -7,7 +7,6 @@
 
 import SwiftUI
 import FirebaseAuth
-import FamilyControls
 import FirebaseFirestore
 
 
@@ -181,14 +180,9 @@ struct OnboardingFlowView: View {
                         }
                     },
                     onConnectTapped: {
-                        Task {
-                            await requestScreenTimeAuthorization()
-                            await MainActor.run {
-                                isGoingForward = true
-                                withAnimation(.easeInOut(duration: 0.35)) {
-                                    step = .profileSetup
-                                }
-                            }
+                        isGoingForward = true
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            step = .profileSetup
                         }
                     },
                     onSkipTapped: {
@@ -243,15 +237,6 @@ struct OnboardingFlowView: View {
         }
     }
 
-    @MainActor
-    private func requestScreenTimeAuthorization() async {
-        do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-        } catch {
-            // For now we silently ignore failures; the flow still continues.
-            print("Screen Time authorization request failed: \(error)")
-        }
-    }
 }
 
 // MARK: - Preview
