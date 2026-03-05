@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseAuth
 import GoogleSignIn
 import os.log
 
@@ -383,13 +384,13 @@ struct PactApp: App {
                     }
                     return
                 }
-                if let membership = try? await firestoreService.loadActiveMembership() {
+                if let session = await resolveTeamSession() {
                     withAnimation {
                         showSignupDirect = false
                         firestoreService.startTeamSession(
-                            teamId: membership.teamId,
-                            teamName: membership.teamName,
-                            adminTimezone: membership.adminTimezone
+                            teamId: session.teamId,
+                            teamName: session.teamName,
+                            adminTimezone: session.adminTimezone
                         )
                         showForgePact = true
                     }
@@ -407,7 +408,7 @@ struct PactApp: App {
     @ViewBuilder
     private var splash: some View {
         SplashView(
-            shouldAutoRoute: { authManager.currentUser != nil },
+            shouldAutoRoute: { Auth.auth().currentUser != nil },
             onFinished: {
                 if authManager.currentUser != nil {
                     let completed: Bool
@@ -424,12 +425,12 @@ struct PactApp: App {
                         withAnimation { showJoinShield = true }
                         return
                     }
-                    if let membership = try? await firestoreService.loadActiveMembership() {
+                    if let session = await resolveTeamSession() {
                         withAnimation {
                             firestoreService.startTeamSession(
-                                teamId: membership.teamId,
-                                teamName: membership.teamName,
-                                adminTimezone: membership.adminTimezone
+                                teamId: session.teamId,
+                                teamName: session.teamName,
+                                adminTimezone: session.adminTimezone
                             )
                             showForgePact = true
                         }
@@ -442,6 +443,18 @@ struct PactApp: App {
             }
         )
         .transition(.opacity)
+    }
+
+    private func resolveTeamSession() async -> (teamId: String, teamName: String, adminTimezone: String)? {
+        if let m = try? await firestoreService.loadActiveMembership() {
+            return (m.teamId, m.teamName, m.adminTimezone)
+        }
+        if let teamId = UserDefaults.standard.string(forKey: "app_team_id"), !teamId.isEmpty {
+            let teamName = UserDefaults.standard.string(forKey: "app_team_name") ?? "Your Team"
+            let timezone = UserDefaults.standard.string(forKey: "app_team_timezone") ?? TimeZone.current.identifier
+            return (teamId, teamName, timezone)
+        }
+        return nil
     }
 }
 
