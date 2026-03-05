@@ -46,106 +46,149 @@ export const onVoteCast = onDocumentCreated(
     const submitterUid: string = submission.submitterUid ?? submissionId.split("_")[0] ?? "";
 
     const approveCount: number = submission.approveCount ?? 0;
+    const rejectCount: number = submission.rejectCount ?? 0;
     const eligibleVoterCount: number = submission.eligibleVoterCount ?? 1;
 
     // Majority check: strictly more than half of eligible voters
-    const majority = approveCount > eligibleVoterCount / 2;
-    if (!majority) return;
+    const approveMajority = approveCount > eligibleVoterCount / 2;
+    const rejectMajority = rejectCount > eligibleVoterCount / 2;
+    if (!approveMajority && !rejectMajority) return;
 
-    // ── Submission approved ─────────────────────────────────────────────────
-    const now = Timestamp.now();
-
-    // Update submission doc
-    await submissionRef.update({
-      status: "approved",
-      approvalMethod: "peer_vote",
-      approvedAt: now,
-      appUnlocked: true,
-    });
-
-    // Increment approvedCount on dailyInstances, decrement pendingCount
     const instanceRef = db
       .collection("teams").doc(teamId)
       .collection("dailyInstances").doc(date);
-    const instanceSnap = await instanceRef.get();
-    const instance = instanceSnap.data() ?? {};
+    const now = Timestamp.now();
 
-    const newApprovedCount = (instance.approvedCount ?? 0) + 1;
-    const expectedSubmissionCount: number = instance.expectedSubmissionCount ?? instance.totalMembers ?? 1;
-    const allApproved = newApprovedCount >= expectedSubmissionCount;
+    if (approveMajority) {
+      // ── Submission approved ───────────────────────────────────────────────
 
-    await instanceRef.update({
-      approvedCount: FieldValue.increment(1),
-      pendingCount: FieldValue.increment(-1),
-      allApproved,
-    });
-
-    // Update today's summary on the team doc
-    await db.collection("teams").doc(teamId).update({
-      todayApprovedCount: FieldValue.increment(1),
-    });
-
-    // Reset the submitter's shard state on the member doc
-    await db
-      .collection("teams").doc(teamId)
-      .collection("members").doc(submitterUid)
-      .update({
-        lastApprovedDate: date,
-        consecutiveMisses: 0,
-        shardStatus: "active",
+      // Update submission doc
+      await submissionRef.update({
+        status: "approved",
+        approvalMethod: "peer_vote",
+        approvedAt: now,
+        appUnlocked: true,
       });
 
-    // FCM to the submitter
-    const submitterMemberSnap = await db
-      .collection("teams").doc(teamId)
-      .collection("members").doc(submitterUid)
-      .get();
-    const submitterFcmToken: string | null =
-      submitterMemberSnap.data()?.fcmToken ?? null;
+      // Increment approvedCount on dailyInstances, decrement pendingCount
+      const instanceSnap = await instanceRef.get();
+      const instance = instanceSnap.data() ?? {};
 
-    if (submitterFcmToken) {
-      await getMessaging().send({
-        token: submitterFcmToken,
-        notification: {
-          title: "Proof approved! 🎉",
-          body: "Your team voted you in. Keep the streak alive!",
-        },
-        data: {
-          type: "submission_approved",
-          teamId,
-          date,
-        },
+      const newApprovedCount = (instance.approvedCount ?? 0) + 1;
+      const expectedSubmissionCount: number = instance.expectedSubmissionCount ?? instance.totalMembers ?? 1;
+      const allApproved = newApprovedCount >= expectedSubmissionCount;
+
+      await instanceRef.update({
+        approvedCount: FieldValue.increment(1),
+        pendingCount: FieldValue.increment(-1),
+        allApproved,
       });
-    }
 
-    // daily_complete check — notify all members if every expected submission is approved
-    if (allApproved) {
-      const submissionsSnap = await instanceRef.collection("submissions").get();
-      const teamMembersSnap = await db
+      // Update today's summary on the team doc
+      await db.collection("teams").doc(teamId).update({
+        todayApprovedCount: FieldValue.increment(1),
+      });
+
+      // Reset the submitter's shard state on the member doc
+      await db
         .collection("teams").doc(teamId)
-        .collection("members").get();
+        .collection("members").doc(submitterUid)
+        .update({
+          lastApprovedDate: date,
+          consecutiveMisses: 0,
+          shardStatus: "active",
+        });
 
-      const allDone = submissionsSnap.docs.every((d) => {
-        const s = d.data().status as string;
-        return s === "approved" || s === "auto_approved";
-      });
+      // FCM to the submitter
+      const submitterMemberSnap = await db
+        .collection("teams").doc(teamId)
+        .collection("members").doc(submitterUid)
+        .get();
+      const submitterFcmToken: string | null =
+        submitterMemberSnap.data()?.fcmToken ?? null;
 
-      if (allDone && submissionsSnap.size >= expectedSubmissionCount) {
-        const allTokens: string[] = teamMembersSnap.docs
-          .map((d) => d.data().fcmToken as string | null)
-          .filter((t): t is string => !!t);
+      if (submitterFcmToken) {
+        await getMessaging().send({
+          token: submitterFcmToken,
+          notification: {
+            title: "Proof approved! 🎉",
+            body: "Your team voted you in. Keep the streak alive!",
+          },
+          data: {
+            type: "submission_approved",
+            teamId,
+            date,
+          },
+        });
+      }
 
-        if (allTokens.length > 0) {
-          await getMessaging().sendEachForMulticast({
-            tokens: allTokens,
-            notification: {
-              title: "Pact complete! 🔥",
-              body: "Every teammate finished today. Streak safe!",
-            },
-            data: { type: "daily_complete", teamId, date },
-          });
+      // daily_complete check — notify all members if every expected submission is approved
+      if (allApproved) {
+        const submissionsSnap = await instanceRef.collection("submissions").get();
+        const teamMembersSnap = await db
+          .collection("teams").doc(teamId)
+          .collection("members").get();
+
+        const allDone = submissionsSnap.docs.every((d) => {
+          const s = d.data().status as string;
+          return s === "approved" || s === "auto_approved";
+        });
+
+        if (allDone && submissionsSnap.size >= expectedSubmissionCount) {
+          const allTokens: string[] = teamMembersSnap.docs
+            .map((d) => d.data().fcmToken as string | null)
+            .filter((t): t is string => !!t);
+
+          if (allTokens.length > 0) {
+            await getMessaging().sendEachForMulticast({
+              tokens: allTokens,
+              notification: {
+                title: "Pact complete! 🔥",
+                body: "Every teammate finished today. Streak safe!",
+              },
+              data: { type: "daily_complete", teamId, date },
+            });
+          }
         }
       }
+
+    } else {
+      // ── Submission rejected ───────────────────────────────────────────────
+
+      await submissionRef.update({
+        status: "rejected",
+        rejectedAt: now,
+      });
+
+      await instanceRef.update({
+        rejectedCount: FieldValue.increment(1),
+        pendingCount: FieldValue.increment(-1),
+      });
+
+      // FCM to the submitter
+      const submitterMemberSnap = await db
+        .collection("teams").doc(teamId)
+        .collection("members").doc(submitterUid)
+        .get();
+      const submitterFcmToken: string | null =
+        submitterMemberSnap.data()?.fcmToken ?? null;
+
+      if (submitterFcmToken) {
+        await getMessaging().send({
+          token: submitterFcmToken,
+          notification: {
+            title: "Proof rejected",
+            body: "Your team didn't approve your submission. Try again tomorrow.",
+          },
+          data: {
+            type: "submission_rejected",
+            teamId,
+            date,
+          },
+        });
+      }
+
+      return;
     }
   }
 );
