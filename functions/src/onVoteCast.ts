@@ -119,6 +119,13 @@ export const onVoteCast = onDocumentCreated(
             teamId,
             date,
           },
+          apns: {
+            payload: {
+              aps: {
+                sound: "default",
+              },
+            },
+          },
         });
       }
 
@@ -147,6 +154,13 @@ export const onVoteCast = onDocumentCreated(
                 body: "Every teammate finished today. Streak safe!",
               },
               data: { type: "daily_complete", teamId, date },
+              apns: {
+                payload: {
+                  aps: {
+                    sound: "default",
+                  },
+                },
+              },
             });
           }
         }
@@ -184,6 +198,13 @@ export const onVoteCast = onDocumentCreated(
             type: "submission_rejected",
             teamId,
             date,
+          },
+          apns: {
+            payload: {
+              aps: {
+                sound: "default",
+              },
+            },
           },
         });
       }
