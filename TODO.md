@@ -76,14 +76,14 @@
 
 - [x] UI shell: header with nickname/avatar, progress ring, carousel cards, today's goal card
 - [x] Profile sheet trigger from avatar tap
-- [ ] Wire progress ring to today's approved / total activities ratio (replace hardcoded `ringProgress = 0.35`)
+- [x] Wire progress ring to today's approved / total activities ratio — `ShieldProgressViewModel` drives it (no hardcoded value; comment in `HomeView.swift` confirms)
 - [ ] Wire Health Score card to real weekly streak data from Firestore (replace placeholder text and `4/5`)
 - [ ] Wire Team Progress card avatars to real `FirestoreService.members` (replace `teamAvatars` mock array)
 - [x] Wire "Today's Goal" activity list to `FirestoreService.teamActivities` (joiner now sees real activities; falls back to SwiftData for admin mid-onboarding)
 - [x] Wire "Today's Goal" card completion status to `FirestoreService.todaysSubmissions` (`myCompletedActivityIds` / `myCompletedActivityNames` filter `mappedSubmissions` by uid + approved status; rows show checkmark per activity)
 - [x] Wire "Your Completion" counter and progress bar to real approved submission count (`completedCount` / `totalActivities` in `HomeView.todayGoalCard`)
 - [ ] Show today's goal name from Firestore (`currentTeam["currentGoalId"]` → goal doc)
-- [ ] "Complete Today's Task" CTA button that opens the live camera / `UploadView`
+- [x] "Complete Today's Task" CTA button that opens the live camera / `UploadView` — floating tab bar camera button sets `showUpload = true` → `fullScreenCover` presents `UploadProofView`
 - [ ] Show lock/unlock status indicator (locked until today's submission is approved)
 
 ---
@@ -148,9 +148,9 @@
 
 - [x] FCM token registration and storage in Firestore (`updateFCMToken`)
 - [x] FCM token refresh on sign-in
-- [ ] Handle incoming FCM push notification payload in `PactApp` (foreground + background)
-- [ ] Route notification taps to the correct screen: vote_needed → TeamView, submission_approved → HomeView, etc.
-- [ ] Request notification permission during onboarding (screen exists; needs to be called before FCM token retrieval)
+- [x] Handle incoming FCM push notification payload in `PactApp` (foreground + background) — `AppDelegate.willPresent` (foreground) and `didReceive` (background tap) both call `post()` which routes to `NotificationCenter.pactNotification`
+- [x] Route notification taps to the correct screen: vote_needed → TeamView, submission_approved → HomeView, etc. — `NotificationRouter.destinationTab()` maps types; `HomeScreenView.onChange(pendingTabSwitch)` switches tabs
+- [x] Request notification permission during onboarding — `OnboardingRequestNotificationsView` calls `requestAuthorization` then `registerForRemoteNotifications()`
 
 ---
 
@@ -171,7 +171,7 @@
 - [x] CF-6 `dailyStreakProcessor` — Cloud Scheduler: streak increment/break, shard states, tier upgrade, fan-out (TypeScript written)
 - [x] CF-7 `joinTeam` — validate code, atomic batch join, update eligibleVoterCount (TypeScript written)
 - [x] CF-8 `createTeam` — generate invite code, batch create team/member/invite/membership, write goals (TypeScript written)
-- [ ] Deploy all MVP Cloud Functions to Firebase (`firebase deploy --only functions`)
+- [x] Deploy all MVP Cloud Functions to Firebase — deployed in previous session (createTeam, joinTeam, leaveTeam, onSubmissionCreated, onVoteCast, onForgePactAgreement, dailyStreakProcessor, manageGoal, updateOptedInActivities)
 - [ ] Smoke-test each Cloud Function in staging environment
 - [ ] Configure Cloud Scheduler trigger for CF-6 (`dailyStreakProcessor`)
 
@@ -184,7 +184,7 @@
 - [ ] Configure GCS Object Lifecycle Management: auto-delete `proof-photos/` objects older than 30 days
 - [ ] Verify `GoogleService-Info.plist` is present and correctly configured for the app bundle ID
 - [ ] Enable Firebase Storage in Firebase Console and set storage rules
-- [ ] Configure FCM in Firebase Console (APNs certificate/key uploaded)
+- [x] Configure FCM in Firebase Console (APNs certificate/key uploaded) — Development APNs Auth Key confirmed present (Key ID: TZWVZU6S3P)
 
 ---
 
@@ -211,7 +211,7 @@
 - [ ] Loading states (skeletons or `ProgressView`) on all async data loads
 - [ ] Empty-state views: no team yet, no submissions today, no pending votes
 - [ ] App icon finalized (all required sizes)
-- [ ] Launch screen / `Info.plist` URL scheme (`pact`) registered for deep links
+- [x] Launch screen / `Info.plist` URL scheme (`pact`) registered for deep links — confirmed in `Info.plist` CFBundleURLSchemes
 - [ ] Accessibility: minimum tap targets, VoiceOver labels on icon-only buttons
 - [ ] Confirm `Info.plist` contains `NSCameraUsageDescription` for live camera access
 - [ ] Confirm `Info.plist` contains Family Controls entitlement reference for TestFlight/App Store builds
