@@ -19,19 +19,31 @@ All MVP features and their completion status are tracked in **[`TODO.md`](./TODO
 
 ## Build & Run
 
-Open in Xcode and run with ⌘R, or from the terminal:
+Open in Xcode and run with ⌘R (select your connected iPhone as the run destination in the scheme toolbar), or from the terminal:
 
 ```bash
 open Pact.xcodeproj
 ```
 
-To build from the command line:
+To build for a **connected iPhone** (device plugged in):
 
 ```bash
-xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' build
+xcodebuild -scheme Pact -destination 'generic/platform=iOS' build
 ```
 
-To run tests:
+To run on the connected device from the command line, use the device name or ID. List connected devices:
+
+```bash
+xcrun xctrace list devices
+```
+
+Then build and run (replace `Your iPhone` with your device name from the list, or use `id=UDID`):
+
+```bash
+xcodebuild -scheme Pact -destination 'platform=iOS,name=Your iPhone' build
+```
+
+To run tests (use simulator for tests unless you need device-only APIs):
 
 ```bash
 xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' test
@@ -41,6 +53,12 @@ To run a single test class:
 
 ```bash
 xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' -only-testing:PactTests/PactTests test
+```
+
+**Simulator build** (if you need to build for simulator instead):
+
+```bash
+xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' build
 ```
 
 > Features using `FamilyControls` and `ManagedSettings` (app blocking) require a **physical device** with a provisioning profile that includes the Family Controls entitlement. They cannot be tested in the simulator.

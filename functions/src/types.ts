@@ -6,7 +6,6 @@ export interface ActivityPayload {
   description: string;
   iconName: string;
   repeatDays: number[]; // 0 = Sun, 6 = Sat
-  isOptional: boolean;
   order: number;
 }
 

@@ -144,7 +144,6 @@ export const createTeam = onCall(
         description: activity.description,
         iconName: activity.iconName,
         repeatDays: activity.repeatDays,
-        isOptional: activity.isOptional,
         order: activity.order,
         restrictedAppBundleIds: [],
         familyActivitySelection: "",

@@ -33,7 +33,6 @@ export const addGoal = onCall({ region: "us-central1" }, async (request) => {
     description: payload.description,
     iconName: payload.iconName,
     repeatDays: payload.repeatDays,
-    isOptional: payload.isOptional,
     order: payload.order,
     restrictedAppBundleIds: [],
     familyActivitySelection: "",
@@ -61,7 +60,6 @@ export const updateGoal = onCall({ region: "us-central1" }, async (request) => {
     description: payload.description,
     iconName: payload.iconName,
     repeatDays: payload.repeatDays,
-    isOptional: payload.isOptional,
     order: payload.order,
   });
   return { success: true };

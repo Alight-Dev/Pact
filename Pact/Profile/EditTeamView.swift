@@ -188,9 +188,9 @@ struct EditTeamView: View {
         .presentationDragIndicator(.visible)
         // Add sheet
         .sheet(isPresented: $showingAddActivity) {
-            AddActivitySheet { name, description, iconName, repeatDays, isOptional in
+            AddActivitySheet { name, description, iconName, repeatDays in
                 addActivity(name: name, description: description,
-                            iconName: iconName, repeatDays: repeatDays, isOptional: isOptional)
+                            iconName: iconName, repeatDays: repeatDays)
                 showingAddActivity = false
             }
         }
@@ -201,11 +201,17 @@ struct EditTeamView: View {
                 description: activity.activityDescription,
                 iconName: activity.iconName,
                 repeatDays: activity.repeatDays,
-                isOptional: activity.isOptional
-            ) { name, description, iconName, repeatDays, isOptional in
+                onDelete: {
+                    deleteActivity(activity)
+                    activityToEdit = nil
+                }
+            ) { name, description, iconName, repeatDays in
+                isSaving = true
+                saveError = nil
                 updateActivity(activity, name: name, description: description,
-                               iconName: iconName, repeatDays: repeatDays, isOptional: isOptional)
-                activityToEdit = nil
+                               iconName: iconName, repeatDays: repeatDays) {
+                    activityToEdit = nil
+                }
             }
         }
         // Custom delete confirmation overlay
@@ -352,11 +358,11 @@ struct EditTeamView: View {
     // MARK: - Firestore Operations
 
     private func addActivity(name: String, description: String, iconName: String,
-                             repeatDays: [Int], isOptional: Bool) {
+                             repeatDays: [Int]) {
         guard let teamId else { return }
         let order = firestoreService.teamActivities.count
         let payload = ActivityPayload(name: name, description: description, iconName: iconName,
-                                     repeatDays: repeatDays, isOptional: isOptional, order: order)
+                                     repeatDays: repeatDays, order: order)
         isSaving = true
         saveError = nil
         Task {
@@ -370,19 +376,23 @@ struct EditTeamView: View {
     }
 
     private func updateActivity(_ activity: TeamActivity, name: String, description: String,
-                                iconName: String, repeatDays: [Int], isOptional: Bool) {
+                                iconName: String, repeatDays: [Int], onSuccess: @escaping () -> Void = {}) {
         guard let teamId else { return }
         let payload = ActivityPayload(name: name, description: description, iconName: iconName,
-                                     repeatDays: repeatDays, isOptional: isOptional, order: activity.order)
-        isSaving = true
-        saveError = nil
+                                     repeatDays: repeatDays, order: activity.order)
         Task {
             do {
                 try await firestoreService.updateGoal(teamId: teamId, goalId: activity.id, payload: payload)
+                await MainActor.run {
+                    isSaving = false
+                    onSuccess()
+                }
             } catch {
-                saveError = error.localizedDescription
+                await MainActor.run {
+                    saveError = error.localizedDescription
+                    isSaving = false
+                }
             }
-            isSaving = false
         }
     }
 
@@ -444,17 +454,6 @@ private struct TeamActivityRowView: View {
         )
         .overlay(alignment: .bottomTrailing) {
             HStack(spacing: 6) {
-                if activity.isOptional {
-                    Text("Optional")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Color(white: 0.55))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(
-                            Capsule()
-                                .fill(Color(white: 0.88))
-                        )
-                }
                 if let text = daysText {
                     Text(text)
                         .font(.system(size: 12, weight: .medium))

@@ -259,7 +259,6 @@ final class FirestoreService: ObservableObject {
                 "description": a.description,
                 "iconName": a.iconName,
                 "repeatDays": a.repeatDays,
-                "isOptional": a.isOptional,
                 "order": a.order,
             ]
         }
@@ -662,7 +661,6 @@ final class FirestoreService: ObservableObject {
                 "description": payload.description,
                 "iconName": payload.iconName,
                 "repeatDays": payload.repeatDays,
-                "isOptional": payload.isOptional,
                 "order": payload.order
             ]
         ]
@@ -679,7 +677,6 @@ final class FirestoreService: ObservableObject {
                 "description": payload.description,
                 "iconName": payload.iconName,
                 "repeatDays": payload.repeatDays,
-                "isOptional": payload.isOptional,
                 "order": payload.order
             ]
         ]
@@ -716,15 +713,13 @@ final class FirestoreService: ObservableObject {
             let iconName = data["iconName"] as? String ?? "checkmark.circle"
             let order = data["order"] as? Int ?? 0
             let repeatDays = data["repeatDays"] as? [Int] ?? []
-            let isOptional = data["isOptional"] as? Bool ?? false
 
             let activity = Activity(
                 name: name,
                 activityDescription: description,
                 iconName: iconName,
                 order: order,
-                repeatDays: repeatDays,
-                isOptional: isOptional
+                repeatDays: repeatDays
             )
             context.insert(activity)
         }
@@ -752,7 +747,6 @@ struct ActivityPayload {
     let description: String
     let iconName: String
     let repeatDays: [Int]
-    let isOptional: Bool
     let order: Int
 }
 
@@ -840,7 +834,6 @@ struct TeamActivity: Identifiable {
     let iconName: String
     let activityDescription: String
     let repeatDays: [Int]
-    let isOptional: Bool
     let order: Int
 
     init?(document: QueryDocumentSnapshot) {
@@ -851,7 +844,6 @@ struct TeamActivity: Identifiable {
         self.iconName = data["iconName"] as? String ?? "checkmark.circle"
         self.activityDescription = data["description"] as? String ?? ""
         self.repeatDays = data["repeatDays"] as? [Int] ?? []
-        self.isOptional = data["isOptional"] as? Bool ?? false
         self.order = data["order"] as? Int ?? 0
     }
 }
