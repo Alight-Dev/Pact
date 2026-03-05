@@ -9,6 +9,8 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
+import { isDayFullyApproved } from "./streakHelpers";
+import { processDateForStreak } from "./dailyStreakProcessor";
 
 const db = getFirestore();
 
@@ -71,18 +73,14 @@ export const onVoteCast = onDocumentCreated(
       });
 
       // Increment approvedCount on dailyInstances, decrement pendingCount
-      const instanceSnap = await instanceRef.get();
-      const instance = instanceSnap.data() ?? {};
-
-      const newApprovedCount = (instance.approvedCount ?? 0) + 1;
-      const expectedSubmissionCount: number = instance.expectedSubmissionCount ?? instance.totalMembers ?? 1;
-      const allApproved = newApprovedCount >= expectedSubmissionCount;
-
       await instanceRef.update({
         approvedCount: FieldValue.increment(1),
         pendingCount: FieldValue.increment(-1),
-        allApproved,
       });
+
+      // allApproved from opted-in semantics: every (member × opted-in activity) has an approved submission
+      const { allApproved } = await isDayFullyApproved(teamId, date);
+      await instanceRef.update({ allApproved });
 
       // Update today's summary on the team doc
       await db.collection("teams").doc(teamId).update({
@@ -129,9 +127,15 @@ export const onVoteCast = onDocumentCreated(
         });
       }
 
-      // daily_complete check — notify all members if every expected submission is approved
+      // When the current day becomes fully approved, process this date for streak immediately
+      // so the UI (progress wheel) updates without waiting for the nightly scheduler.
       if (allApproved) {
-        const submissionsSnap = await instanceRef.collection("submissions").get();
+        const teamSnap = await db.collection("teams").doc(teamId).get();
+        const teamData = teamSnap.data() ?? {};
+        await processDateForStreak(teamId, date, teamData, now, {
+          resetTodayCounters: false,
+        });
+
         const teamMembersSnap = await db
           .collection("teams").doc(teamId)
           .collection("members").get();
@@ -165,7 +169,6 @@ export const onVoteCast = onDocumentCreated(
           }
         }
       }
-
     } else {
       // ── Submission rejected ───────────────────────────────────────────────
 
