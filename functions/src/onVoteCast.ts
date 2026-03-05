@@ -140,33 +140,26 @@ export const onVoteCast = onDocumentCreated(
           .collection("teams").doc(teamId)
           .collection("members").get();
 
-        const allDone = submissionsSnap.docs.every((d) => {
-          const s = d.data().status as string;
-          return s === "approved" || s === "auto_approved";
-        });
+        const allTokens: string[] = teamMembersSnap.docs
+          .map((d) => d.data().fcmToken as string | null)
+          .filter((t): t is string => !!t);
 
-        if (allDone && submissionsSnap.size >= expectedSubmissionCount) {
-          const allTokens: string[] = teamMembersSnap.docs
-            .map((d) => d.data().fcmToken as string | null)
-            .filter((t): t is string => !!t);
-
-          if (allTokens.length > 0) {
-            await getMessaging().sendEachForMulticast({
-              tokens: allTokens,
-              notification: {
-                title: "Pact complete! 🔥",
-                body: "Every teammate finished today. Streak safe!",
-              },
-              data: { type: "daily_complete", teamId, date },
-              apns: {
-                payload: {
-                  aps: {
-                    sound: "default",
-                  },
+        if (allTokens.length > 0) {
+          await getMessaging().sendEachForMulticast({
+            tokens: allTokens,
+            notification: {
+              title: "Pact complete! 🔥",
+              body: "Every teammate finished today. Streak safe!",
+            },
+            data: { type: "daily_complete", teamId, date },
+            apns: {
+              payload: {
+                aps: {
+                  sound: "default",
                 },
               },
-            });
-          }
+            },
+          });
         }
       }
     } else {

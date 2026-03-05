@@ -472,7 +472,12 @@ struct TeamView: View {
             let memberTotal = member.optedInActivityIds.isEmpty
                 ? allTotal
                 : member.optedInActivityIds.count
-            let completedCount = approved.filter { $0.submitterUid == member.id }.count
+            let requiredActivityIds: Set<String> = member.optedInActivityIds.isEmpty
+                ? Set(firestoreService.teamActivities.map(\.id))
+                : Set(member.optedInActivityIds)
+            let completedCount = approved.filter {
+                $0.submitterUid == member.id && requiredActivityIds.contains($0.activityId)
+            }.count
             return ShieldMember(
                 memberName: member.nickname.isEmpty ? member.displayName : member.nickname,
                 memberAvatarAsset: member.avatarAssetName.isEmpty ? "avatar_felix" : member.avatarAssetName,
