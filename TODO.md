@@ -122,7 +122,7 @@
 
 > Requires a physical device with the Family Controls entitlement. Cannot be tested in Simulator.
 
-- [ ] Request `FamilyControls` authorization during onboarding (Screen Time access screens exist; authorization call needs wiring)
+- [x] Request `FamilyControls` authorization during onboarding (Screen Time access screens exist; authorization call needs wiring)
 - [ ] Admin: present `FamilyActivityPicker` to select apps to restrict; serialize and store `FamilyActivitySelection` in `goals/{goalId}.familyActivitySelection`
 - [ ] Member: restore `FamilyActivitySelection` from Firestore and apply via `ManagedSettings` store
 - [ ] Create `DeviceActivity` app extension target for scheduling the daily morning lock cycle
