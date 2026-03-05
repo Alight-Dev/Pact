@@ -7,6 +7,8 @@ import SwiftUI
 import FirebaseAuth
 import FirebaseFunctions
 import AuthenticationServices
+import FamilyControls
+import ManagedSettings
 
 // MARK: - Mock data (screen time & activity stats for visual pop until backend wired)
 
@@ -41,6 +43,7 @@ struct ProfileView: View {
     @State private var activeMembership: FirestoreService.ActiveMembership?
     @State private var showEditTeam = false
     @State private var showEditActivities = false
+    @State private var showEditBlockedApps = false
     @State private var showLeaveTeamConfirm = false
     @State private var showAdminPickerSheet = false
     @State private var selectedNewAdminUid: String? = nil
@@ -149,6 +152,7 @@ struct ProfileView: View {
                         isAdmin: isAdmin,
                         showEditActivities: firestoreService.currentTeamId != nil,
                         onEditActivities: { showEditActivities = true },
+                        onEditBlockedApps: { showEditBlockedApps = true },
                         onEditTeam: { showEditTeam = true },
                         onSignOut: { try? authManager.signOut() },
                         onLeaveTeam: {
@@ -264,6 +268,9 @@ struct ProfileView: View {
         .sheet(isPresented: $showEditTeam) {
             EditTeamView()
                 .environmentObject(firestoreService)
+        }
+        .sheet(isPresented: $showEditBlockedApps) {
+            EditBlockedAppsSheet()
         }
         .sheet(isPresented: $showEditActivities) {
             EditActivitiesView(
@@ -774,6 +781,7 @@ private struct ProfileSettingsSection: View {
     var isAdmin: Bool
     var showEditActivities: Bool = false
     var onEditActivities: () -> Void = {}
+    var onEditBlockedApps: () -> Void = {}
     var onEditTeam: () -> Void
     var onSignOut: () -> Void
     var onLeaveTeam: () -> Void
@@ -789,6 +797,11 @@ private struct ProfileSettingsSection: View {
                 }
                 .buttonStyle(.plain)
             }
+            Divider()
+            Button(action: onEditBlockedApps) {
+                settingsRow(title: "Edit Blocked Apps")
+            }
+            .buttonStyle(.plain)
             Divider()
             settingsRow(title: "Notifications")
             if isAdmin {
@@ -835,6 +848,140 @@ private struct ProfileSettingsSection: View {
         }
         .padding(16)
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: - EditBlockedAppsSheet
+
+private struct EditBlockedAppsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selection = FamilyActivitySelection()
+    @State private var showFamilyPicker = false
+    @State private var hasSelection = false
+
+    private var authorizationGranted: Bool {
+        AuthorizationCenter.shared.authorizationStatus == .approved
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.white.ignoresSafeArea()
+
+                VStack(spacing: 0) {
+                    Spacer()
+
+                    // Icon
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color(red: 0.94, green: 0.94, blue: 0.96))
+                        .frame(width: 64, height: 64)
+                        .overlay(
+                            Image(systemName: authorizationGranted ? "lock.iphone" : "lock.slash")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(authorizationGranted ? .black : Color(white: 0.55))
+                        )
+                        .padding(.bottom, 24)
+
+                    if authorizationGranted {
+                        // Selection summary pill
+                        if hasSelection {
+                            let appCount = selection.applications.count
+                            let catCount = selection.categories.count
+                            let parts = [
+                                catCount > 0 ? "\(catCount) \(catCount == 1 ? "category" : "categories")" : nil,
+                                appCount > 0 ? "\(appCount) \(appCount == 1 ? "app" : "apps")" : nil
+                            ].compactMap { $0 }
+                            let summaryText = parts.isEmpty ? "Selection saved" : parts.joined(separator: " · ") + " selected"
+
+                            Text(summaryText)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color(red: 0.35, green: 0.35, blue: 0.38))
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 10)
+                                .background(Capsule().fill(Color(red: 0.94, green: 0.94, blue: 0.96)))
+                                .padding(.bottom, 16)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                        } else {
+                            Text("Nothing selected yet")
+                                .font(.system(size: 14))
+                                .foregroundStyle(Color(white: 0.55))
+                                .padding(.bottom, 16)
+                        }
+
+                        Spacer()
+
+                        // Choose / Change button
+                        Button(action: { showFamilyPicker = true }) {
+                            Text(hasSelection ? "Change Selection" : "Choose Apps →")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                                .background(Capsule().fill(Color.black))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
+                    } else {
+                        Text("Screen Time access is required — you can enable it in Settings.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(white: 0.55))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+
+                        Spacer()
+                    }
+                }
+                .animation(.easeInOut(duration: 0.2), value: hasSelection)
+            }
+            .navigationTitle("Blocked Apps")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                        .fontWeight(.semibold)
+                        .disabled(!hasSelection || !authorizationGranted)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .onAppear { loadSavedSelection() }
+        .sheet(isPresented: $showFamilyPicker, onDismiss: updateHasSelection) {
+            NavigationStack {
+                FamilyActivityPicker(selection: $selection)
+                    .navigationTitle("Choose Apps")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showFamilyPicker = false }
+                                .fontWeight(.semibold)
+                        }
+                    }
+            }
+        }
+    }
+
+    private func loadSavedSelection() {
+        if let data = UserDefaults.standard.data(forKey: "familyActivitySelection"),
+           let saved = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
+            selection = saved
+        }
+        updateHasSelection()
+    }
+
+    private func updateHasSelection() {
+        hasSelection = !selection.applications.isEmpty || !selection.categories.isEmpty
+    }
+
+    private func save() {
+        if let data = try? JSONEncoder().encode(selection) {
+            UserDefaults.standard.set(data, forKey: "familyActivitySelection")
+        }
+        dismiss()
     }
 }
 

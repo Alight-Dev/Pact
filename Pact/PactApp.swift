@@ -30,6 +30,8 @@ struct PactApp: App {
     @State private var showTeamName = false
     @State private var showActivitiesSetup = false
     @State private var showCreatorActivitySelection = false
+    @State private var showAppBlocking = false
+    @State private var appBlockingGoesToTeamWelcome = false
     @State private var showTeamWelcome = false
     @State private var welcomeInviteCode = ""
     @State private var pendingTeamName = ""
@@ -80,6 +82,7 @@ struct PactApp: App {
     private var activeScreen: some View {
         if showHomeScreen { homeScreen }
         else if showTeamWelcome { teamWelcome }
+        else if showAppBlocking { appBlocking }
         else if showActivitiesSetup { activitiesSetup }
         else if showTeamName { teamName }
         else if showJoinShieldActivities { joinShieldActivities }
@@ -136,6 +139,7 @@ struct PactApp: App {
                     showHomeScreen = false
                     showJoinShieldActivities = false
                     showActivitiesSetup = false
+                    showAppBlocking = false
                     showTeamName = false
                     showTeamWelcome = false
                     welcomeInviteCode = ""
@@ -214,6 +218,23 @@ struct PactApp: App {
         .transition(.opacity)
     }
     @ViewBuilder
+    private var appBlocking: some View {
+        AppBlockingSelectionView(
+            onContinue: {
+                withAnimation {
+                    showAppBlocking = false
+                    if appBlockingGoesToTeamWelcome {
+                        showTeamWelcome = true
+                    } else {
+                        showHomeScreen = true
+                    }
+                }
+            }
+        )
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
     private var activitiesSetup: some View {
         ActivityListView(
             teamName: pendingTeamName,
@@ -221,7 +242,8 @@ struct PactApp: App {
                 withAnimation {
                     showActivitiesSetup = false
                     welcomeInviteCode = inviteCode
-                    showTeamWelcome = true
+                    appBlockingGoesToTeamWelcome = true
+                    showAppBlocking = true
                 }
             }
         )
@@ -254,7 +276,8 @@ struct PactApp: App {
             onContinue: {
                 withAnimation {
                     showJoinShieldActivities = false
-                    showHomeScreen = true
+                    appBlockingGoesToTeamWelcome = false
+                    showAppBlocking = true
                 }
             }
         )

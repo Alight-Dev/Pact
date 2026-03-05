@@ -64,6 +64,7 @@ One place to see what each screen/sheet does. **When you add a new screen or ful
 | `Pact/ActivityListView.swift` | Activities setup screen shown after onboarding when a user chooses “Create a Shield”. Users define daily activities here, then tap Continue which calls the `onContinue(inviteCode)` closure to transition to `TeamWelcomeView`. |
 | `Pact/Onboarding/TeamWelcomeView.swift` | Post-team-creation welcome screen. Animated logo entrance (rises to upper area), then content fades in: “Welcome to Pact.” heading, invite code card with copy button, “Share Invite” (optional share sheet) and “Go to Pact” (proceeds to HomeScreen). Replaces the old forced share sheet + PactLaunchView combo. |
 | `Pact/Onboarding/PactLaunchView.swift` | Post-activities splash/loading screen with maroon accents (currently unused — superseded by TeamWelcomeView). |
+| `Pact/Onboarding/AppBlockingSelectionView.swift` | App blocking setup screen shown after team creation (before TeamWelcomeView) and after activity selection when joining (before HomeScreen). Users open FamilyActivityPicker to choose which apps get locked each morning; selection saved to UserDefaults. Skippable. |
 
 ---
 
