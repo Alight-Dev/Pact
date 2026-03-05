@@ -38,11 +38,11 @@ final class FirestoreService: ObservableObject {
     @Published var currentTeam: [String: Any]?
     @Published var todaysSubmissions: [[String: Any]] = []
 
-    /// Submitter UIDs the current user has voted on this session.
+    /// Submissions the current user has voted on this session (by submission document id).
     /// Set synchronously in `TeamView.handleVote` before the async Firestore
     /// write, so it's available immediately on the next `.onAppear` call even
     /// if the write hasn't completed yet.  Cleared on `clearTeamSession()`.
-    var votedSubmitterIds: Set<String> = []
+    var votedSubmissionIds: Set<String> = []
 
     // Published, typed session state for the UI
     @Published var currentTeamId: String?
@@ -394,7 +394,7 @@ final class FirestoreService: ObservableObject {
     }
 
     /// Attaches a real-time listener to today's submissions subcollection.
-    /// Publishes updates to `todaysSubmissions`.
+    /// Publishes updates to `todaysSubmissions`. Each document's ID is merged in as "submissionId" for per-activity submission identity.
     func listenToTodaysSubmissions(teamId: String, date: String) {
         submissionsListener?.remove()
         submissionsListener = db
@@ -402,7 +402,10 @@ final class FirestoreService: ObservableObject {
             .collection("dailyInstances").document(date)
             .collection("submissions")
             .addSnapshotListener { [weak self] snapshot, _ in
-                self?.todaysSubmissions = snapshot?.documents.map { $0.data() } ?? []
+                let docs = snapshot?.documents ?? []
+                self?.todaysSubmissions = docs.map { doc in
+                    doc.data().merging(["submissionId": doc.documentID]) { _, new in new }
+                }
             }
     }
 
@@ -442,7 +445,7 @@ final class FirestoreService: ObservableObject {
         currentTeam       = nil
         members           = []
         todaysSubmissions = []
-        votedSubmitterIds.removeAll()
+        votedSubmissionIds.removeAll()
         optedInActivityIds = []
         let keys = ["app_team_id", "app_team_name", "app_team_timezone", "app_invite_code"]
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
@@ -457,7 +460,7 @@ final class FirestoreService: ObservableObject {
     /// immediately even when the `onVoteCast` Cloud Function is not deployed.
     /// Both paths are idempotent — they check `status == "pending"` first, so
     /// whichever completes first wins and the other becomes a no-op.
-    func castVote(teamId: String, date: String, submitterUid: String, vote: String) async throws {
+    func castVote(teamId: String, date: String, submissionId: String, vote: String) async throws {
         guard let voterId = Auth.auth().currentUser?.uid else { throw FirestoreServiceError.notAuthenticated }
 
         let userSnap = try await db.collection("users").document(voterId).getDocument()
@@ -466,7 +469,7 @@ final class FirestoreService: ObservableObject {
         let submissionRef = db
             .collection("teams").document(teamId)
             .collection("dailyInstances").document(date)
-            .collection("submissions").document(submitterUid)
+            .collection("submissions").document(submissionId)
 
         let voteData: [String: Any] = [
             "voterId": voterId,
@@ -492,6 +495,8 @@ final class FirestoreService: ObservableObject {
         let submissionSnap = try await submissionRef.getDocument()
         let submissionData = submissionSnap.data() ?? [:]
         guard submissionData["status"] as? String == "pending" else { return }
+
+        let submitterUid = submissionData["submitterUid"] as? String ?? ""
 
         // Use live member count − 1 as the authoritative eligible voter count.
         // This corrects submissions whose eligibleVoterCount was mistakenly
@@ -530,8 +535,9 @@ final class FirestoreService: ObservableObject {
     // MARK: - Proof Submission
 
     /// Uploads a proof photo to Firebase Storage and writes the submission document to Firestore.
+    /// Document ID is `{uid}_{activityId}` so one submission per user per activity per day.
     /// Triggers the `onSubmissionCreated` Cloud Function which sends FCM vote-needed push notifications.
-    func submitProof(teamId: String, image: UIImage, activityName: String) async throws {
+    func submitProof(teamId: String, image: UIImage, activityName: String, activityId: String) async throws {
         guard let uid = Auth.auth().currentUser?.uid else { throw FirestoreServiceError.notAuthenticated }
 
         // Fetch caller's profile for denormalized fields
@@ -546,9 +552,9 @@ final class FirestoreService: ObservableObject {
             throw FirestoreServiceError.invalidResponse
         }
 
-        // Upload to Firebase Storage: proof/{teamId}/{date}/{uid}.jpg
+        // Upload to Firebase Storage: proof/{teamId}/{date}/{uid}_{activityId}.jpg
         let dateString = Self.todayString(in: adminTimezone ?? "UTC")
-        let storagePath = "proof/\(teamId)/\(dateString)/\(uid).jpg"
+        let storagePath = "proof/\(teamId)/\(dateString)/\(uid)_\(activityId).jpg"
         let storageRef = Storage.storage().reference(withPath: storagePath)
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
@@ -560,6 +566,9 @@ final class FirestoreService: ObservableObject {
         // making majority impossible for 2-person teams: 1 > 2/2=1 is false.)
         let memberCount = max(1, members.count - 1)
 
+        // Composite doc ID: one submission per user per activity per day
+        let submissionDocId = "\(uid)_\(activityId)"
+
         // Write submission document — triggers onSubmissionCreated Cloud Function
         // Copy activity name once so we own it before any work (avoids EXC_BAD_ACCESS if caller was deallocated).
         // Use a neutral fallback so we never store "Activity" (which can be confused with a group/activity name).
@@ -568,6 +577,7 @@ final class FirestoreService: ObservableObject {
         let finalActivityName = nameToStore.isEmpty ? "Proof" : nameToStore
         let submissionData: [String: Any] = [
             "submitterUid": uid,
+            "activityId": activityId,
             "displayName": displayName,
             "nickname": nickname,
             "avatarAssetName": avatarAssetName,
@@ -583,7 +593,7 @@ final class FirestoreService: ObservableObject {
         try await db
             .collection("teams").document(teamId)
             .collection("dailyInstances").document(dateString)
-            .collection("submissions").document(uid)
+            .collection("submissions").document(submissionDocId)
             .setData(submissionData)
     }
 
@@ -730,6 +740,7 @@ struct TeamMember: Identifiable {
 struct Submission: Identifiable, Equatable {
     let id: String
     let submitterUid: String
+    let activityId: String
     let displayName: String
     let nickname: String
     let avatarAssetName: String
@@ -743,11 +754,15 @@ struct Submission: Identifiable, Equatable {
     let voterIds: [String]
 
     init?(dictionary: [String: Any]) {
-        guard let id = dictionary["uid"] as? String ?? dictionary["submitterUid"] as? String else {
-            return nil
-        }
+        // Prefer submissionId (Firestore doc ID) for per-activity submissions; fall back for legacy docs.
+        let submissionId = dictionary["submissionId"] as? String
+        let submitterUidFromData = dictionary["submitterUid"] as? String
+        let legacyUid = dictionary["uid"] as? String ?? submitterUidFromData
+
+        guard let id = submissionId ?? legacyUid else { return nil }
         self.id = id
-        self.submitterUid = id
+        self.submitterUid = submitterUidFromData ?? legacyUid ?? id
+        self.activityId = dictionary["activityId"] as? String ?? ""
         self.displayName = dictionary["displayName"] as? String ?? ""
         self.nickname = dictionary["nickname"] as? String ?? ""
         self.avatarAssetName = dictionary["avatarAssetName"] as? String ?? ""

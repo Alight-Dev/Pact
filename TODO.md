@@ -80,7 +80,7 @@
 - [ ] Wire Health Score card to real weekly streak data from Firestore (replace placeholder text and `4/5`)
 - [ ] Wire Team Progress card avatars to real `FirestoreService.members` (replace `teamAvatars` mock array)
 - [x] Wire "Today's Goal" activity list to `FirestoreService.teamActivities` (joiner now sees real activities; falls back to SwiftData for admin mid-onboarding)
-- [x] Wire "Today's Goal" card completion status to `FirestoreService.todaysSubmissions` (`myCompletedActivityNames` filters `mappedSubmissions` by uid + approved status; rows show checkmark)
+- [x] Wire "Today's Goal" card completion status to `FirestoreService.todaysSubmissions` (`myCompletedActivityIds` / `myCompletedActivityNames` filter `mappedSubmissions` by uid + approved status; rows show checkmark per activity)
 - [x] Wire "Your Completion" counter and progress bar to real approved submission count (`completedCount` / `totalActivities` in `HomeView.todayGoalCard`)
 - [ ] Show today's goal name from Firestore (`currentTeam["currentGoalId"]` → goal doc)
 - [x] "Complete Today's Task" CTA button that opens the live camera / `UploadView` — floating tab bar camera button sets `showUpload = true` → `fullScreenCover` presents `UploadProofView`
@@ -93,10 +93,10 @@
 - [x] Replace stub with live camera capture view (AVFoundation; no photo library access) — `CameraScreen.swift` with `CameraViewModel` + `AVCaptureSession`
 - [x] Enforce live camera only — no photo library picker; `UploadProofView` only renders `CameraScreen`
 - [x] Preview captured photo before submission — `ConfirmPhotoView` full-screen dark review screen
-- [x] Upload photo to Firebase Storage (`proof/{teamId}/{date}/{uid}.jpg`) — `FirestoreService.submitProof`
-- [x] Create submission document in Firestore (triggers CF-2: `onSubmissionCreated`) — `FirestoreService.submitProof`
+- [x] Upload photo to Firebase Storage (`proof/{teamId}/{date}/{uid}_{activityId}.jpg`) — `FirestoreService.submitProof`
+- [x] Create submission document in Firestore (doc ID `{uid}_{activityId}`; triggers CF-2: `onSubmissionCreated`) — `FirestoreService.submitProof`
 - [ ] Show submission status after submit: pending / approved / rejected / auto-approved (Home screen should show "Proof pending" badge if today's submission is in `pending` status)
-- [ ] Prevent re-submission if user already submitted today (check `mappedSubmissions` for existing uid doc before showing camera; show status instead)
+- [x] Prevent re-submission per activity (check `mappedSubmissions` for existing submission for same `activityId` + uid today; show error in `ConfirmPhotoView` instead of submitting)
 - [ ] "Complete Today's Task" CTA on `HomeView` todayGoalCard that opens `UploadProofView` fullScreenCover (currently card is display-only)
 
 ---
@@ -112,7 +112,7 @@
 - [x] Wire "Approve"/"Reject" swipe and button actions to `FirestoreService.castVote` — `TeamView.handleVote` calls `castVote`
 - [x] Show actual proof photo from `submission.photoURL` in vote card — `CachedProofImage(urlString: submission.photoUrl)` in both `SubmissionCard` and `HighlightCard`
 - [x] Hide vote actions on the current user's own submission (no self-approval) — `refreshPending` filters `sub.submitterUid != currentUid`
-- [x] Disable vote buttons after user has already voted on a submission — `refreshPending` checks `votedSubmitterIds` (in-session) and `sub.voterIds` (Firestore-backed)
+- [x] Disable vote buttons after user has already voted on a submission — `refreshPending` checks `votedSubmissionIds` (in-session) and `sub.voterIds` (Firestore-backed)
 - [x] Wire team name, shield tier, and streak counter in `TeamShieldHeader` to real Firestore data — `shieldDisplayName`, `ShieldTier.current(for: streakDays)`, and `streakDays` all read from `firestoreService.currentTeam`
 - [x] Replace hardcoded "Morning Forge Alliance" team description and "Emerald Tier / 12 day streak" with live data — fully live via `TeamShieldHeader` params
 

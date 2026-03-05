@@ -4,13 +4,14 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     // ── Proof photos ────────────────────────────────────────────────────────
-    // Path: proof/{teamId}/{date}/{uid}.jpg
-    // - Only authenticated users may upload their own proof photo.
+    // Path: proof/{teamId}/{date}/{uid}_{activityId}.jpg
+    // - Only authenticated users may upload their own proof (filename must be uid_activityId.jpg).
     // - File must be ≤ 10 MB and typed as image/jpeg.
+    // - Deploy after editing: firebase deploy --only storage
     match /proof/{teamId}/{date}/{filename} {
       allow read:   if request.auth != null;
       allow create: if request.auth != null
-                    && filename == request.auth.uid + '.jpg'
+                    && filename.matches('^' + request.auth.uid + '_[^/]+\\.jpg$')
                     && request.resource.size  < 10 * 1024 * 1024
                     && request.resource.contentType == 'image/jpeg';
       allow update, delete: if false;
