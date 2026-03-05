@@ -9,6 +9,9 @@ import SwiftUI
 import SwiftData
 import FirebaseCore
 import GoogleSignIn
+import os.log
+
+private let deepLinkLog = Logger(subsystem: "cmc.Pact", category: "DeepLink")
 
 @main
 struct PactApp: App {
@@ -94,25 +97,37 @@ struct PactApp: App {
         .environmentObject(firestoreService)
         .environmentObject(notificationRouter)
         .onOpenURL { url in
-            // Handle pact://join/{code} deep links.
-            // Only show join UI when user is already signed in and has completed onboarding
-            // (on home screen or shield selection). Otherwise only store the code for later.
-            if url.scheme == "pact", url.host == "join",
-               let code = url.pathComponents.last, code.count == 6 {
+            if isJoinDeepLink(url) {
+                DeepLinkManager.shared.setPendingURL(nil)
+                if let code = parseInviteCode(from: url) {
+                    deepLinkLog.info("Deep link opened: \(url.absoluteString) → code \(code)")
+                    pendingJoinCode = code
+                    withAnimation {
+                        if showHomeScreen {
+                            showJoinShieldSheet = true
+                        } else if showShieldSelection {
+                            showJoinShield = true
+                        }
+                    }
+                } else {
+                    deepLinkLog.warning("Join deep link invalid or missing code: \(url.absoluteString)")
+                }
+            } else {
+                GIDSignIn.sharedInstance.handle(url)
+            }
+        }
+        .onAppear {
+            if let url = DeepLinkManager.shared.consumePendingURL(),
+               let code = parseInviteCode(from: url) {
+                deepLinkLog.info("Processing pending deep link (cold start): \(url.absoluteString) → code \(code)")
                 pendingJoinCode = code
                 withAnimation {
                     if showHomeScreen {
-                        // Always show join sheet with code; if user is in a team,
-                        // JoinShieldView will show a warning when they tap Join Shield.
                         showJoinShieldSheet = true
                     } else if showShieldSelection {
                         showJoinShield = true
                     }
-                    // Else: Splash, onboarding, signup, etc. — only pendingJoinCode is set;
-                    // existing flows will route to join after sign-in/onboarding.
                 }
-            } else {
-                GIDSignIn.sharedInstance.handle(url)
             }
         }
         .onChange(of: authManager.currentUser) { _, user in
@@ -157,7 +172,6 @@ struct PactApp: App {
         HomeScreenView()
             .transition(.opacity)
             .sheet(isPresented: $showJoinShieldSheet, onDismiss: {
-                pendingJoinCode = ""
                 if firestoreService.currentTeamId == nil {
                     withAnimation {
                         showHomeScreen = false
@@ -168,7 +182,6 @@ struct PactApp: App {
                 JoinShieldView(
                     onBack: {
                         withAnimation { showJoinShieldSheet = false }
-                        pendingJoinCode = ""
                     },
                     onJoined: {
                         withAnimation { showJoinShieldSheet = false }
@@ -254,7 +267,6 @@ struct PactApp: App {
             onBack: {
                 withAnimation {
                     showJoinShield = false
-                    pendingJoinCode = ""
                     showShieldSelection = true
                 }
             },
