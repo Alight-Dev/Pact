@@ -192,7 +192,6 @@ struct ActivityListView: View {
                                     description: a.activityDescription,
                                     iconName: a.iconName,
                                     repeatDays: a.repeatDays,
-                                    isOptional: a.isOptional,
                                     order: a.order
                                 )
                             }
@@ -301,14 +300,13 @@ struct ActivityListView: View {
         #endif
         // Add sheet
         .sheet(isPresented: $showingAddActivity) {
-            AddActivitySheet { name, description, iconName, repeatDays, isOptional in
+            AddActivitySheet { name, description, iconName, repeatDays in
                 let activity = Activity(
                     name: name,
                     activityDescription: description,
                     iconName: iconName,
                     order: activities.count,
-                    repeatDays: repeatDays,
-                    isOptional: isOptional
+                    repeatDays: repeatDays
                 )
                 modelContext.insert(activity)
                 showingAddActivity = false
@@ -316,12 +314,16 @@ struct ActivityListView: View {
         }
         // Edit sheet — pre-fills form with the tapped activity's current values
         .sheet(item: $activityToEdit) { activity in
-            AddActivitySheet(existingActivity: activity) { name, description, iconName, repeatDays, isOptional in
+            AddActivitySheet(existingActivity: activity, onDelete: {
+                modelContext.delete(activity)
+                try? modelContext.save()
+                activityToEdit = nil
+            }) { name, description, iconName, repeatDays in
                 activity.name = name
                 activity.activityDescription = description
                 activity.iconName = iconName
                 activity.repeatDays = repeatDays
-                activity.isOptional = isOptional
+                try? modelContext.save()
                 activityToEdit = nil
             }
         }
@@ -372,17 +374,6 @@ struct ActivityRowView: View {
         // "X Days" label pinned to the bottom-right of the card
         .overlay(alignment: .bottomTrailing) {
             HStack(spacing: 6) {
-                if activity.isOptional {
-                    Text("Optional")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(Color(white: 0.55))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(
-                            Capsule()
-                                .fill(Color(white: 0.88))
-                        )
-                }
                 if let text = daysText {
                     Text(text)
                         .font(.system(size: 12, weight: .medium))
@@ -399,14 +390,15 @@ struct ActivityRowView: View {
 
 struct AddActivitySheet: View {
     var existingActivity: Activity? = nil
-    var onSave: (String, String, String, [Int], Bool) -> Void
+    var onDelete: (() -> Void)? = nil
+    var onSave: (String, String, String, [Int]) -> Void
     private var isEditing: Bool
 
     @State private var name: String
     @State private var activityDescription: String
     @State private var selectedIcon: String
     @State private var selectedDays: Set<Int>
-    @State private var isOptional: Bool
+    @State private var showDeleteConfirmation = false
     @Environment(\.dismiss) private var dismiss
 
     @FocusState private var focusedField: Field?
@@ -416,45 +408,71 @@ struct AddActivitySheet: View {
         case description
     }
 
-    init(existingActivity: Activity? = nil, onSave: @escaping (String, String, String, [Int], Bool) -> Void) {
+    init(existingActivity: Activity? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, String, String, [Int]) -> Void) {
         self.existingActivity = existingActivity
+        self.onDelete = onDelete
         self.onSave = onSave
         self.isEditing = existingActivity != nil
         _name = State(initialValue: existingActivity?.name ?? "")
         _activityDescription = State(initialValue: existingActivity?.activityDescription ?? "")
         _selectedIcon = State(initialValue: existingActivity?.iconName ?? "figure.run")
         _selectedDays = State(initialValue: Set(existingActivity?.repeatDays ?? []))
-        _isOptional = State(initialValue: existingActivity?.isOptional ?? false)
     }
 
     /// Values-based init for editing a `TeamActivity` from Firestore (no SwiftData dependency).
     init(name: String = "", description: String = "", iconName: String = "figure.run",
-         repeatDays: [Int] = [], isOptional: Bool = false,
-         onSave: @escaping (String, String, String, [Int], Bool) -> Void) {
+         repeatDays: [Int] = [],
+         onDelete: (() -> Void)? = nil,
+         onSave: @escaping (String, String, String, [Int]) -> Void) {
         self.existingActivity = nil
+        self.onDelete = onDelete
         self.onSave = onSave
         self.isEditing = !name.isEmpty
         _name = State(initialValue: name)
         _activityDescription = State(initialValue: description)
         _selectedIcon = State(initialValue: iconName)
         _selectedDays = State(initialValue: Set(repeatDays))
-        _isOptional = State(initialValue: isOptional)
     }
 
     private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
 
-    private let icons = [
-        "figure.run", "figure.walk", "figure.hiking",
-        "dumbbell.fill", "bicycle", "sun.min",
-        "book.fill", "pencil", "brain.head.profile",
-        "fork.knife", "drop.fill", "moon.fill",
-        "heart.fill", "flame.fill", "music.note",
-        "camera.fill", "paintbrush.fill", "gamecontroller.fill",
-        "briefcase.fill", "laptopcomputer", "chart.bar.fill",
-        "bed.double.fill", "person.fill", "stopwatch.fill"
+    @State private var showFullIconPicker = false
+
+    /// Icons with display names for search. First 12 used for 4×3 preview; full list for "View more" sheet.
+    private static let activityIconEntries: [(symbol: String, name: String)] = [
+        ("figure.run", "Run"), ("figure.walk", "Walk"), ("figure.hiking", "Hiking"), ("dumbbell.fill", "Dumbbell"),
+        ("bicycle", "Bicycle"), ("sun.min", "Sun"), ("book.fill", "Book"), ("pencil", "Pencil"),
+        ("brain.head.profile", "Brain"), ("fork.knife", "Food"), ("drop.fill", "Water"), ("moon.fill", "Moon"),
+        ("heart.fill", "Heart"), ("flame.fill", "Flame"), ("music.note", "Music"), ("camera.fill", "Camera"),
+        ("paintbrush.fill", "Paint"), ("gamecontroller.fill", "Gaming"), ("briefcase.fill", "Work"), ("laptopcomputer", "Laptop"),
+        ("chart.bar.fill", "Chart"), ("bed.double.fill", "Sleep"), ("person.fill", "Person"), ("stopwatch.fill", "Stopwatch"),
+        ("figure.yoga", "Yoga"), ("figure.strengthtraining.traditional", "Strength"), ("figure.outdoor.cycle", "Cycling"),
+        ("book.closed.fill", "Reading"), ("graduationcap.fill", "Study"), ("leaf.fill", "Nature"), ("cup.and.saucer.fill", "Tea"),
+        ("carrot.fill", "Vegetables"), ("fish.fill", "Fish"), ("paw.print.fill", "Pets"), ("house.fill", "Home"),
+        ("envelope.fill", "Mail"), ("phone.fill", "Phone"), ("headphones", "Headphones"), ("guitars", "Guitar"),
+        ("paintpalette.fill", "Art"), ("theatermasks.fill", "Theater"), ("binoculars.fill", "Binoculars"), ("globe", "Globe"),
+        ("map.fill", "Map"), ("figure.stand", "Stand"), ("figure.arms.open", "Meditation"), ("brain", "Mind"),
+        ("lightbulb.fill", "Idea"), ("bolt.fill", "Energy"), ("star.fill", "Star"), ("flag.fill", "Flag"),
+        ("bookmark.fill", "Bookmark"), ("tag.fill", "Tag"), ("folder.fill", "Folder"), ("doc.fill", "Document"),
+        ("hand.raised.fill", "Hand"), ("hand.thumbsup.fill", "Thumbs up"), ("heart.circle.fill", "Heart circle"), ("sparkles", "Sparkles"),
+        ("trophy.fill", "Trophy"), ("medal.fill", "Medal"), ("crown.fill", "Crown"), ("target", "Target"),
+        ("scope", "Scope"), ("cross.case.fill", "First aid"), ("pill.fill", "Medicine"), ("stethoscope", "Health"),
+        ("hands.sparkles", "Prayer"), ("leaf.circle.fill", "Leaf"), ("flame.circle.fill", "Flame circle"), ("drop.circle.fill", "Drop circle"),
+        ("wind", "Wind"), ("snowflake", "Snow"), ("cloud.sun.fill", "Weather"), ("thermometer.medium", "Temperature"),
+        ("dice.fill", "Dice"), ("puzzlepiece.extension.fill", "Puzzle"), ("paintbrush.pointed.fill", "Brush"), ("pencil.and.outline", "Write"),
+        ("highlighter", "Highlight"), ("scissors", "Scissors"), ("hammer.fill", "Hammer"), ("wrench.fill", "Wrench"),
+        ("gearshape.fill", "Settings"), ("bell.fill", "Bell"), ("alarm.fill", "Alarm"),
     ]
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 6)
+    private static let activityIconNames: [String] = activityIconEntries.map(\.symbol)
+    private static let previewIconCount = 12
+    private static let iconColumns = 4
+    private let previewColumns = Array(repeating: GridItem(.flexible(), spacing: 12), count: Self.iconColumns)
+    /// Preview shows selected icon in first slot, then up to 11 others.
+    private var previewIcons: [String] {
+        let rest = Self.activityIconNames.filter { $0 != selectedIcon }
+        return [selectedIcon] + rest.prefix(Self.previewIconCount - 1)
+    }
 
     private var trimmedName: String {
         name.trimmingCharacters(in: .whitespaces)
@@ -489,8 +507,7 @@ struct AddActivitySheet: View {
                                 trimmedName,
                                 activityDescription.trimmingCharacters(in: .whitespaces),
                                 selectedIcon,
-                                selectedDays.sorted(),
-                                isOptional
+                                selectedDays.sorted()
                             )
                         }
                     }
@@ -561,29 +578,44 @@ struct AddActivitySheet: View {
                             focusedField = .description
                         }
 
-                        // Icon picker
+                        // Icon picker — 4×3 preview + View more
                         VStack(alignment: .leading, spacing: 12) {
                             Text("ICON")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundStyle(Color(white: 0.55))
                                 .kerning(0.6)
 
-                            LazyVGrid(columns: columns, spacing: 12) {
-                                ForEach(icons, id: \.self) { icon in
+                            LazyVGrid(columns: previewColumns, spacing: 14) {
+                                ForEach(previewIcons, id: \.self) { icon in
                                     Button {
                                         focusedField = nil
                                         selectedIcon = icon
                                     } label: {
                                         Image(systemName: icon)
-                                            .font(.system(size: 20))
+                                            .font(.system(size: 28))
                                             .foregroundStyle(selectedIcon == icon ? .white : Color(white: 0.45))
-                                            .frame(width: 48, height: 48)
+                                            .frame(width: 56, height: 56)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 10)
                                                     .fill(selectedIcon == icon ? Color.black : Color(white: 0.92))
                                             )
                                     }
                                 }
+                            }
+
+                            Button {
+                                focusedField = nil
+                                showFullIconPicker = true
+                            } label: {
+                                Text("View more")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(Color(white: 0.92))
+                                    )
                             }
                         }
 
@@ -641,27 +673,27 @@ struct AddActivitySheet: View {
                             }
                         }
 
-                        // Optional toggle
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("OPTIONAL")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(Color(white: 0.55))
-                                    .kerning(0.6)
-                                Text("Members can choose whether to opt in")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Color(white: 0.55))
+                        // Delete Activity — only when editing and onDelete provided
+                        if isEditing, onDelete != nil {
+                            Button {
+                                showDeleteConfirmation = true
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Delete Activity")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.red)
+                                )
                             }
-                            Spacer()
-                            Toggle("", isOn: $isOptional)
-                                .labelsHidden()
-                                .tint(.black)
+                            .padding(.top, 8)
                         }
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(white: 0.94))
-                        )
 
                     }
                     .padding(.horizontal, 24)
@@ -674,6 +706,122 @@ struct AddActivitySheet: View {
             }
         }
         .presentationDragIndicator(.visible)
+        .alert("Delete Activity", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                onDelete?()
+                dismiss()
+            }
+        } message: {
+            Text("This activity will be permanently deleted. This cannot be undone.")
+        }
+        .sheet(isPresented: $showFullIconPicker) {
+            FullScreenIconPicker(
+                entries: Self.activityIconEntries,
+                selectedIcon: $selectedIcon,
+                onDismiss: { showFullIconPicker = false }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+}
+
+// MARK: - FullScreenIconPicker
+
+private struct FullScreenIconPicker: View {
+    let entries: [(symbol: String, name: String)]
+    @Binding var selectedIcon: String
+    var onDismiss: () -> Void
+
+    @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
+
+    /// Selected icon first, then rest (no duplicate). Filtered by search.
+    private var orderedFilteredEntries: [(symbol: String, name: String)] {
+        let filtered = searchText.isEmpty
+            ? entries
+            : entries.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        let selected = filtered.first { $0.symbol == selectedIcon }
+        let rest = filtered.filter { $0.symbol != selectedIcon }
+        if let s = selected {
+            return [s] + rest
+        }
+        return rest
+    }
+
+    var body: some View {
+        ZStack {
+            Color.white.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Top bar with trailing Done button (sheet can also be dismissed by dragging down)
+                HStack {
+                    Spacer()
+                    Button("Done") {
+                        onDismiss()
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.black)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+
+                // Search bar
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color(white: 0.55))
+                    TextField("Search icons", text: $searchText)
+                        .font(.system(size: 16))
+                        .foregroundStyle(.black)
+                        .tint(.black)
+                        .focused($isSearchFocused)
+                        .submitLabel(.search)
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(white: 0.94))
+                )
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(orderedFilteredEntries, id: \.symbol) { entry in
+                            Button {
+                                selectedIcon = entry.symbol
+                                onDismiss()
+                            } label: {
+                                VStack(spacing: 6) {
+                                    Image(systemName: entry.symbol)
+                                        .font(.system(size: 22))
+                                        .foregroundStyle(selectedIcon == entry.symbol ? .white : Color(white: 0.45))
+                                        .frame(width: 56, height: 56)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(selectedIcon == entry.symbol ? Color.black : Color(white: 0.92))
+                                        )
+                                    Text(entry.name)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(Color(white: 0.5))
+                                        .lineLimit(1)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 48)
+                }
+            }
+        }
     }
 }
 

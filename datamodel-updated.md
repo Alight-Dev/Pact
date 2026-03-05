@@ -181,7 +181,6 @@ name: string                  // mirrors Activity.name
 description: string           // mirrors Activity.activityDescription
 iconName: string              // SF Symbol — mirrors Activity.iconName
 repeatDays: number[]          // [0..6] — mirrors Activity.repeatDays
-isOptional: boolean           // mirrors Activity.isOptional
 order: number
 restrictedAppBundleIds: string[]   // chosen via FamilyControls picker
 familyActivitySelection: string    // Serialized opaque Apple Screen Time selection data to persist cross-device
