@@ -589,24 +589,32 @@ struct AddActivitySheet: View {
 
                         // Repeat Days picker
                         VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Text("Repeat Days")
-                                    .font(.system(size: 22, weight: .bold))
-                                    .foregroundStyle(.black)
+                            HStack(alignment: .bottom) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Repeat Days")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundStyle(.black)
+                                    Text("Every day")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Color(white: 0.50))
+                                }
                                 Spacer()
-                                Toggle("", isOn: Binding(
-                                    get: { selectedDays.count == 7 },
-                                    set: { on in
-                                        selectedDays = on ? Set(0...6) : []
-                                    }
-                                ))
-                                .labelsHidden()
-                                .tint(.black)
+                                let allSelected = selectedDays.count == 7
+                                Button {
+                                    selectedDays = allSelected ? [] : Set(0...6)
+                                } label: {
+                                    Text("All")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(allSelected ? .white : .black)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 7)
+                                        .background(
+                                            Capsule()
+                                                .fill(allSelected ? Color.black : Color(white: 0.88))
+                                        )
+                                }
+                                .buttonStyle(.plain)
                             }
-
-                            Text("Every day")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color(white: 0.50))
 
                             HStack(spacing: 0) {
                                 ForEach(0..<7, id: \.self) { index in
