@@ -91,19 +91,54 @@ struct ConfirmPhotoView: View {
                     .padding(.bottom, max(24, bottomInset + 8))
                 }
                 .frame(width: safeW, height: safeH)
+
+                // Custom upload-error overlay (matches app UI: white card, black text)
+                if uploadError != nil {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture { uploadError = nil }
+
+                    VStack(spacing: 0) {
+                        Text("Upload Failed")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.black)
+                            .padding(.top, 20)
+                            .padding(.horizontal, 24)
+
+                        Text(uploadError ?? "")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(Color(white: 0.45))
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 8)
+                            .padding(.horizontal, 24)
+
+                        Button {
+                            uploadError = nil
+                        } label: {
+                            Text("OK")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color.black)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 20)
+                        .padding(.bottom, 20)
+                    }
+                    .frame(maxWidth: 280)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
+                }
             }
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .ignoresSafeArea(.container)
         .statusBarHidden(true)
-        .alert("Upload Failed", isPresented: Binding(
-            get: { uploadError != nil },
-            set: { if !$0 { uploadError = nil } }
-        )) {
-            Button("OK", role: .cancel) { uploadError = nil }
-        } message: {
-            Text(uploadError ?? "")
-        }
+        .animation(.easeInOut(duration: 0.2), value: uploadError != nil)
         .sheet(isPresented: $showActivityPicker) {
             ActivitySelectionSheet(
                 activities: activities,
