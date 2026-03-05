@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct ConfirmPhotoView: View {
     @EnvironmentObject var firestoreService: FirestoreService
@@ -166,14 +167,28 @@ struct ConfirmPhotoView: View {
         Button {
             isUploading = true
             let capturedName = String(selectedActivity.name)
+            let activityId = selectedActivity.id
             guard let teamId = firestoreService.currentTeamId else {
                 uploadError = UploadError.noTeam.errorDescription
                 isUploading = false
                 return
             }
+            // Per-activity re-submission guard: don't submit if already submitted for this activity today
+            guard let uid = Auth.auth().currentUser?.uid else {
+                isUploading = false
+                return
+            }
+            let alreadySubmitted = firestoreService.mappedSubmissions.contains { sub in
+                sub.submitterUid == uid && sub.activityId == activityId
+            }
+            if alreadySubmitted {
+                uploadError = "You already submitted proof for \(selectedActivity.name) today."
+                isUploading = false
+                return
+            }
             Task {
                 do {
-                    try await firestoreService.submitProof(teamId: teamId, image: image, activityName: capturedName)
+                    try await firestoreService.submitProof(teamId: teamId, image: image, activityName: capturedName, activityId: selectedActivity.id)
                     onSuccess()
                 } catch {
                     uploadError = error.localizedDescription

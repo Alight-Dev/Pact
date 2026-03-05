@@ -1,4 +1,5 @@
 rules_version = '2';
+// Deploy after editing: firebase deploy --only firestore:rules
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -67,17 +68,22 @@ service cloud.firestore {
         allow read: if isSignedIn() && isTeamMember(teamId);
         allow write: if false;
 
-        match /submissions/{uid} {
+        match /submissions/{submissionId} {
           allow read:   if isSignedIn() && isTeamMember(teamId);
-          // Client can create their own submission with status = "pending" only
+          // Client can create their own submission: submitterUid must match auth.
+          // Allow both legacy (doc ID = uid) and per-activity (doc ID = uid_activityId) formats.
           allow create: if isSignedIn()
-            && isOwner(uid)
+            && request.resource.data.submitterUid == request.auth.uid
             && isTeamMember(teamId)
-            && request.resource.data.status == "pending";
+            && request.resource.data.status == "pending"
+            && (
+              submissionId == request.auth.uid
+              || submissionId.matches('^' + request.auth.uid + '_.+')
+            );
           // Client can re-submit (update photo/activity) while still pending —
           // allows retrying after a network error. Blocked once CF sets approved/rejected.
           allow update: if isSignedIn()
-            && isOwner(uid)
+            && resource.data.submitterUid == request.auth.uid
             && isTeamMember(teamId)
             && resource.data.status == "pending"
             && request.resource.data.status == "pending";
@@ -85,12 +91,12 @@ service cloud.firestore {
 
           match /votes/{voterId} {
             allow read:   if isSignedIn() && isTeamMember(teamId);
-            // No self-approval; no double voting (doc ID = voterId)
+            // No self-approval (voter must not be the submitter); no double voting (doc ID = voterId)
             allow create: if isSignedIn()
               && isOwner(voterId)
               && isTeamMember(teamId)
-              && voterId != uid  // uid here is the submitterUid path param
-              && !exists(/databases/$(database)/documents/teams/$(teamId)/dailyInstances/$(date)/submissions/$(uid)/votes/$(voterId));
+              && get(/databases/$(database)/documents/teams/$(teamId)/dailyInstances/$(date)/submissions/$(submissionId)).data.submitterUid != request.auth.uid
+              && !exists(/databases/$(database)/documents/teams/$(teamId)/dailyInstances/$(date)/submissions/$(submissionId)/votes/$(voterId));
             allow update, delete: if false; // Votes are immutable
           }
         }

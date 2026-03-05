@@ -101,22 +101,25 @@ async function processTeam(
         shardStatus = "active";
         consecutiveMisses = 0;
       } else {
-        // Check if this member had an approved submission yesterday
-        const submissionSnap = await db
+        // Per-activity: member is "approved" for the day if they have all required submissions approved
+        const submissionsSnap = await db
           .collection("teams").doc(teamId)
           .collection("dailyInstances").doc(yesterday)
-          .collection("submissions").doc(uid)
+          .collection("submissions")
           .get();
-        const memberApproved =
-          submissionSnap.exists &&
-          submissionSnap.data()?.status === "approved";
+        const goalsSnap = await teamRef.collection("goals").get();
+        const expectedCount = goalsSnap.size;
+        const memberApprovedSubmissions = submissionsSnap.docs.filter(
+          (d) => (d.data().submitterUid === uid || d.id.startsWith(uid + "_"))
+            && (d.data().status === "approved" || d.data().status === "auto_approved")
+        );
+        const memberApproved = expectedCount > 0 && memberApprovedSubmissions.length >= expectedCount;
 
         if (!memberApproved) {
           consecutiveMisses += 1;
           shardStatus =
             consecutiveMisses >= 2 ? "cracked" : "dimmed";
         } else {
-          // This member submitted but someone else missed — keep their shard active
           consecutiveMisses = 0;
           shardStatus = "active";
         }
@@ -143,11 +146,17 @@ async function processTeam(
   const todayRef = teamRef.collection("dailyInstances").doc(today);
   const todaySnap = await todayRef.get();
   if (!todaySnap.exists) {
+    const goalsSnap = await teamRef.collection("goals").get();
+    const activityCount = goalsSnap.size;
+    const totalMembers: number = teamData.memberCount ?? 1;
+    const expectedSubmissionCount = totalMembers * Math.max(activityCount, 1);
+
     await todayRef.set({
       teamId,
       date: today,
       goalId: teamData.currentGoalId ?? null,
-      totalMembers: teamData.memberCount ?? 1,
+      totalMembers,
+      expectedSubmissionCount,
       approvedCount: 0,
       pendingCount: 0,
       missedCount: 0,

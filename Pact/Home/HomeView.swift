@@ -314,8 +314,20 @@ struct HomeView: View {
 
     // MARK: - Submission completion helpers
 
-    /// Activity names for which the current user has a peer-approved or auto-approved
+    /// Activity IDs for which the current user has a peer-approved or auto-approved
     /// submission today. Used to tick off rows and fill the progress bar.
+    private var myCompletedActivityIds: Set<String> {
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        return Set(
+            firestoreService.mappedSubmissions
+                .filter { $0.submitterUid == uid &&
+                    ($0.status == "approved" || $0.status == "auto_approved") }
+                .map { $0.activityId }
+                .filter { !$0.isEmpty }
+        )
+    }
+
+    /// Legacy: activity names for completion when activityId is missing (e.g. SwiftData fallback or old submissions).
     private var myCompletedActivityNames: Set<String> {
         guard let uid = Auth.auth().currentUser?.uid else { return [] }
         return Set(
@@ -387,7 +399,7 @@ struct HomeView: View {
                     ForEach(displayActivities) { activity in
                         activityRow(
                             title: activity.name,
-                            completed: myCompletedActivityNames.contains(activity.name)
+                            completed: myCompletedActivityIds.contains(activity.id)
                         )
                     }
                 } else {
@@ -406,7 +418,9 @@ struct HomeView: View {
 
             // Your completion label + count
             let totalActivities = displayActivities.isEmpty ? activities.count : displayActivities.count
-            let completedCount = myCompletedActivityNames.count
+            let completedCount = displayActivities.isEmpty
+                ? myCompletedActivityNames.count
+                : myCompletedActivityIds.count
             HStack {
                 Text("Your Completion")
                     .font(.system(size: 14))

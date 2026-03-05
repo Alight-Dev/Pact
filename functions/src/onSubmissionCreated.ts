@@ -1,7 +1,7 @@
 // CF-2: onSubmissionCreated — Firestore onCreate trigger
 //
-// Fires when a member creates their daily submission.
-// 1. Lazily creates the dailyInstances/{date} doc if missing.
+// Fires when a member creates their daily submission (doc ID = uid_activityId).
+// 1. Lazily creates the dailyInstances/{date} doc if missing (with expectedSubmissionCount).
 // 2. Increments pendingCount.
 // 3. Sends FCM "vote needed" to all other members.
 
@@ -13,13 +13,15 @@ const db = getFirestore();
 
 export const onSubmissionCreated = onDocumentCreated(
   {
-    document: "teams/{teamId}/dailyInstances/{date}/submissions/{uid}",
+    document: "teams/{teamId}/dailyInstances/{date}/submissions/{submissionId}",
     region: "us-central1",
   },
   async (event) => {
-    const { teamId, date, uid } = event.params;
+    const { teamId, date, submissionId } = event.params;
     const submission = event.data?.data();
     if (!submission) return;
+
+    const submitterUid: string = submission.submitterUid ?? submissionId.split("_")[0] ?? "";
 
     const teamRef = db.collection("teams").doc(teamId);
     const instanceRef = teamRef.collection("dailyInstances").doc(date);
@@ -29,19 +31,25 @@ export const onSubmissionCreated = onDocumentCreated(
     if (!instanceSnap.exists) {
       const teamSnap = await teamRef.get();
       const teamData = teamSnap.data() ?? {};
+      const totalMembers: number = teamData.memberCount ?? 1;
+
+      // Expected submissions per day = each member × each activity
+      const goalsSnap = await teamRef.collection("goals").get();
+      const activityCount = goalsSnap.size;
+      const expectedSubmissionCount = totalMembers * Math.max(activityCount, 1);
 
       await instanceRef.set({
         teamId,
         date,
         goalId: teamData.currentGoalId ?? null,
-        totalMembers: teamData.memberCount ?? 1,
+        totalMembers,
+        expectedSubmissionCount,
         approvedCount: 0,
         pendingCount: 0,
         missedCount: 0,
         allApproved: false,
         streakProcessed: false,
         createdAt: Timestamp.now(),
-        // cutoffAt is midnight UTC of the next day; adjust if needed
         cutoffAt: Timestamp.fromDate(
           new Date(`${date}T23:59:59Z`)
         ),
@@ -56,7 +64,7 @@ export const onSubmissionCreated = onDocumentCreated(
     // 3. FCM "vote needed" to all members except the submitter
     const membersSnap = await teamRef.collection("members").get();
     const tokens: string[] = membersSnap.docs
-      .filter((d) => d.id !== uid)
+      .filter((d) => d.id !== submitterUid)
       .map((d) => d.data().fcmToken as string | null)
       .filter((t): t is string => !!t);
 
@@ -75,7 +83,7 @@ export const onSubmissionCreated = onDocumentCreated(
           type: "vote_needed",
           teamId,
           date,
-          submitterUid: uid,
+          submitterUid,
           activityName,
           submitterNickname,
         },
