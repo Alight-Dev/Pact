@@ -95,9 +95,9 @@
 - [x] Preview captured photo before submission — `ConfirmPhotoView` full-screen dark review screen
 - [x] Upload photo to Firebase Storage (`proof/{teamId}/{date}/{uid}_{activityId}.jpg`) — `FirestoreService.submitProof`
 - [x] Create submission document in Firestore (doc ID `{uid}_{activityId}`; triggers CF-2: `onSubmissionCreated`) — `FirestoreService.submitProof`
-- [ ] Show submission status after submit: pending / approved / rejected / auto-approved (Home screen should show "Proof pending" badge if today's submission is in `pending` status)
-- [x] Prevent re-submission per activity (check `mappedSubmissions` for existing submission for same `activityId` + uid today; show error in `ConfirmPhotoView` instead of submitting)
-- [ ] "Complete Today's Task" CTA on `HomeView` todayGoalCard that opens `UploadProofView` fullScreenCover (currently card is display-only)
+- [x] Show submission status after submit: pending / approved / rejected / auto-approved (Home screen shows status row with icon + approval count; taps open `SubmissionDetailView`)
+- [x] Prevent re-submission if user already submitted today (check `canSubmitToday` before showing camera; show `SubmissionDetailView` instead)
+- [x] "Complete Today's Task" CTA on `HomeView` todayGoalCard that opens `UploadProofView` fullScreenCover (currently card is display-only)
 
 ---
 

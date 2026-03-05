@@ -338,6 +338,12 @@ struct HomeView: View {
         )
     }
 
+    /// All of the current user's submissions for today (any status).
+    private var myTodaySubmissions: [Submission] {
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        return firestoreService.mappedSubmissions.filter { $0.submitterUid == uid }
+    }
+
     // MARK: - Activity row helper
 
     @ViewBuilder
@@ -357,6 +363,33 @@ struct HomeView: View {
                     .frame(width: 12, height: 2)
                     .cornerRadius(1)
             }
+        }
+    }
+
+    // MARK: - Submission status helpers
+
+    private func submissionStatusIcon(for status: String) -> String {
+        switch status {
+        case "approved", "auto_approved": return "checkmark.circle.fill"
+        case "rejected":                  return "xmark.circle.fill"
+        default:                          return "clock.fill"
+        }
+    }
+
+    private func submissionStatusColor(for status: String) -> Color {
+        switch status {
+        case "approved", "auto_approved": return Color(red: 0.10, green: 0.55, blue: 0.10)
+        case "rejected":                  return Color(red: 0.75, green: 0.15, blue: 0.10)
+        default:                          return Color(red: 0.75, green: 0.58, blue: 0.00)
+        }
+    }
+
+    private func submissionStatusText(for sub: Submission) -> String {
+        switch sub.status {
+        case "approved", "auto_approved": return "Approved — Unlocked!"
+        case "rejected":                  return "Rejected — tap + to retry"
+        default:
+            return "Pending · \(sub.approvalsReceived)/\(sub.approvalsRequired) approved"
         }
     }
 
@@ -412,6 +445,31 @@ struct HomeView: View {
                 }
             }
             .padding(.bottom, 16)
+
+            // Submission status rows (one per submission today)
+            if !myTodaySubmissions.isEmpty {
+                Divider()
+                    .padding(.bottom, 12)
+                VStack(spacing: 10) {
+                    ForEach(myTodaySubmissions) { sub in
+                        HStack(spacing: 10) {
+                            Image(systemName: submissionStatusIcon(for: sub.status))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(submissionStatusColor(for: sub.status))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(sub.activityName)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(Color(white: 0.30))
+                                Text(submissionStatusText(for: sub))
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color(white: 0.50))
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(.bottom, 14)
+            }
 
             Divider()
                 .padding(.bottom, 14)

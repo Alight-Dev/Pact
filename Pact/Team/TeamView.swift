@@ -499,6 +499,82 @@ struct TeamView: View {
         }
     }
 
+    private var myTodaySubmissions: [Submission] {
+        guard let uid = currentUid else { return [] }
+        return firestoreService.mappedSubmissions.filter { $0.submitterUid == uid }
+    }
+
+    @ViewBuilder
+    private var mySubmissionsSection: some View {
+        if !myTodaySubmissions.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("My Submissions Today")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.black)
+
+                VStack(spacing: 10) {
+                    ForEach(myTodaySubmissions) { sub in
+                        mySubmissionCard(sub)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func mySubmissionCard(_ sub: Submission) -> some View {
+        HStack(spacing: 12) {
+            // Proof photo thumbnail
+            Group {
+                if let urlString = sub.photoUrl, let url = URL(string: urlString) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        default:
+                            Color(white: 0.88)
+                        }
+                    }
+                } else {
+                    Color(white: 0.88)
+                }
+            }
+            .frame(width: 56, height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(sub.activityName)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.black)
+
+                // Status pill
+                let (pillText, pillColor) = mySubmissionPillInfo(sub)
+                Text(pillText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(pillColor, in: Capsule())
+            }
+
+            Spacer()
+        }
+        .padding(12)
+        .background(Color(white: 0.96), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func mySubmissionPillInfo(_ sub: Submission) -> (String, Color) {
+        switch sub.status {
+        case "approved", "auto_approved":
+            return ("Approved", Color(red: 0.10, green: 0.65, blue: 0.35))
+        case "rejected":
+            return ("Rejected", Color(red: 0.75, green: 0.15, blue: 0.10))
+        default:
+            let text = "Pending · \(sub.approvalsReceived)/\(sub.approvalsRequired) approved"
+            return (text, Color(red: 0.75, green: 0.58, blue: 0.00))
+        }
+    }
+
     private var shieldDisplayName: String {
         if let name = firestoreService.currentTeam?["name"] as? String {
             return name
@@ -525,10 +601,16 @@ struct TeamView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 60)
 
+                    // My submissions today
+                    mySubmissionsSection
+                        .padding(.top, 32)
+                        .padding(.horizontal, 20)
+                        .transition(.opacity)
+
                     // Pending approvals — only shown when the user has items to vote on
                     if !pendingSubmissions.isEmpty {
                         PendingApprovalsSection(submissions: $pendingSubmissions, onVote: handleVote)
-                            .padding(.top, 32)
+                            .padding(.top, myTodaySubmissions.isEmpty ? 32 : 24)
                             .padding(.horizontal, 20)
                             .transition(.opacity)
                     }
@@ -536,7 +618,7 @@ struct TeamView: View {
                     // Highlights — always visible so approved proofs are never hidden
                     // behind pending-approval cards
                     HighlightsSection(highlights: approvedSubmissions)
-                        .padding(.top, pendingSubmissions.isEmpty ? 32 : 24)
+                        .padding(.top, (pendingSubmissions.isEmpty && myTodaySubmissions.isEmpty) ? 32 : 24)
                         .padding(.horizontal, 20)
                         .transition(.opacity.combined(with: .move(edge: .trailing)))
 

@@ -20,6 +20,10 @@ struct HomeScreenView: View {
     @State private var showUpload: Bool = false
     @State private var showPactFormedOverlay: Bool = false
     @State private var previousForgeStatus: String?
+    #if DEBUG
+    @State private var debugNotifIndex: Int = 0
+    private let debugNotifTypes = ["vote_needed", "submission_approved", "daily_complete"]
+    #endif
 
     var body: some View {
         ZStack {
