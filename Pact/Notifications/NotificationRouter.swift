@@ -80,6 +80,7 @@ final class NotificationRouter: ObservableObject {
         case "vote_needed":           return "New Submission"
         case "team_joined":           return "New Teammate!"
         case "submission_approved":   return "Proof approved! 🎉"
+        case "submission_rejected":   return "Proof rejected"
         case "forge_pact_ready":      return "🛡 Pact Forged!"
         case "daily_complete":        return "Pact complete! 🔥"
         default:                      return "Pact"
@@ -97,6 +98,8 @@ final class NotificationRouter: ObservableObject {
             return "\(nick) just joined your team."
         case "submission_approved":
             return "Your team voted you in. Keep the streak alive!"
+        case "submission_rejected":
+            return "Your team didn't approve your submission. Try again tomorrow."
         case "forge_pact_ready":
             return "All members agreed. The challenge starts today — don't break it."
         case "daily_complete":
