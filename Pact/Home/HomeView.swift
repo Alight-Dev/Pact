@@ -478,7 +478,7 @@ struct HomeView: View {
             let totalActivities = displayActivities.isEmpty ? activities.count : displayActivities.count
             let completedCount = displayActivities.isEmpty
                 ? myCompletedActivityNames.count
-                : myCompletedActivityIds.intersection(firestoreService.optedInActivityIds).count
+                : myCompletedActivityIds.intersection(Set(displayActivities.map(\.id))).count
             HStack {
                 Text("Your Completion")
                     .font(.system(size: 14))
