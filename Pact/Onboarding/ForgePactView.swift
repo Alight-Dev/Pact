@@ -13,8 +13,6 @@ struct ForgePactView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var isAgreeing = false
     @State private var agreeError: String?
-    @State private var showPactFormed = false
-    @State private var hasShownPactFormedForActive = false
     /// Short delay before "I Agree" becomes clickable so the user has time to read the screen.
     @State private var agreeButtonUnlocked = false
 
@@ -27,10 +25,6 @@ struct ForgePactView: View {
     private var goalId: String? {
         firestoreService.currentTeam?["currentGoalId"] as? String
     }
-    private var goal: TeamActivity? {
-        guard let gid = goalId else { return nil }
-        return firestoreService.teamActivities.first { $0.id == gid }
-    }
     private var activities: [TeamActivity] {
         firestoreService.teamActivities
     }
@@ -39,14 +33,9 @@ struct ForgePactView: View {
         (firestoreService.currentTeam?["memberCount"] as? Int) ?? max(1, firestoreService.members.count)
     }
     private var agreedCount: Int { forgeState?.agreedCount ?? 0 }
-    private var isActive: Bool { (forgeState?.forgeStatus ?? "") == "active" }
     private var hasCurrentUserAgreed: Bool {
         guard let uid = Auth.auth().currentUser?.uid else { return false }
         return forgeState?.agreedMemberIds.contains(uid) ?? false
-    }
-    /// Show "I Agree" when goal is not active and we don't yet know they agreed (or they haven't). Avoids button disappearing during loading/race.
-    private var shouldShowAgreeButton: Bool {
-        !isActive && (forgeState == nil || !hasCurrentUserAgreed)
     }
 
     var body: some View {
@@ -171,18 +160,6 @@ struct ForgePactView: View {
                 await MainActor.run { agreeButtonUnlocked = true }
             }
         }
-        .onChange(of: isActive) { _, active in
-            if active && !hasShownPactFormedForActive {
-                hasShownPactFormedForActive = true
-                showPactFormed = true
-            }
-        }
-        .fullScreenCover(isPresented: $showPactFormed) {
-            PactFormedView(onDismiss: {
-                showPactFormed = false
-                onContinue()
-            })
-        }
     }
 
     @ViewBuilder
@@ -232,42 +209,36 @@ struct ForgePactView: View {
     @ViewBuilder
     private var bottomButtons: some View {
         VStack(spacing: 14) {
-            if isActive {
-                Text("Pact is active.")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color(white: 0.5))
-                Button(action: onContinue) {
-                    Text("Enter Pact")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
-                        .background(Capsule().fill(Color.black))
-                }
-                .buttonStyle(.plain)
-            } else {
-                if shouldShowAgreeButton {
-                    Button {
-                        agree()
-                    } label: {
-                        Text("I AGREE")
-                            .font(.system(size: 18, weight: .bold))
-                            .kerning(1.2)
-                            .foregroundStyle(agreeButtonUnlocked ? .white : .white.opacity(0.6))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            .background(Capsule().fill(Color.black.opacity(agreeButtonUnlocked ? 1 : 0.5)))
+            if !hasCurrentUserAgreed {
+                Button {
+                    agree()
+                } label: {
+                    Group {
+                        if isAgreeing {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text("I AGREE")
+                                .font(.system(size: 18, weight: .bold))
+                                .kerning(1.2)
+                        }
                     }
-                    .disabled(isAgreeing || !agreeButtonUnlocked)
-                    .buttonStyle(.plain)
+                    .foregroundStyle(agreeButtonUnlocked ? .white : .white.opacity(0.6))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(Capsule().fill(Color.black.opacity(agreeButtonUnlocked ? 1 : 0.5)))
                 }
-                Button(action: onContinue) {
-                    Text("Go to Pact")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.5))
-                }
-                .padding(.top, 2)
+                .disabled(isAgreeing || !agreeButtonUnlocked)
+                .buttonStyle(.plain)
             }
+            Button(action: onContinue) {
+                Text("Enter Pact")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(hasCurrentUserAgreed ? .white : Color(white: 0.5))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, hasCurrentUserAgreed ? 20 : 0)
+                    .background(hasCurrentUserAgreed ? Capsule().fill(Color.black) : Capsule().fill(Color.clear))
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 24)
         .padding(.top, 24)
