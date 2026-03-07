@@ -2,34 +2,62 @@
 //  ShieldConfigurationExtension.swift
 //  PactShieldConfiguration
 //
-//  Created by Yaw Snr Owusu on 3/7/26.
+//  This is the class loaded by iOS — NSExtensionPrincipalClass in Info.plist
+//  resolves to $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension.
 //
 
 import ManagedSettings
 import ManagedSettingsUI
 import UIKit
 
-// Override the functions below to customize the shields used in various situations.
-// The system provides a default appearance for any methods that your subclass doesn't override.
-// Make sure that your class name matches the NSExtensionPrincipalClass in your Info.plist.
 class ShieldConfigurationExtension: ShieldConfigurationDataSource {
+
+    // MARK: - Application shields
+
     override func configuration(shielding application: Application) -> ShieldConfiguration {
-        // Customize the shield as needed for applications.
-        ShieldConfiguration()
+        makeShieldConfiguration()
     }
-    
-    override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
-        // Customize the shield as needed for applications shielded because of their category.
-        ShieldConfiguration()
+
+    override func configuration(
+        shielding application: Application,
+        in category: ActivityCategory
+    ) -> ShieldConfiguration {
+        makeShieldConfiguration()
     }
-    
+
+    // MARK: - Web domain shields
+
     override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration {
-        // Customize the shield as needed for web domains.
-        ShieldConfiguration()
+        makeShieldConfiguration()
     }
-    
-    override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration {
-        // Customize the shield as needed for web domains shielded because of their category.
-        ShieldConfiguration()
+
+    override func configuration(
+        shielding webDomain: WebDomain,
+        in category: ActivityCategory
+    ) -> ShieldConfiguration {
+        makeShieldConfiguration()
+    }
+
+    // MARK: - Shared configuration
+
+    private func makeShieldConfiguration() -> ShieldConfiguration {
+        ShieldConfiguration(
+            backgroundBlurStyle: .systemUltraThinMaterialLight,
+            backgroundColor: .white,
+            icon: UIImage(named: "PactLogo"),
+            title: ShieldConfiguration.Label(
+                text: "Blocked by Pact",
+                color: .black
+            ),
+            subtitle: ShieldConfiguration.Label(
+                text: "Complete your tasks today to unlock this app.",
+                color: UIColor(white: 0.45, alpha: 1)
+            ),
+            primaryButtonLabel: ShieldConfiguration.Label(
+                text: "OK",
+                color: .white
+            ),
+            primaryButtonBackgroundColor: .black
+        )
     }
 }

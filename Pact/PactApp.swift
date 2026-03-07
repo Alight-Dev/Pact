@@ -164,8 +164,10 @@ struct PactApp: App {
         // the Create/Join shield screen so they can join or create a new team.
         .onChange(of: firestoreService.currentTeamId) { _, teamId in
             if let teamId, !teamId.isEmpty {
-                // User joined or resumed a team — start the morning lock schedule.
+                // User joined or resumed a team — start the morning lock schedule
+                // and apply restrictions immediately (don't wait until 6 AM).
                 AppBlockingService.shared.scheduleMorningLock()
+                AppBlockingService.shared.lock()
             } else {
                 // User left a team — cancel the schedule and clear any active lock.
                 AppBlockingService.shared.cancelSchedule()
@@ -206,6 +208,9 @@ struct PactApp: App {
             }
             if hasApproval {
                 AppBlockingService.shared.unlock()
+            } else if firestoreService.currentTeamId != nil {
+                // Re-apply lock in case ManagedSettingsStore was cleared by a reboot.
+                AppBlockingService.shared.lock()
             }
         }
     }
