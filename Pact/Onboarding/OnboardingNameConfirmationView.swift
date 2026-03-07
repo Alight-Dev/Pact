@@ -189,6 +189,7 @@ struct OnboardingNameConfirmationView: View {
                 .autocapitalization(.words)
                 .autocorrectionDisabled()
                 .focused($focusedField, equals: field)
+                .validated(by: .displayName, text: text)
                 .font(.system(size: 17))
                 .foregroundStyle(.black)
                 .padding(.horizontal, 16)

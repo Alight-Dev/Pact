@@ -159,10 +159,7 @@ struct OnboardingProfileSetupView: View {
                                 .focused($nicknameFieldFocused)
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.never)
-                                .onChange(of: nickname) { _, new in
-                                    let filtered = new.filter { $0.isLetter || $0.isNumber }
-                                    if filtered != new { nickname = filtered }
-                                }
+                                .validated(by: .nickname, text: $nickname)
 
                             Button(action: randomizeNickname) {
                                 Image(systemName: "dice.fill")

@@ -17,7 +17,7 @@ struct OnboardingTeamNameView: View {
     }
 
     private var continueEnabled: Bool {
-        !trimmedName.isEmpty
+        InputValidator.validate(trimmedName, rule: .teamName)
     }
 
     var body: some View {
@@ -106,6 +106,7 @@ struct OnboardingTeamNameView: View {
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.words)
                             .submitLabel(.done)
+                            .validated(by: .teamName, text: $teamName)
                             .onSubmit {
                                 if continueEnabled { onContinue(trimmedName) }
                             }
