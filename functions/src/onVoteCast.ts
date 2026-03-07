@@ -50,9 +50,11 @@ export const onVoteCast = onDocumentCreated(
     const approveCount: number = submission.approveCount ?? 0;
     const rejectCount: number = submission.rejectCount ?? 0;
     const eligibleVoterCount: number = submission.eligibleVoterCount ?? 1;
+    const approvalsRequired: number = submission.approvalsRequired
+      ?? (Math.floor(eligibleVoterCount / 2) + 1); // fallback for old submissions
 
-    // Majority check: strictly more than half of eligible voters
-    const approveMajority = approveCount > eligibleVoterCount / 2;
+    // Approval uses stored threshold; rejection always uses strict majority
+    const approveMajority = approveCount >= approvalsRequired;
     const rejectMajority = rejectCount > eligibleVoterCount / 2;
     if (!approveMajority && !rejectMajority) return;
 
