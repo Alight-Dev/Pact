@@ -26,10 +26,12 @@ export const createTeam = onCall(
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Sign in first.");
 
-    const { teamName, activities, adminTimezone } = request.data as {
+    const { teamName, activities, adminTimezone, approvalThreshold, allowAIFallback } = request.data as {
       teamName: string;
       activities: ActivityPayload[];
       adminTimezone: string;
+      approvalThreshold?: number;
+      allowAIFallback?: boolean;
     };
 
     if (!teamName?.trim()) throw new HttpsError("invalid-argument", "teamName is required.");
@@ -88,6 +90,8 @@ export const createTeam = onCall(
       todayApprovedCount: 0,
       todayTotalMembers: 1,
       todayDate,
+      approvalThreshold: approvalThreshold ?? 1,
+      allowAIFallback: allowAIFallback ?? true,
     });
 
     // teams/{teamId}/members/{uid}

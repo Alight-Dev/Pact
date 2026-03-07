@@ -19,8 +19,20 @@ struct EditTeamView: View {
     @State private var minApprovers: Int = 0
     @State private var activityToDelete: TeamActivity? = nil
     @State private var showDeleteWarning = false
+    @State private var teamSettingsInitialized = false
 
     private var teamId: String? { firestoreService.currentTeamId }
+
+    private func populateSettingsFromTeam(_ team: [String: Any]) {
+        guard !teamSettingsInitialized else { return }
+        teamSettingsInitialized = true
+        let raw = team["approvalThreshold"]
+        minApprovers = (raw as? Int)
+            ?? (raw as? Int64).map { Int($0) }
+            ?? (raw as? NSNumber).map { $0.intValue }
+            ?? 1
+        allowAIFallback = team["allowAIFallback"] as? Bool ?? true
+    }
 
     private func membersOptedIn(to activity: TeamActivity) -> [TeamMember] {
         firestoreService.members.filter { $0.optedInActivityIds.contains(activity.id) }
@@ -179,10 +191,34 @@ struct EditTeamView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.black)
+                    Button("Done") {
+                        Task {
+                            isSaving = true
+                            do {
+                                try await firestoreService.updateTeamSettings(
+                                    approvalThreshold: minApprovers,
+                                    allowAIFallback: allowAIFallback
+                                )
+                            } catch {
+                                saveError = error.localizedDescription
+                            }
+                            isSaving = false
+                            dismiss()
+                        }
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.black)
+                    .disabled(isSaving)
                 }
+            }
+            .onAppear {
+                if let team = firestoreService.currentTeam {
+                    populateSettingsFromTeam(team)
+                }
+            }
+            .onReceive(firestoreService.$currentTeam) { team in
+                guard let team else { return }
+                populateSettingsFromTeam(team)
             }
         }
         .presentationDragIndicator(.visible)

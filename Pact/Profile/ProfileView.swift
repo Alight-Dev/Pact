@@ -856,9 +856,23 @@ private struct ProfileSettingsSection: View {
 private struct EditBlockedAppsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selection = FamilyActivitySelection()
+    @State private var selection: FamilyActivitySelection
     @State private var showFamilyPicker = false
-    @State private var hasSelection = false
+    @State private var hasSelection: Bool
+
+    init() {
+        // Load synchronously so the very first render already shows the saved selection —
+        // avoids the "empty flash" that happens when .onAppear fires after initial layout.
+        if let data = UserDefaults(suiteName: AppBlockingService.appGroupID)?
+            .data(forKey: AppBlockingService.selectionKey),
+           let saved = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
+            _selection = State(initialValue: saved)
+            _hasSelection = State(initialValue: !saved.applications.isEmpty || !saved.categories.isEmpty)
+        } else {
+            _selection = State(initialValue: FamilyActivitySelection())
+            _hasSelection = State(initialValue: false)
+        }
+    }
 
     private var authorizationGranted: Bool {
         AuthorizationCenter.shared.authorizationStatus == .approved
@@ -949,7 +963,6 @@ private struct EditBlockedAppsSheet: View {
             }
         }
         .presentationDragIndicator(.visible)
-        .onAppear { loadSavedSelection() }
         .sheet(isPresented: $showFamilyPicker, onDismiss: updateHasSelection) {
             NavigationStack {
                 FamilyActivityPicker(selection: $selection)
@@ -966,7 +979,8 @@ private struct EditBlockedAppsSheet: View {
     }
 
     private func loadSavedSelection() {
-        if let data = UserDefaults.standard.data(forKey: "familyActivitySelection"),
+        if let data = UserDefaults(suiteName: AppBlockingService.appGroupID)?
+            .data(forKey: AppBlockingService.selectionKey),
            let saved = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
             selection = saved
         }
@@ -979,7 +993,8 @@ private struct EditBlockedAppsSheet: View {
 
     private func save() {
         if let data = try? JSONEncoder().encode(selection) {
-            UserDefaults.standard.set(data, forKey: "familyActivitySelection")
+            UserDefaults(suiteName: AppBlockingService.appGroupID)?
+                .set(data, forKey: AppBlockingService.selectionKey)
         }
         dismiss()
     }
