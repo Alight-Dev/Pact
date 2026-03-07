@@ -138,6 +138,20 @@ struct PactApp: App {
                 }
             }
         }
+        // If a deep link arrived while the app was mid-flow (e.g. ForgePact, onboarding),
+        // pendingJoinCode is set but onOpenURL couldn't navigate immediately.
+        // These observers ensure the join sheet/view is shown as soon as the app
+        // reaches the correct screen, regardless of which path got it there.
+        .onChange(of: showHomeScreen) { _, isShowing in
+            if isShowing && !pendingJoinCode.isEmpty {
+                withAnimation { showJoinShieldSheet = true }
+            }
+        }
+        .onChange(of: showShieldSelection) { _, isShowing in
+            if isShowing && !pendingJoinCode.isEmpty {
+                withAnimation { showJoinShield = true }
+            }
+        }
         .onChange(of: authManager.currentUser) { _, user in
             if user == nil {
                 withAnimation {
