@@ -30,6 +30,8 @@ struct UploadProofView: View {
                         onSuccess: { dismiss() }
                     )
                     .transition(.opacity)
+                } else if firestoreService.userActivities.isEmpty {
+                    NoActivitiesToSubmitView(onDismiss: { dismiss() })
                 } else if activityOptions.isEmpty {
                     AllSubmittedView(onDismiss: { dismiss() })
                 } else {
@@ -149,6 +151,58 @@ enum UploadError: LocalizedError {
         switch self {
         case .noTeam:
             return "No active team found. Please join or create a team first."
+        }
+    }
+}
+
+// MARK: - No activities to submit
+
+private struct NoActivitiesToSubmitView: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Image(systemName: "list.bullet.clipboard")
+                    .font(.system(size: 44))
+                    .foregroundStyle(Color(white: 0.55))
+                    .padding(.top, 32)
+
+                Text("No activities yet")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.black)
+                    .padding(.top, 16)
+                    .padding(.horizontal, 24)
+
+                Text("You don't have any activities to submit proof for yet. Join a team and add or opt in to activities first.")
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color(white: 0.45))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 8)
+                    .padding(.horizontal, 24)
+
+                Button {
+                    onDismiss()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 32)
+            }
+            .frame(maxWidth: 320)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
         }
     }
 }

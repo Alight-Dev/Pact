@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 // MARK: - Tab Definition
 
@@ -19,11 +20,28 @@ struct HomeScreenView: View {
     @State private var selectedTab: AppTab = .home
     @State private var showUpload: Bool = false
     @State private var showPactFormedOverlay: Bool = false
+    @State private var showAllDoneAlert: Bool = false
     @State private var previousForgeStatus: String?
     #if DEBUG
     @State private var debugNotifIndex: Int = 0
     private let debugNotifTypes = ["vote_needed", "submission_approved", "daily_complete"]
     #endif
+
+    /// True when every opted-in activity has an approved submission today.
+    private var allTasksCompleted: Bool {
+        guard let uid = Auth.auth().currentUser?.uid else { return false }
+        let displayActivities = firestoreService.userActivities
+        guard !displayActivities.isEmpty else { return false }
+        let completedIds = Set(
+            firestoreService.mappedSubmissions
+                .filter { $0.submitterUid == uid &&
+                    ($0.status == "approved" || $0.status == "auto_approved") }
+                .map { $0.activityId }
+                .filter { !$0.isEmpty }
+        )
+        let displayIds = Set(displayActivities.map(\.id))
+        return completedIds.isSuperset(of: displayIds)
+    }
 
     var body: some View {
         ZStack {
@@ -51,7 +69,11 @@ struct HomeScreenView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 FloatingTabBar(selectedTab: $selectedTab, onUploadTapped: {
-                    showUpload = true
+                    if allTasksCompleted {
+                        showAllDoneAlert = true
+                    } else {
+                        showUpload = true
+                    }
                 })
                 .padding(.bottom, 24)
             }
@@ -82,6 +104,11 @@ struct HomeScreenView: View {
         }
         .fullScreenCover(isPresented: $showPactFormedOverlay) {
             PactFormedView(onDismiss: { showPactFormedOverlay = false })
+        }
+        .alert("All Done!", isPresented: $showAllDoneAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("You've completed all your tasks for today. Come back tomorrow!")
         }
         .onAppear {
             previousForgeStatus = firestoreService.currentGoalForgeState?.forgeStatus
@@ -116,7 +143,7 @@ private struct FloatingTabBar: View {
                 HStack(spacing: 0) {
                     tabButton(tab: .home, icon: "house", selectedIcon: "house.fill")
 
-                    // Upload — same style as the tab buttons, no selected state
+                    // Upload
                     Button {
                         onUploadTapped()
                     } label: {

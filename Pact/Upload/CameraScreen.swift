@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 import AVFoundation
 import Combine
 
@@ -350,18 +349,23 @@ struct CameraScreen: View {
 
             Spacer()
 
-            // Center — shutter
-            Button { viewModel.capturePhoto() } label: {
+            // Center — shutter (greyed out when no activities)
+            Button {
+                guard !activities.isEmpty else { return }
+                viewModel.capturePhoto()
+            } label: {
                 ZStack {
                     Circle()
-                        .stroke(Color.white, lineWidth: 3)
+                        .stroke(activities.isEmpty ? Color.gray : Color.white, lineWidth: 3)
                         .frame(width: 80, height: 80)
                     Circle()
-                        .fill(Color.white)
+                        .fill(activities.isEmpty ? Color.gray : Color.white)
                         .frame(width: 64, height: 64)
                 }
             }
             .buttonStyle(.plain)
+            .disabled(activities.isEmpty)
+            .opacity(activities.isEmpty ? 0.6 : 1)
 
             Spacer()
 
@@ -370,18 +374,5 @@ struct CameraScreen: View {
         }
         .padding(.horizontal, 44)
     }
-}
-
-#Preview {
-    CameraScreen(
-        activities: [
-            ActivityOption(id: "run", name: "Morning Run", iconName: "figure.run"),
-            ActivityOption(id: "gym", name: "Gym", iconName: "dumbbell.fill"),
-            ActivityOption(id: "read", name: "Reading", iconName: "book.fill"),
-            ActivityOption(id: "meditate", name: "Meditate", iconName: "brain.head.profile"),
-        ],
-        onCapture: { _, _ in },
-        onDismiss: {}
-    )
 }
 
