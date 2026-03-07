@@ -424,6 +424,7 @@ private struct ShieldMembersSection: View {
 
 struct TeamView: View {
     @EnvironmentObject var firestoreService: FirestoreService
+    @State private var mySubmissionPage = 0
     @State private var pendingSubmissions: [Submission] = []
     @State private var showLeaveSheet = false
     @State private var showAdminPickerSheet = false
@@ -512,11 +513,14 @@ struct TeamView: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(.black)
 
-                VStack(spacing: 10) {
-                    ForEach(myTodaySubmissions) { sub in
+                TabView(selection: $mySubmissionPage) {
+                    ForEach(Array(myTodaySubmissions.enumerated()), id: \.element.id) { index, sub in
                         mySubmissionCard(sub)
+                            .tag(index)
                     }
                 }
+                .tabViewStyle(.page(indexDisplayMode: myTodaySubmissions.count > 1 ? .always : .never))
+                .frame(height: 84)
             }
         }
     }
