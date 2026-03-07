@@ -278,6 +278,10 @@ struct ActivityListView: View {
         .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
             Button("Delete", role: .destructive) {
                 Task {
+                    if let teamId = firestoreService.currentTeamId {
+                        try? await firestoreService.leaveTeam(teamId: teamId)
+                        firestoreService.clearTeamSession()
+                    }
                     try? await authManager.deleteAccount()
                     try? modelContext.delete(model: Activity.self)
                 }
