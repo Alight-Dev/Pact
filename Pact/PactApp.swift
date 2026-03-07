@@ -22,6 +22,7 @@ struct PactApp: App {
     @StateObject private var notificationRouter = NotificationRouter()
     @State private var showOnboarding = false
     @State private var showSignupDirect = false
+    @State private var showNameConfirmation = false
     @State private var showShieldSelection = false
     @State private var showJoinShield = false
     @State private var showJoinShieldActivities = false
@@ -92,6 +93,7 @@ struct PactApp: App {
         else if showJoinShield { joinShield }
         else if showShieldSelection { shieldSelection }
         else if showOnboarding { onboarding }
+        else if showNameConfirmation { nameConfirmation }
         else if showSignupDirect { signupDirect }
         else { splash }
     }
@@ -151,6 +153,7 @@ struct PactApp: App {
                     showJoinShield = false
                     showOnboarding = false
                     showSignupDirect = false
+                    showNameConfirmation = false
                 }
                 firestoreService.stopListeners()
             }
@@ -272,7 +275,6 @@ struct PactApp: App {
                 withAnimation {
                     showTeamName = false
                     showShieldSelection = true
-                    showForgePact = true
                 }
             },
             onContinue: { name in
@@ -364,45 +366,86 @@ struct PactApp: App {
                 }
             },
             onContinue: {
-                let completed: Bool
-                do {
-                    completed = try await firestoreService.hasCompletedOnboarding()
-                } catch {
-                    completed = false
-                }
-                if !completed {
-                    withAnimation {
-                        showSignupDirect = false
-                        showOnboarding = true
-                    }
-                    return
-                }
-                if !pendingJoinCode.isEmpty {
-                    withAnimation {
-                        showSignupDirect = false
-                        showJoinShield = true
-                    }
-                    return
-                }
-                if let session = await resolveTeamSession() {
-                    withAnimation {
-                        showSignupDirect = false
-                        firestoreService.startTeamSession(
-                            teamId: session.teamId,
-                            teamName: session.teamName,
-                            adminTimezone: session.adminTimezone
-                        )
-                        showForgePact = true
-                    }
-                } else {
-                    withAnimation {
-                        showSignupDirect = false
-                        showShieldSelection = true
-                    }
+                withAnimation {
+                    showSignupDirect = false
+                    showNameConfirmation = true
                 }
             }
         )
         .transition(.opacity)
+    }
+
+    @ViewBuilder
+    private var nameConfirmation: some View {
+        OnboardingNameConfirmationView(
+            initialFirstName: nameFromAuth().firstName,
+            initialLastName: nameFromAuth().lastName,
+            onBack: {
+                try? authManager.signOut()
+            },
+            onContinue: {
+                await routeAfterNameConfirmation()
+            }
+        )
+        .transition(.opacity)
+    }
+
+    private func nameFromAuth() -> (firstName: String, lastName: String) {
+        let parts = (authManager.currentUser?.displayName ?? "")
+            .split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+            .map(String.init)
+        return (
+            firstName: parts.first ?? "",
+            lastName: parts.dropFirst().first ?? ""
+        )
+    }
+
+    private func routeAfterNameConfirmation() async {
+        let completed: Bool
+        do {
+            completed = try await firestoreService.hasCompletedOnboarding()
+        } catch {
+            completed = false
+        }
+        await MainActor.run {
+            withAnimation {
+                showNameConfirmation = false
+            }
+        }
+        if !completed {
+            await MainActor.run {
+                withAnimation {
+                    showOnboarding = true
+                }
+            }
+            return
+        }
+        if !pendingJoinCode.isEmpty {
+            await MainActor.run {
+                withAnimation {
+                    showJoinShield = true
+                }
+            }
+            return
+        }
+        if let session = await resolveTeamSession() {
+            await MainActor.run {
+                withAnimation {
+                    firestoreService.startTeamSession(
+                        teamId: session.teamId,
+                        teamName: session.teamName,
+                        adminTimezone: session.adminTimezone
+                    )
+                    showForgePact = true
+                }
+            }
+        } else {
+            await MainActor.run {
+                withAnimation {
+                    showShieldSelection = true
+                }
+            }
+        }
     }
 
     @ViewBuilder

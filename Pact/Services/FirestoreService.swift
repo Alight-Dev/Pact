@@ -599,8 +599,9 @@ final class FirestoreService: ObservableObject {
     func submitProof(teamId: String, image: UIImage, activityName: String, activityId: String) async throws {
         guard let uid = Auth.auth().currentUser?.uid else { throw FirestoreServiceError.notAuthenticated }
 
-        // Block duplicate submissions — only rejected submissions may be retried.
-        if let existing = myTodaySubmission, existing.status != "rejected" {
+        // Block duplicate submissions for this specific activity — only rejected submissions may be retried.
+        if let existing = mappedSubmissions.first(where: { $0.submitterUid == uid && $0.activityId == activityId }),
+           existing.status != "rejected" {
             throw FirestoreServiceError.submissionAlreadyExists
         }
 
