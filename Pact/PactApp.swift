@@ -157,6 +157,11 @@ struct PactApp: App {
                     showNameConfirmation = false
                 }
                 firestoreService.stopListeners()
+            } else {
+                // User just signed in — eagerly save any pending FCM token so
+                // push notifications work immediately without waiting for a
+                // team session to start.
+                Task { await firestoreService.refreshAndSaveFCMToken() }
             }
         }
         // When clearTeamSession() sets currentTeamId to nil while the user
