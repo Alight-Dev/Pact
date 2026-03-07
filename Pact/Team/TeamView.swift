@@ -502,7 +502,22 @@ struct TeamView: View {
 
     private var myTodaySubmissions: [Submission] {
         guard let uid = currentUid else { return [] }
-        return firestoreService.mappedSubmissions.filter { $0.submitterUid == uid }
+        func statusPriority(_ status: String) -> Int {
+            switch status {
+            case "rejected":                    return 0
+            case "pending":                     return 1
+            case "approved", "auto_approved":   return 2
+            default:                            return 3
+            }
+        }
+        return firestoreService.mappedSubmissions
+            .filter { $0.submitterUid == uid }
+            .sorted {
+                let pa = statusPriority($0.status), pb = statusPriority($1.status)
+                if pa != pb { return pa < pb }
+                // Within same status: activityId is a Firestore auto-ID (roughly chronological)
+                return $0.activityId > $1.activityId
+            }
     }
 
     @ViewBuilder
@@ -519,8 +534,19 @@ struct TeamView: View {
                             .tag(index)
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: myTodaySubmissions.count > 1 ? .always : .never))
+                .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(height: 84)
+
+                if myTodaySubmissions.count > 1 {
+                    HStack(spacing: 6) {
+                        ForEach(myTodaySubmissions.indices, id: \.self) { index in
+                            Circle()
+                                .fill(index == mySubmissionPage ? Color.black : Color(white: 0.80))
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
             }
         }
     }
@@ -605,9 +631,15 @@ struct TeamView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 60)
 
+                    // Highlights — always visible at the top of the feed
+                    HighlightsSection(highlights: approvedSubmissions)
+                        .padding(.top, 32)
+                        .padding(.horizontal, 20)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+
                     // My submissions today
                     mySubmissionsSection
-                        .padding(.top, 32)
+                        .padding(.top, 24)
                         .padding(.horizontal, 20)
                         .transition(.opacity)
 
@@ -618,13 +650,6 @@ struct TeamView: View {
                             .padding(.horizontal, 20)
                             .transition(.opacity)
                     }
-
-                    // Highlights — always visible so approved proofs are never hidden
-                    // behind pending-approval cards
-                    HighlightsSection(highlights: approvedSubmissions)
-                        .padding(.top, (pendingSubmissions.isEmpty && myTodaySubmissions.isEmpty) ? 32 : 24)
-                        .padding(.horizontal, 20)
-                        .transition(.opacity.combined(with: .move(edge: .trailing)))
 
                     ShieldMembersSection(shareURL: inviteShareURL, members: membersToShow)
                         .padding(.top, 32)
@@ -642,51 +667,6 @@ struct TeamView: View {
                 refreshPending(from: firestoreService.mappedSubmissions)
             }
 
-            // Leave / Manage Team menu — top-right, aligned with the shield header
-            Menu {
-                if isAdmin && !otherMembers.isEmpty {
-                    Button("Transfer Admin & Leave", role: .destructive) {
-                        selectedNewAdminUid = nil
-                        showAdminPickerSheet = true
-                    }
-                } else {
-                    Button(
-                        isAdmin && otherMembers.isEmpty ? "Delete Team" : "Leave Team",
-                        role: .destructive
-                    ) {
-                        showLeaveSheet = true
-                    }
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 20))
-                    .foregroundStyle(.black)
-                    .padding(.trailing, 20)
-                    .padding(.top, 60)
-            }
-        }
-        .alert(
-            isAdmin && otherMembers.isEmpty ? "Delete Team?" : "Leave Team?",
-            isPresented: $showLeaveSheet
-        ) {
-            Button(isAdmin && otherMembers.isEmpty ? "Delete" : "Leave", role: .destructive) {
-                performLeave(newAdminUid: nil)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            if isAdmin && otherMembers.isEmpty {
-                Text("You are the only member. This will permanently delete the team.")
-            } else {
-                Text("You will leave this team. Other members will not be affected.")
-            }
-        }
-        .alert("Could Not Leave", isPresented: .init(
-            get: { leaveTeamError != nil },
-            set: { if !$0 { leaveTeamError = nil } }
-        )) {
-            Button("OK", role: .cancel) { leaveTeamError = nil }
-        } message: {
-            Text(leaveTeamError ?? "")
         }
         .sheet(isPresented: $showAdminPickerSheet) {
             TeamAdminPickerSheet(
