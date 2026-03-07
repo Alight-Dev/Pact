@@ -547,11 +547,7 @@ struct AddActivitySheet: View {
                                 .foregroundStyle(.black)
                                 .tint(.black)
                                 .textInputAutocapitalization(.sentences)
-                                .onChange(of: name) { _, newValue in
-                                    if newValue.count > 20 {
-                                        name = String(newValue.prefix(20))
-                                    }
-                                }
+                                .validated(by: .activityName, text: $name)
                                 .padding(16)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
