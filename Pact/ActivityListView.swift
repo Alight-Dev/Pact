@@ -196,7 +196,9 @@ struct ActivityListView: View {
                                         let result = try await firestoreService.createTeam(
                                             name: resolvedName,
                                             activities: payloads,
-                                            timezone: TimeZone.current.identifier
+                                            timezone: TimeZone.current.identifier,
+                                            approvalThreshold: minApprovers,
+                                            allowAIFallback: allowAIFallback
                                         )
                                         await MainActor.run {
                                             firestoreService.startTeamSession(

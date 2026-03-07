@@ -181,27 +181,35 @@ struct OnboardingNameConfirmationView: View {
     @ViewBuilder
     private func nameField(placeholder: String, text: Binding<String>, field: Field) -> some View {
         let isFocused = focusedField == field
-        TextField(placeholder, text: text)
-            .textContentType(field == .firstName ? .givenName : .familyName)
-            .autocapitalization(.words)
-            .autocorrectionDisabled()
-            .focused($focusedField, equals: field)
-            .font(.system(size: 17))
-            .foregroundStyle(.black)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(white: 0.94))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(
-                        isFocused ? Color.black : Color.black.opacity(0.08),
-                        lineWidth: isFocused ? 2 : 1
-                    )
-            )
-            .accessibilityHint("Editable. \(placeholder)")
+        Button {
+            focusedField = field
+        } label: {
+            TextField(placeholder, text: text)
+                .textContentType(field == .firstName ? .givenName : .familyName)
+                .autocapitalization(.words)
+                .autocorrectionDisabled()
+                .focused($focusedField, equals: field)
+                .font(.system(size: 17))
+                .foregroundStyle(.black)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 18)
+                .frame(maxWidth: .infinity, minHeight: 56)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(white: 0.94))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(
+                    isFocused ? Color.black : Color.black.opacity(0.08),
+                    lineWidth: isFocused ? 2 : 1
+                )
+        )
+        .accessibilityHint("Editable. \(placeholder)")
+        .accessibilityAddTraits(.isButton)
     }
 }
 

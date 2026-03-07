@@ -156,6 +156,15 @@ final class FirestoreService: ObservableObject {
 
     // MARK: - FCM Token
 
+    /// Fetches the current FCM token and writes it to Firestore.
+    /// Call this as soon as the user is authenticated (e.g. right after sign-in)
+    /// to close the race window where the token fires before auth is ready.
+    func refreshAndSaveFCMToken() async {
+        if let token = try? await Messaging.messaging().token() {
+            await updateFCMToken(token)
+        }
+    }
+
     /// Appends the FCM token to the user's `fcmTokens` array.
     /// Also keeps every active member doc's `fcmToken` field in sync so Cloud
     /// Functions always have a fresh token, regardless of whether currentTeamId
@@ -264,7 +273,7 @@ final class FirestoreService: ObservableObject {
 
     /// Calls the `createTeam` Cloud Function.
     /// Returns the new team ID and the 6-digit invite code.
-    func createTeam(name: String, activities: [ActivityPayload], timezone: String) async throws -> CreateTeamResult {
+    func createTeam(name: String, activities: [ActivityPayload], timezone: String, approvalThreshold: Int, allowAIFallback: Bool) async throws -> CreateTeamResult {
         let callable = functions.httpsCallable("createTeam")
 
         let activityData: [[String: Any]] = activities.map { a in
@@ -281,6 +290,8 @@ final class FirestoreService: ObservableObject {
             "teamName": name,
             "activities": activityData,
             "adminTimezone": timezone,
+            "approvalThreshold": approvalThreshold,
+            "allowAIFallback": allowAIFallback,
         ])
 
         guard
@@ -290,6 +301,14 @@ final class FirestoreService: ObservableObject {
         else { throw FirestoreServiceError.invalidResponse }
 
         return CreateTeamResult(teamId: teamId, inviteCode: inviteCode)
+    }
+
+    func updateTeamSettings(approvalThreshold: Int, allowAIFallback: Bool) async throws {
+        guard let teamId = currentTeamId else { throw FirestoreServiceError.notAuthenticated }
+        try await db.collection("teams").document(teamId).updateData([
+            "approvalThreshold": approvalThreshold,
+            "allowAIFallback": allowAIFallback,
+        ])
     }
 
     // MARK: - Team Join (CF-7)
@@ -557,19 +576,17 @@ final class FirestoreService: ObservableObject {
 
         let submitterUid = submissionData["submitterUid"] as? String ?? ""
 
-        // Use live member count − 1 as the authoritative eligible voter count.
-        // This corrects submissions whose eligibleVoterCount was mistakenly
-        // stored as members.count (which includes the non-voting submitter).
-        let effectiveEligibleVoterCount = max(1, members.count - 1)
-
         // Count approve votes directly from the subcollection
         let votesSnap = try await submissionRef.collection("votes").getDocuments()
         let approveCount = votesSnap.documents.filter {
             $0.data()["vote"] as? String == "approve"
         }.count
 
-        // Majority: strictly more than half of eligible voters
-        guard Double(approveCount) > Double(effectiveEligibleVoterCount) / 2.0 else { return }
+        let eligibleVoterCount = submissionData["eligibleVoterCount"] as? Int ?? max(1, members.count - 1)
+        let approvalsRequired = submissionData["approvalsRequired"] as? Int
+            ?? (eligibleVoterCount / 2 + 1)
+
+        guard approveCount >= approvalsRequired else { return }
 
         // Mark submission approved
         try? await submissionRef.updateData([
@@ -629,7 +646,17 @@ final class FirestoreService: ObservableObject {
         // Eligible voters = everyone except the submitter themselves.
         // (Bug fix: previously used members.count which included the submitter,
         // making majority impossible for 2-person teams: 1 > 2/2=1 is false.)
-        let memberCount = max(1, members.count - 1)
+        let eligibleVoterCount = max(1, members.count - 1)
+
+        // Read the team's approval threshold and compute approvalsRequired
+        let teamSnap = try await db.collection("teams").document(teamId).getDocument()
+        let approvalThreshold = teamSnap.data()?["approvalThreshold"] as? Int ?? 1
+        let approvalsRequired: Int
+        switch approvalThreshold {
+        case 0: approvalsRequired = 1
+        case 2: approvalsRequired = eligibleVoterCount
+        default: approvalsRequired = eligibleVoterCount / 2 + 1
+        }
 
         // Composite doc ID: one submission per user per activity per day
         let submissionDocId = "\(uid)_\(activityId)"
@@ -652,7 +679,8 @@ final class FirestoreService: ObservableObject {
             "approveCount": 0,
             "rejectCount": 0,
             "voteCount": 0,
-            "eligibleVoterCount": memberCount,
+            "eligibleVoterCount": eligibleVoterCount,
+            "approvalsRequired": approvalsRequired,
             "createdAt": FieldValue.serverTimestamp(),
         ]
         try await db
