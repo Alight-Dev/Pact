@@ -15,6 +15,8 @@ struct ForgePactView: View {
     @State private var agreeError: String?
     @State private var showPactFormed = false
     @State private var hasShownPactFormedForActive = false
+    /// Short delay before "I Agree" becomes clickable so the user has time to read the screen.
+    @State private var agreeButtonUnlocked = false
 
     private var teamId: String? { firestoreService.currentTeamId }
     private var teamName: String {
@@ -28,6 +30,9 @@ struct ForgePactView: View {
     private var goal: TeamActivity? {
         guard let gid = goalId else { return nil }
         return firestoreService.teamActivities.first { $0.id == gid }
+    }
+    private var activities: [TeamActivity] {
+        firestoreService.teamActivities
     }
     private var forgeState: GoalForgeState? { firestoreService.currentGoalForgeState }
     private var memberCount: Int {
@@ -108,48 +113,25 @@ struct ForgePactView: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                // Goal summary (what they're committing to) — label as "Daily commitment" not as the main title
-                if let goal = goal {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("DAILY COMMITMENT")
-                            .font(.system(size: 10, weight: .bold))
-                            .kerning(1.2)
-                            .foregroundStyle(Color(white: 0.5))
-                        HStack(spacing: 14) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color.black)
-                                    .frame(width: 48, height: 48)
-                                Image(systemName: goal.iconName)
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(.white)
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(goal.name)
-                                    .font(.system(size: 17, weight: .bold))
-                                    .foregroundStyle(.black)
-                                if !goal.activityDescription.isEmpty {
-                                    Text(goal.activityDescription)
-                                        .font(.system(size: 13))
-                                        .foregroundStyle(Color(white: 0.5))
-                                        .lineLimit(2)
-                                }
-                            }
-                            Spacer(minLength: 0)
+                // Daily commitment: all activities, scrollable when more than 5
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("DAILY COMMITMENT")
+                        .font(.system(size: 10, weight: .bold))
+                        .kerning(1.2)
+                        .foregroundStyle(Color(white: 0.5))
+                        .padding(.horizontal, 24)
+
+                    if activities.count > 5 {
+                        ScrollView(.vertical, showsIndicators: true) {
+                            dailyCommitmentCards
+                                .padding(.bottom, 8)
                         }
-                        .padding(18)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color(white: 0.96))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
-                                )
-                        )
+                        .frame(maxHeight: 280)
+                    } else {
+                        dailyCommitmentCards
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, isCompact ? 20 : 36)
                 }
+                .padding(.top, isCompact ? 20 : 36)
 
                 // Live counter + clarify they can leave anytime
                 Text("\(agreedCount) of \(memberCount) members have agreed")
@@ -182,6 +164,13 @@ struct ForgePactView: View {
             }
         }
         .ignoresSafeArea(edges: .bottom)
+        .onAppear {
+            agreeButtonUnlocked = false
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                await MainActor.run { agreeButtonUnlocked = true }
+            }
+        }
         .onChange(of: isActive) { _, active in
             if active && !hasShownPactFormedForActive {
                 hasShownPactFormedForActive = true
@@ -194,6 +183,50 @@ struct ForgePactView: View {
                 onContinue()
             })
         }
+    }
+
+    @ViewBuilder
+    private var dailyCommitmentCards: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(activities) { activity in
+                activityCard(activity)
+            }
+        }
+        .padding(.horizontal, 24)
+    }
+
+    private func activityCard(_ activity: TeamActivity) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.black)
+                    .frame(width: 48, height: 48)
+                Image(systemName: activity.iconName)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(activity.name)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.black)
+                if !activity.activityDescription.isEmpty {
+                    Text(activity.activityDescription)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(white: 0.5))
+                        .lineLimit(2)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(white: 0.96))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
+                )
+        )
     }
 
     @ViewBuilder
@@ -217,23 +250,15 @@ struct ForgePactView: View {
                     Button {
                         agree()
                     } label: {
-                        Group {
-                            if isAgreeing {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .tint(.white)
-                            } else {
-                                Text("I AGREE")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .kerning(1.2)
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
-                        .background(Capsule().fill(Color.black))
+                        Text("I AGREE")
+                            .font(.system(size: 18, weight: .bold))
+                            .kerning(1.2)
+                            .foregroundStyle(agreeButtonUnlocked ? .white : .white.opacity(0.6))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 20)
+                            .background(Capsule().fill(Color.black.opacity(agreeButtonUnlocked ? 1 : 0.5)))
                     }
-                    .disabled(isAgreeing)
+                    .disabled(isAgreeing || !agreeButtonUnlocked)
                     .buttonStyle(.plain)
                 }
                 Button(action: onContinue) {
