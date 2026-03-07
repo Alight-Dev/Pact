@@ -61,6 +61,10 @@ export const createTeam = onCall(
     const now = Timestamp.now();
     const todayDate = todayInTimezone(adminTimezone || "UTC");
 
+    // Pre-compute all goal refs so currentGoalId is known before the batch starts.
+    const goalRefs = activities.map(() => teamRef.collection("goals").doc());
+    const firstGoalId = goalRefs[0].id;
+
     // Write everything atomically
     const batch = db.batch();
 
@@ -73,7 +77,7 @@ export const createTeam = onCall(
       memberCount: 1,
       maxMembers: 5,
       createdAt: now,
-      currentGoalId: null, // set after first goal is created below
+      currentGoalId: firstGoalId,
       dailyCutoffUTC: 0,
       adminTimezone: adminTimezone || "UTC",
       shieldTier: tierForStreak(0),
@@ -133,10 +137,8 @@ export const createTeam = onCall(
     });
 
     // Create goal docs for each activity
-    let firstGoalId: string | null = null;
     for (const [i, activity] of activities.entries()) {
-      const goalRef = teamRef.collection("goals").doc();
-      if (i === 0) firstGoalId = goalRef.id;
+      const goalRef = goalRefs[i];
       batch.set(goalRef, {
         goalId: goalRef.id,
         teamId,
@@ -155,11 +157,6 @@ export const createTeam = onCall(
         activatedAt: null,
         createdBy: uid,
       });
-    }
-
-    // Back-fill currentGoalId on the team doc
-    if (firstGoalId) {
-      batch.update(teamRef, { currentGoalId: firstGoalId });
     }
 
     await batch.commit();
