@@ -31,12 +31,16 @@ struct ActivityListView: View {
     @State private var showDebugSheet: Bool = false
     @State private var showDeleteAccountAlert = false
 
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.white.ignoresSafeArea()
+    /// Height of one activity row (card + spacing). Used to size the activities region.
+    private static let activityRowHeight: CGFloat = 88
+    private static let activityRowSpacing: CGFloat = 10
+    /// Show first 4 activities without scrolling; 5+ use this max height and scroll.
+    private static let activitiesScrollMaxHeight: CGFloat = (4 * activityRowHeight) + (3 * activityRowSpacing) + 16
 
-            List {
-                // Scrollable header row
+    var body: some View {
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                // 1. Fixed header
                 HStack(spacing: 10) {
                     Text("Activities")
                         .font(.system(size: 38, weight: .bold))
@@ -69,10 +73,11 @@ struct ActivityListView: View {
                         #endif
                     }
                 }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 16, leading: 24, bottom: 36, trailing: 24))
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
 
+                // 2. Bounded activities area: fits first 4 without scroll; 5+ scroll inside same max height
                 if activities.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "list.bullet.rectangle")
@@ -86,193 +91,177 @@ struct ActivityListView: View {
                             .foregroundStyle(Color(white: 0.65))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 60)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets())
-                } else {
-                    ForEach(activities) { activity in
-                        Button {
-                            activityToEdit = activity
-                        } label: {
-                            ActivityRowView(activity: activity)
-                                .contentShape(Rectangle())
+                    .frame(height: min(200, geo.size.height * 0.28))
+                    .padding(.horizontal, 20)
+                } else if activities.count <= 4 {
+                    // 1–4 activities: no scroll, container grows to fit (no blank gap)
+                    VStack(spacing: Self.activityRowSpacing) {
+                        ForEach(activities) { activity in
+                            activityRowButton(activity)
                         }
-                        .buttonStyle(.plain)
-                        // Swipe right → reveal Delete button
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                modelContext.delete(activity)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                                    .foregroundStyle(.black)
-                            }
-                        }
-                        // Swipe left → reveal Edit button
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button {
-                                activityToEdit = activity
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                                    .foregroundStyle(.black)
-                            }
-                            .tint(Color(white: 0.55))
-                        }
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                } else {
+                    // 5+: fixed-height scroll
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(spacing: Self.activityRowSpacing) {
+                            ForEach(activities) { activity in
+                                activityRowButton(activity)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 8)
+                    }
+                    .frame(maxHeight: Self.activitiesScrollMaxHeight)
                 }
 
-                // MARK: Initial Conditions card
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("INITIAL CONDITIONS")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.55))
-                        .kerning(0.6)
-                        .padding(.bottom, 14)
+                Spacer(minLength: 16)
 
-                    // AI fallback row
-                    HStack {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Allow AI fallback")
+                // 3. Fixed bottom section: never blocked, predetermined area
+                VStack(spacing: 0) {
+                    // Initial Conditions card
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("INITIAL CONDITIONS")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.55))
+                            .kerning(0.6)
+                            .padding(.bottom, 14)
+
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Allow AI fallback")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.black)
+                                Text("Auto-verifies after ~2–3 hrs of peer inactivity")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color(white: 0.55))
+                            }
+                            Spacer()
+                            Toggle("", isOn: $allowAIFallback)
+                                .labelsHidden()
+                                .tint(.black)
+                        }
+                        .padding(.bottom, 16)
+
+                        Divider()
+                            .padding(.bottom, 14)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Minimum required approvers")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(.black)
-                            Text("Auto-verifies after ~2–3 hrs of peer inactivity")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color(white: 0.55))
+                            ApproverSegmentedPicker(selection: $minApprovers)
                         }
-                        Spacer()
-                        Toggle("", isOn: $allowAIFallback)
-                            .labelsHidden()
-                            .tint(.black)
                     }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.white)
+                            .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
+                    )
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 16)
 
-                    Divider()
-                        .padding(.bottom, 14)
-
-                    // Min approvers row
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Minimum required approvers")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.black)
-                        ApproverSegmentedPicker(selection: $minApprovers)
+                    if let error = createTeamError {
+                        Text(error)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.red.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 12)
                     }
-                }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.white)
-                        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 3)
-                )
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20))
 
-                // Bottom padding so the last card isn't hidden behind the Add button
-                Color.clear
-                    .frame(height: 90)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets())
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-
-            VStack(spacing: 12) {
-                if let onContinue {
-                    VStack(spacing: 6) {
-                        Button {
-                            isCreatingTeam = true
-                            createTeamError = nil
-                            let payloads = activities.map { a in
-                                ActivityPayload(
-                                    name: a.name,
-                                    description: a.activityDescription,
-                                    iconName: a.iconName,
-                                    repeatDays: a.repeatDays,
-                                    order: a.order
-                                )
-                            }
-                            let resolvedName = teamName.isEmpty
-                                ? (authManager.currentUser?.displayName?
-                                    .components(separatedBy: " ").first.map { "\($0)'s Shield" } ?? "My Shield")
-                                : teamName
-                            Task {
-                                do {
-                                    let result = try await firestoreService.createTeam(
-                                        name: resolvedName,
-                                        activities: payloads,
-                                        timezone: TimeZone.current.identifier
+                    // Full-width button row: Continue (65%) + Add Activity (plus, green outline)
+                    HStack(spacing: 12) {
+                        if let onContinue {
+                            Button {
+                                isCreatingTeam = true
+                                createTeamError = nil
+                                let payloads = activities.map { a in
+                                    ActivityPayload(
+                                        name: a.name,
+                                        description: a.activityDescription,
+                                        iconName: a.iconName,
+                                        repeatDays: a.repeatDays,
+                                        order: a.order
                                     )
-                                    await MainActor.run {
-                                        firestoreService.startTeamSession(
-                                            teamId: result.teamId,
-                                            teamName: resolvedName,
-                                            adminTimezone: TimeZone.current.identifier
+                                }
+                                let resolvedName = teamName.isEmpty
+                                    ? (authManager.currentUser?.displayName?
+                                        .components(separatedBy: " ").first.map { "\($0)'s Shield" } ?? "My Shield")
+                                    : teamName
+                                Task {
+                                    do {
+                                        let result = try await firestoreService.createTeam(
+                                            name: resolvedName,
+                                            activities: payloads,
+                                            timezone: TimeZone.current.identifier
                                         )
-                                        onContinue(result.inviteCode)
+                                        await MainActor.run {
+                                            firestoreService.startTeamSession(
+                                                teamId: result.teamId,
+                                                teamName: resolvedName,
+                                                adminTimezone: TimeZone.current.identifier
+                                            )
+                                            onContinue(result.inviteCode)
+                                        }
+                                    } catch {
+                                        createTeamError = error.localizedDescription
                                     }
-                                } catch {
-                                    createTeamError = error.localizedDescription
+                                    isCreatingTeam = false
                                 }
-                                isCreatingTeam = false
-                            }
-                        } label: {
-                            Group {
-                                if isCreatingTeam {
-                                    ProgressView()
-                                        .progressViewStyle(.circular)
-                                        .tint(.white)
-                                } else {
-                                    Text("Continue")
-                                        .font(.system(size: 17, weight: .semibold))
+                            } label: {
+                                Group {
+                                    if isCreatingTeam {
+                                        ProgressView()
+                                            .progressViewStyle(.circular)
+                                            .tint(.white)
+                                    } else {
+                                        Text("Continue")
+                                            .font(.system(size: 17, weight: .semibold))
+                                    }
                                 }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(activities.isEmpty || isCreatingTeam ? Color(white: 0.9) : Color.black)
+                                )
+                                .foregroundStyle(activities.isEmpty || isCreatingTeam ? Color(white: 0.7) : .white)
                             }
+                            .disabled(activities.isEmpty || isCreatingTeam)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(activities.isEmpty || isCreatingTeam ? Color(white: 0.9) : Color.black)
-                            )
-                            .foregroundStyle(activities.isEmpty || isCreatingTeam ? Color(white: 0.7) : .white)
                         }
-                        .disabled(activities.isEmpty || isCreatingTeam)
 
-                        if let error = createTeamError {
-                            Text(error)
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color.red.opacity(0.8))
-                                .multilineTextAlignment(.center)
+                        Button {
+                            showingAddActivity = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundStyle(Color(red: 0.2, green: 0.65, blue: 0.4))
+                                .frame(width: 56, height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .strokeBorder(Color(red: 0.2, green: 0.65, blue: 0.4), lineWidth: 2)
+                                        )
+                                )
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Add Activity")
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 40)
                 }
-
-                // Fixed Add Activity button
-                Button {
-                    showingAddActivity = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .semibold))
-                        Text("Add Activity")
-                            .font(.system(size: 17, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.black)
-                    )
-                }
+                .background(Color.white)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 48)
         }
+        .background(Color.white.ignoresSafeArea())
+        .scrollDismissesKeyboard(.immediately)
         #if DEBUG
-        // TODO: Remove debug account controls before production.
         .confirmationDialog(
             "Debug Account Actions",
             isPresented: $showDebugSheet,
@@ -302,7 +291,6 @@ struct ActivityListView: View {
             Text("This permanently deletes your account and resets the app. You cannot undo this.")
         }
         #endif
-        // Add sheet
         .sheet(isPresented: $showingAddActivity) {
             AddActivitySheet { name, description, iconName, repeatDays in
                 let activity = Activity(
@@ -316,7 +304,6 @@ struct ActivityListView: View {
                 showingAddActivity = false
             }
         }
-        // Edit sheet — pre-fills form with the tapped activity's current values
         .sheet(item: $activityToEdit) { activity in
             AddActivitySheet(existingActivity: activity, onDelete: {
                 modelContext.delete(activity)
@@ -329,6 +316,29 @@ struct ActivityListView: View {
                 activity.repeatDays = repeatDays
                 try? modelContext.save()
                 activityToEdit = nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func activityRowButton(_ activity: Activity) -> some View {
+        Button {
+            activityToEdit = activity
+        } label: {
+            ActivityRowView(activity: activity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                activityToEdit = activity
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            Button(role: .destructive) {
+                modelContext.delete(activity)
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
         }
     }
