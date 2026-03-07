@@ -104,6 +104,18 @@ final class AuthManager: ObservableObject {
         currentUser = authResult.user
     }
 
+    /// Updates the current user's display name in Firebase Auth.
+    /// Use after the user confirms or edits their name (e.g. on name confirmation screen).
+    func updateDisplayName(_ fullName: String) async throws {
+        guard let user = Auth.auth().currentUser else { return }
+        let trimmed = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed != (user.displayName ?? "") else { return }
+        let request = user.createProfileChangeRequest()
+        request.displayName = trimmed.isEmpty ? nil : trimmed
+        try await request.commitChanges()
+        currentUser = Auth.auth().currentUser
+    }
+
     // MARK: - Sign Out
 
     var providerID: String? {
