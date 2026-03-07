@@ -156,6 +156,15 @@ final class FirestoreService: ObservableObject {
 
     // MARK: - FCM Token
 
+    /// Fetches the current FCM token and writes it to Firestore.
+    /// Call this as soon as the user is authenticated (e.g. right after sign-in)
+    /// to close the race window where the token fires before auth is ready.
+    func refreshAndSaveFCMToken() async {
+        if let token = try? await Messaging.messaging().token() {
+            await updateFCMToken(token)
+        }
+    }
+
     /// Appends the FCM token to the user's `fcmTokens` array.
     /// Also keeps every active member doc's `fcmToken` field in sync so Cloud
     /// Functions always have a fresh token, regardless of whether currentTeamId
