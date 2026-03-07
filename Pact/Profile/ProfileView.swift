@@ -966,7 +966,8 @@ private struct EditBlockedAppsSheet: View {
     }
 
     private func loadSavedSelection() {
-        if let data = UserDefaults.standard.data(forKey: "familyActivitySelection"),
+        if let data = UserDefaults(suiteName: AppBlockingService.appGroupID)?
+            .data(forKey: AppBlockingService.selectionKey),
            let saved = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
             selection = saved
         }
@@ -979,7 +980,8 @@ private struct EditBlockedAppsSheet: View {
 
     private func save() {
         if let data = try? JSONEncoder().encode(selection) {
-            UserDefaults.standard.set(data, forKey: "familyActivitySelection")
+            UserDefaults(suiteName: AppBlockingService.appGroupID)?
+                .set(data, forKey: AppBlockingService.selectionKey)
         }
         dismiss()
     }

@@ -195,7 +195,8 @@ struct AppBlockingSelectionView: View {
 
     private func saveAndContinue() {
         if let data = try? JSONEncoder().encode(selection) {
-            UserDefaults.standard.set(data, forKey: "familyActivitySelection")
+            UserDefaults(suiteName: AppBlockingService.appGroupID)?
+                .set(data, forKey: AppBlockingService.selectionKey)
         }
         onContinue()
     }

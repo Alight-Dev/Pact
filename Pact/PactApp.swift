@@ -11,6 +11,7 @@ import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
 import os.log
+import UIKit
 
 private let deepLinkLog = Logger(subsystem: "cmc.Pact", category: "DeepLink")
 
@@ -159,6 +160,14 @@ struct PactApp: App {
         // is on the home screen (e.g. after leaving a team), route them to
         // the Create/Join shield screen so they can join or create a new team.
         .onChange(of: firestoreService.currentTeamId) { _, teamId in
+            if let teamId, !teamId.isEmpty {
+                // User joined or resumed a team — start the morning lock schedule.
+                AppBlockingService.shared.scheduleMorningLock()
+            } else {
+                // User left a team — cancel the schedule and clear any active lock.
+                AppBlockingService.shared.cancelSchedule()
+                AppBlockingService.shared.unlock()
+            }
             // Skip mid-join: if the join sheet is open, the leave→join sequence
             // is in progress — don't route away. onDismiss handles the fallback.
             if teamId == nil && showHomeScreen && !showJoinShieldSheet {
@@ -171,6 +180,29 @@ struct PactApp: App {
         .onReceive(NotificationCenter.default.publisher(for: .fcmTokenRefreshed)) { note in
             if let token = note.userInfo?["token"] as? String {
                 Task { await firestoreService.updateFCMToken(token) }
+            }
+        }
+        // Unlock apps the moment any activity is approved for the current user.
+        .onChange(of: firestoreService.mappedSubmissions) { _, submissions in
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            let hasApproval = submissions.contains {
+                $0.submitterUid == uid &&
+                ($0.status == "approved" || $0.status == "auto_approved")
+            }
+            if hasApproval {
+                AppBlockingService.shared.unlock()
+            }
+        }
+        // Re-check on foreground: if the morning lock fired while the app was
+        // closed but the user already had an approval today, unlock immediately.
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            let hasApproval = firestoreService.mappedSubmissions.contains {
+                $0.submitterUid == uid &&
+                ($0.status == "approved" || $0.status == "auto_approved")
+            }
+            if hasApproval {
+                AppBlockingService.shared.unlock()
             }
         }
     }

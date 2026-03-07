@@ -15,6 +15,11 @@
 		3699CFEB2F5168EC00F0ABFD /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 3699CFEA2F5168EC00F0ABFD /* FirebaseStorage */; };
 		3699CFED2F5168F400F0ABFD /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 3699CFEC2F5168F400F0ABFD /* FirebaseMessaging */; };
 		3699CFF22F516E8F00F0ABFD /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 3699CFF12F516E8F00F0ABFD /* FirebaseFunctions */; };
+		60F4D8E22F5CD9EF006830B1 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60F4D8E12F5CD9EF006830B1 /* DeviceActivity.framework */; };
+		60F4D8EA2F5CD9EF006830B1 /* PactDeviceActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 60F4D8E02F5CD9EF006830B1 /* PactDeviceActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		60F4D8F62F5CDA24006830B1 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60F4D8F52F5CDA24006830B1 /* ManagedSettings.framework */; };
+		60F4D8F82F5CDA24006830B1 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60F4D8F72F5CDA24006830B1 /* ManagedSettingsUI.framework */; };
+		60F4D9002F5CDA24006830B1 /* PactShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 60F4D8F42F5CDA24006830B1 /* PactShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,12 +37,46 @@
 			remoteGlobalIDString = 6008C12B2F4EA89200B03AD8;
 			remoteInfo = Pact;
 		};
+		60F4D8E82F5CD9EF006830B1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6008C1242F4EA89200B03AD8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 60F4D8DF2F5CD9EF006830B1;
+			remoteInfo = PactDeviceActivityMonitor;
+		};
+		60F4D8FE2F5CDA24006830B1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6008C1242F4EA89200B03AD8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 60F4D8F32F5CDA24006830B1;
+			remoteInfo = PactShieldConfiguration;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		60F4D8EF2F5CD9EF006830B1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				60F4D9002F5CDA24006830B1 /* PactShieldConfiguration.appex in Embed Foundation Extensions */,
+				60F4D8EA2F5CD9EF006830B1 /* PactDeviceActivityMonitor.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		6008C12C2F4EA89200B03AD8 /* Pact.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pact.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6008C13B2F4EA89400B03AD8 /* PactTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PactTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6008C1452F4EA89400B03AD8 /* PactUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PactUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		60F4D8E02F5CD9EF006830B1 /* PactDeviceActivityMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PactDeviceActivityMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		60F4D8E12F5CD9EF006830B1 /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
+		60F4D8F42F5CDA24006830B1 /* PactShieldConfiguration.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PactShieldConfiguration.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		60F4D8F52F5CDA24006830B1 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		60F4D8F72F5CDA24006830B1 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -47,6 +86,20 @@
 				Info.plist,
 			);
 			target = 6008C12B2F4EA89200B03AD8 /* Pact */;
+		};
+		60F4D8EE2F5CD9EF006830B1 /* Exceptions for "PactDeviceActivityMonitor" folder in "PactDeviceActivityMonitor" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 60F4D8DF2F5CD9EF006830B1 /* PactDeviceActivityMonitor */;
+		};
+		60F4D9042F5CDA24006830B1 /* Exceptions for "PactShieldConfiguration" folder in "PactShieldConfiguration" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 60F4D8F32F5CDA24006830B1 /* PactShieldConfiguration */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -67,6 +120,22 @@
 		6008C1482F4EA89400B03AD8 /* PactUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = PactUITests;
+			sourceTree = "<group>";
+		};
+		60F4D8E32F5CD9EF006830B1 /* PactDeviceActivityMonitor */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				60F4D8EE2F5CD9EF006830B1 /* Exceptions for "PactDeviceActivityMonitor" folder in "PactDeviceActivityMonitor" target */,
+			);
+			path = PactDeviceActivityMonitor;
+			sourceTree = "<group>";
+		};
+		60F4D8F92F5CDA24006830B1 /* PactShieldConfiguration */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				60F4D9042F5CDA24006830B1 /* Exceptions for "PactShieldConfiguration" folder in "PactShieldConfiguration" target */,
+			);
+			path = PactShieldConfiguration;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -101,12 +170,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		60F4D8DD2F5CD9EF006830B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				60F4D8E22F5CD9EF006830B1 /* DeviceActivity.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		60F4D8F12F5CDA24006830B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				60F4D8F62F5CDA24006830B1 /* ManagedSettings.framework in Frameworks */,
+				60F4D8F82F5CDA24006830B1 /* ManagedSettingsUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		363B1FB92F50D44400952765 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				60F4D8E12F5CD9EF006830B1 /* DeviceActivity.framework */,
+				60F4D8F52F5CDA24006830B1 /* ManagedSettings.framework */,
+				60F4D8F72F5CDA24006830B1 /* ManagedSettingsUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -117,6 +206,8 @@
 				6008C12E2F4EA89200B03AD8 /* Pact */,
 				6008C13E2F4EA89400B03AD8 /* PactTests */,
 				6008C1482F4EA89400B03AD8 /* PactUITests */,
+				60F4D8E32F5CD9EF006830B1 /* PactDeviceActivityMonitor */,
+				60F4D8F92F5CDA24006830B1 /* PactShieldConfiguration */,
 				363B1FB92F50D44400952765 /* Frameworks */,
 				6008C12D2F4EA89200B03AD8 /* Products */,
 			);
@@ -128,6 +219,8 @@
 				6008C12C2F4EA89200B03AD8 /* Pact.app */,
 				6008C13B2F4EA89400B03AD8 /* PactTests.xctest */,
 				6008C1452F4EA89400B03AD8 /* PactUITests.xctest */,
+				60F4D8E02F5CD9EF006830B1 /* PactDeviceActivityMonitor.appex */,
+				60F4D8F42F5CDA24006830B1 /* PactShieldConfiguration.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -142,10 +235,13 @@
 				6008C1282F4EA89200B03AD8 /* Sources */,
 				6008C1292F4EA89200B03AD8 /* Frameworks */,
 				6008C12A2F4EA89200B03AD8 /* Resources */,
+				60F4D8EF2F5CD9EF006830B1 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				60F4D8E92F5CD9EF006830B1 /* PBXTargetDependency */,
+				60F4D8FF2F5CDA24006830B1 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				6008C12E2F4EA89200B03AD8 /* Pact */,
@@ -211,6 +307,50 @@
 			productReference = 6008C1452F4EA89400B03AD8 /* PactUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		60F4D8DF2F5CD9EF006830B1 /* PactDeviceActivityMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 60F4D8EB2F5CD9EF006830B1 /* Build configuration list for PBXNativeTarget "PactDeviceActivityMonitor" */;
+			buildPhases = (
+				60F4D8DC2F5CD9EF006830B1 /* Sources */,
+				60F4D8DD2F5CD9EF006830B1 /* Frameworks */,
+				60F4D8DE2F5CD9EF006830B1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				60F4D8E32F5CD9EF006830B1 /* PactDeviceActivityMonitor */,
+			);
+			name = PactDeviceActivityMonitor;
+			packageProductDependencies = (
+			);
+			productName = PactDeviceActivityMonitor;
+			productReference = 60F4D8E02F5CD9EF006830B1 /* PactDeviceActivityMonitor.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		60F4D8F32F5CDA24006830B1 /* PactShieldConfiguration */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 60F4D9012F5CDA24006830B1 /* Build configuration list for PBXNativeTarget "PactShieldConfiguration" */;
+			buildPhases = (
+				60F4D8F02F5CDA24006830B1 /* Sources */,
+				60F4D8F12F5CDA24006830B1 /* Frameworks */,
+				60F4D8F22F5CDA24006830B1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				60F4D8F92F5CDA24006830B1 /* PactShieldConfiguration */,
+			);
+			name = PactShieldConfiguration;
+			packageProductDependencies = (
+			);
+			productName = PactShieldConfiguration;
+			productReference = 60F4D8F42F5CDA24006830B1 /* PactShieldConfiguration.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -218,7 +358,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					6008C12B2F4EA89200B03AD8 = {
@@ -231,6 +371,12 @@
 					6008C1442F4EA89400B03AD8 = {
 						CreatedOnToolsVersion = 26.2;
 						TestTargetID = 6008C12B2F4EA89200B03AD8;
+					};
+					60F4D8DF2F5CD9EF006830B1 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					60F4D8F32F5CDA24006830B1 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -255,6 +401,8 @@
 				6008C12B2F4EA89200B03AD8 /* Pact */,
 				6008C13A2F4EA89400B03AD8 /* PactTests */,
 				6008C1442F4EA89400B03AD8 /* PactUITests */,
+				60F4D8DF2F5CD9EF006830B1 /* PactDeviceActivityMonitor */,
+				60F4D8F32F5CDA24006830B1 /* PactShieldConfiguration */,
 			);
 		};
 /* End PBXProject section */
@@ -275,6 +423,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6008C1432F4EA89400B03AD8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		60F4D8DE2F5CD9EF006830B1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		60F4D8F22F5CDA24006830B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -305,6 +467,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		60F4D8DC2F5CD9EF006830B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		60F4D8F02F5CDA24006830B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -317,6 +493,16 @@
 			isa = PBXTargetDependency;
 			target = 6008C12B2F4EA89200B03AD8 /* Pact */;
 			targetProxy = 6008C1462F4EA89400B03AD8 /* PBXContainerItemProxy */;
+		};
+		60F4D8E92F5CD9EF006830B1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 60F4D8DF2F5CD9EF006830B1 /* PactDeviceActivityMonitor */;
+			targetProxy = 60F4D8E82F5CD9EF006830B1 /* PBXContainerItemProxy */;
+		};
+		60F4D8FF2F5CDA24006830B1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 60F4D8F32F5CDA24006830B1 /* PactShieldConfiguration */;
+			targetProxy = 60F4D8FE2F5CDA24006830B1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -598,6 +784,126 @@
 			};
 			name = Release;
 		};
+		60F4D8EC2F5CD9EF006830B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PactDeviceActivityMonitor/PactDeviceActivityMonitor.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A94648C3LF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PactDeviceActivityMonitor/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PactDeviceActivityMonitor;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cmc.Pact.PactDeviceActivityMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		60F4D8ED2F5CD9EF006830B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PactDeviceActivityMonitor/PactDeviceActivityMonitor.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A94648C3LF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PactDeviceActivityMonitor/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PactDeviceActivityMonitor;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cmc.Pact.PactDeviceActivityMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		60F4D9022F5CDA24006830B1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PactShieldConfiguration/PactShieldConfiguration.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A94648C3LF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PactShieldConfiguration/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PactShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cmc.Pact.PactShieldConfiguration;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		60F4D9032F5CDA24006830B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PactShieldConfiguration/PactShieldConfiguration.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A94648C3LF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PactShieldConfiguration/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PactShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cmc.Pact.PactShieldConfiguration;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -633,6 +939,24 @@
 			buildConfigurations = (
 				6008C1562F4EA89400B03AD8 /* Debug */,
 				6008C1572F4EA89400B03AD8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		60F4D8EB2F5CD9EF006830B1 /* Build configuration list for PBXNativeTarget "PactDeviceActivityMonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				60F4D8EC2F5CD9EF006830B1 /* Debug */,
+				60F4D8ED2F5CD9EF006830B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		60F4D9012F5CDA24006830B1 /* Build configuration list for PBXNativeTarget "PactShieldConfiguration" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				60F4D9022F5CDA24006830B1 /* Debug */,
+				60F4D9032F5CDA24006830B1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
