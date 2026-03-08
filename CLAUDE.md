@@ -151,6 +151,7 @@ Firebase was chosen over Supabase because:
 - **Always use regular git branches** for feature work, not worktrees.
 - **Branch naming for new features:** when starting a new feature, assume you should create a new branch with the pattern `<github-username>/<feature-name>`, e.g. `owusuys/carousel`, via `git checkout -b owusuys/feature-name`.
 - **New screens:** When you add a new screen or full-screen sheet, add an entry to `pages.md` with the file path and a short description of what that file does.
+- **Firebase CLI:** The `firebase` binary is not on PATH. Always prefix Firebase CLI commands with `npx`, e.g. `npx firebase deploy --only functions`.
 
 ## How Claude Should Work on New Features
 
