@@ -608,6 +608,36 @@ final class FirestoreService: ObservableObject {
             ])
     }
 
+    /// Fetches the individual votes for a submission as a one-shot snapshot.
+    /// Returns a dictionary mapping voterUid → "approve" | "reject".
+    func fetchSubmissionVotes(teamId: String, date: String, submissionId: String) async -> [String: String] {
+        let snap = try? await db
+            .collection("teams").document(teamId)
+            .collection("dailyInstances").document(date)
+            .collection("submissions").document(submissionId)
+            .collection("votes")
+            .getDocuments()
+        var result: [String: String] = [:]
+        snap?.documents.forEach { doc in
+            if let v = doc.data()["vote"] as? String {
+                result[doc.documentID] = v
+            }
+        }
+        return result
+    }
+
+    /// Calls the `sendNudge` Cloud Function to push a reminder notification
+    /// to a teammate who hasn't yet voted on a pending submission.
+    func sendNudge(teamId: String, date: String, submissionId: String, targetUid: String) async throws {
+        let fn = functions.httpsCallable("sendNudge")
+        _ = try await fn.call([
+            "teamId": teamId,
+            "date": date,
+            "submissionId": submissionId,
+            "targetUid": targetUid,
+        ])
+    }
+
     // MARK: - Proof Submission
 
     /// Uploads a proof photo to Firebase Storage and writes the submission document to Firestore.
@@ -840,6 +870,8 @@ struct Submission: Identifiable, Equatable {
     /// UIDs of users who have already cast a vote on this submission.
     /// Written via `arrayUnion` in `castVote()` so it survives view lifecycle.
     let voterIds: [String]
+    /// When the proof photo was submitted (server timestamp).
+    let createdAt: Date?
 
     init?(dictionary: [String: Any]) {
         // Prefer submissionId (Firestore doc ID) for per-activity submissions; fall back for legacy docs.
@@ -865,6 +897,7 @@ struct Submission: Identifiable, Equatable {
             ?? 0
         self.photoUrl = dictionary["photoUrl"] as? String
         self.voterIds = dictionary["voterIds"] as? [String] ?? []
+        self.createdAt = (dictionary["createdAt"] as? Timestamp)?.dateValue()
     }
 }
 

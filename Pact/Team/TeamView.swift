@@ -451,6 +451,7 @@ struct TeamView: View {
     @EnvironmentObject var firestoreService: FirestoreService
     @State private var mySubmissionPage = 0
     @State private var pendingSubmissions: [Submission] = []
+    @State private var submissionToPeep: Submission? = nil
     @State private var showLeaveSheet = false
     @State private var showAdminPickerSheet = false
     @State private var selectedNewAdminUid: String? = nil
@@ -568,7 +569,8 @@ struct TeamView: View {
 
     @ViewBuilder
     private func mySubmissionCard(_ sub: Submission) -> some View {
-        HStack(spacing: 12) {
+        let isTappable = sub.status == "pending" || sub.status == "rejected"
+        let cardContent = HStack(spacing: 12) {
             // Proof photo thumbnail
             Group {
                 if let urlString = sub.photoUrl, let url = URL(string: urlString) {
@@ -603,9 +605,27 @@ struct TeamView: View {
             }
 
             Spacer()
+
+            // Chevron hint for tappable states
+            if isTappable {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color(white: 0.70))
+            }
         }
         .padding(12)
         .background(Color(white: 0.96), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+        if isTappable {
+            Button {
+                submissionToPeep = sub
+            } label: {
+                cardContent
+            }
+            .buttonStyle(.plain)
+        } else {
+            cardContent
+        }
     }
 
     private func mySubmissionPillInfo(_ sub: Submission) -> (String, Color) {
@@ -693,6 +713,10 @@ struct TeamView: View {
                 },
                 onCancel: { showAdminPickerSheet = false }
             )
+        }
+        .sheet(item: $submissionToPeep) { sub in
+            SubmissionPeepView(submission: sub)
+                .environmentObject(firestoreService)
         }
     }
 
