@@ -127,6 +127,7 @@ private struct HighlightsSection: View {
 private struct SubmissionCard: View {
     let submission: Submission
     let onSwipe: (Bool) -> Void
+    let onRejectAttempt: () -> Void
 
     @State private var offset: CGSize = .zero
     @State private var isDragging = false
@@ -204,7 +205,7 @@ private struct SubmissionCard: View {
             // Action buttons
             HStack(spacing: 12) {
                 Button {
-                    flyOff(approved: false)
+                    onRejectAttempt()
                 } label: {
                     Label("Reject", systemImage: "xmark")
                         .font(.system(size: 16, weight: .semibold))
@@ -248,7 +249,15 @@ private struct SubmissionCard: View {
                     dragIsHorizontal = nil
                     isDragging = false
                     if wasHorizontal && abs(value.translation.width) > 120 {
-                        flyOff(approved: value.translation.width > 0)
+                        if value.translation.width > 0 {
+                            flyOff(approved: true)
+                        } else {
+                            // Snap back and ask for confirmation before rejecting
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                                offset = .zero
+                            }
+                            onRejectAttempt()
+                        }
                     } else {
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                             offset = .zero
@@ -276,6 +285,9 @@ private struct SwipeableCardStack: View {
     @Binding var submissions: [Submission]
     let onVote: (String, String) -> Void  // (submissionId, vote)
 
+    @State private var showRejectConfirmation = false
+    @State private var submissionToReject: Submission? = nil
+
     var body: some View {
         let visible = Array(submissions.prefix(3))
         ZStack {
@@ -292,13 +304,86 @@ private struct SwipeableCardStack: View {
                         withAnimation(.spring()) {
                             submissions.removeAll { $0.id == submission.id }
                         }
+                    },
+                    onRejectAttempt: {
+                        submissionToReject = submission
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            showRejectConfirmation = true
+                        }
                     }
                 )
                 .scaleEffect(isTop ? 1.0 : scale)
                 .offset(y: isTop ? 0 : yOffset)
                 .zIndex(Double(visible.count - depth))
             }
+
+            // Full-area reject confirmation overlay
+            if showRejectConfirmation, let sub = submissionToReject {
+                Color.black.opacity(0.45)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .zIndex(100)
+
+                VStack(spacing: 20) {
+                    VStack(spacing: 8) {
+                        Text("Reject this submission?")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(.black)
+                            .multilineTextAlignment(.center)
+
+                        Text("This action can't be undone.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(white: 0.55))
+                            .multilineTextAlignment(.center)
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                showRejectConfirmation = false
+                            }
+                            submissionToReject = nil
+                        } label: {
+                            Text("Go Back")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color.black, in: RoundedRectangle(cornerRadius: 14))
+                        }
+
+                        Button {
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                showRejectConfirmation = false
+                            }
+                            let rejectedSub = sub
+                            submissionToReject = nil
+                            onVote(rejectedSub.id, "reject")
+                            withAnimation(.spring()) {
+                                submissions.removeAll { $0.id == rejectedSub.id }
+                            }
+                        } label: {
+                            Text("Reject")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Color(red: 0.75, green: 0.15, blue: 0.10))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    Color(red: 0.98, green: 0.89, blue: 0.88),
+                                    in: RoundedRectangle(cornerRadius: 14)
+                                )
+                        }
+                    }
+                }
+                .padding(24)
+                .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+                .shadow(color: Color.black.opacity(0.12), radius: 24, x: 0, y: 8)
+                .padding(.horizontal, 24)
+                .transition(.scale(scale: 0.92).combined(with: .opacity))
+                .zIndex(101)
+            }
         }
+        .animation(.easeOut(duration: 0.2), value: showRejectConfirmation)
     }
 }
 
