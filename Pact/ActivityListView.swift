@@ -27,7 +27,8 @@ struct ActivityListView: View {
     @State private var isCreatingTeam = false
     @State private var createTeamError: String?
     @State private var allowAIFallback: Bool = true
-    @State private var minApprovers: Int = 0
+    @State private var approvalMode: String = "majority"
+    @State private var minimumRequiredVoters: Int = 1
     @State private var showDebugSheet: Bool = false
     @State private var showDeleteAccountAlert = false
 
@@ -151,7 +152,7 @@ struct ActivityListView: View {
                             Text("Minimum required approvers")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(.black)
-                            ApproverSegmentedPicker(selection: $minApprovers)
+                            ApproverSegmentedPicker(selection: $approvalMode)
                         }
                     }
                     .padding(16)
@@ -197,7 +198,8 @@ struct ActivityListView: View {
                                             name: resolvedName,
                                             activities: payloads,
                                             timezone: TimeZone.current.identifier,
-                                            approvalThreshold: minApprovers,
+                                            approvalMode: approvalMode,
+                                            minimumRequiredVoters: minimumRequiredVoters,
                                             allowAIFallback: allowAIFallback
                                         )
                                         await MainActor.run {
@@ -844,28 +846,32 @@ private struct FullScreenIconPicker: View {
 // MARK: - ApproverSegmentedPicker
 
 struct ApproverSegmentedPicker: View {
-    @Binding var selection: Int  // 0 = 1 Person, 1 = 50% of Team, 2 = Entire Team
+    @Binding var selection: String  // "one_person" | "majority" | "entire_team"
 
-    private let segments = ["1 Person", "50% of Team", "Entire Team"]
+    private let segments: [(label: String, value: String)] = [
+        ("1 Person", "one_person"),
+        ("50% of Team", "majority"),
+        ("Entire Team", "entire_team"),
+    ]
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(0..<segments.count, id: \.self) { index in
+            ForEach(segments, id: \.value) { segment in
                 Button {
                     withAnimation(.easeInOut(duration: 0.18)) {
-                        selection = index
+                        selection = segment.value
                     }
                 } label: {
-                    Text(segments[index])
-                        .font(.system(size: 13, weight: selection == index ? .semibold : .regular))
-                        .foregroundStyle(selection == index ? .white : Color(white: 0.45))
+                    Text(segment.label)
+                        .font(.system(size: 13, weight: selection == segment.value ? .semibold : .regular))
+                        .foregroundStyle(selection == segment.value ? .white : Color(white: 0.45))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .fill(selection == index ? Color.black : Color.clear)
+                                .fill(selection == segment.value ? Color.black : Color.clear)
                         )
                 }
                 .buttonStyle(.plain)

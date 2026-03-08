@@ -385,11 +385,31 @@ private struct MemberRow: View {
     }
 }
 
+// MARK: - Share Invite Sheet
+
+private struct ShareInviteSheet: UIViewControllerRepresentable {
+    let inviteCode: String
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let link = "pact://join/\(inviteCode)"
+        return UIActivityViewController(
+            activityItems: [
+                "Join my Pact Shield! 🛡️\nCode: \(inviteCode)\n\(link)",
+                URL(string: link)!
+            ],
+            applicationActivities: nil
+        )
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
 // MARK: - Shield Members Section
 
 private struct ShieldMembersSection: View {
-    let shareURL: URL
+    let inviteCode: String
     let members: [ShieldMember]
+    @State private var showShareSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -400,14 +420,19 @@ private struct ShieldMembersSection: View {
 
                 Spacer()
 
-                // Share a URL so iMessage (and other apps) render it as a tappable link
-                ShareLink(item: shareURL) {
+                Button {
+                    showShareSheet = true
+                } label: {
                     Label("Add Members", systemImage: "square.and.arrow.up")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.black)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(Color(white: 0.94), in: Capsule())
+                }
+                .sheet(isPresented: $showShareSheet) {
+                    ShareInviteSheet(inviteCode: inviteCode)
+                        .ignoresSafeArea()
                 }
             }
 
@@ -444,20 +469,10 @@ struct TeamView: View {
         return firestoreService.members.filter { $0.id != uid }
     }
     
-    private var inviteShareURL: URL {
-        // Use the live invite code from Firestore when available,
-        // or the one cached in UserDefaults from the last team session,
-        // otherwise fall back to a placeholder so the button is always visible.
-        let code: String
-        if let live = firestoreService.currentTeam?["inviteCode"] as? String {
-            code = live
-        } else if let cached = UserDefaults.standard.string(forKey: "app_invite_code") {
-            code = cached
-        } else {
-            code = "------"
-        }
-        // Sharing a URL (not a String) makes iMessage render it as a tappable link
-        return URL(string: "pact://join/\(code)")!
+    private var inviteCode: String {
+        if let live = firestoreService.currentTeam?["inviteCode"] as? String { return live }
+        if let cached = UserDefaults.standard.string(forKey: "app_invite_code") { return cached }
+        return "------"
     }
 
     /// Maps live Firestore members → ShieldMember for display.
@@ -651,7 +666,7 @@ struct TeamView: View {
                             .transition(.opacity)
                     }
 
-                    ShieldMembersSection(shareURL: inviteShareURL, members: membersToShow)
+                    ShieldMembersSection(inviteCode: inviteCode, members: membersToShow)
                         .padding(.top, 32)
                         .padding(.horizontal, 20)
                         .padding(.bottom, 120)
