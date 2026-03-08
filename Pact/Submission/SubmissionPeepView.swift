@@ -56,7 +56,7 @@ struct SubmissionPeepView: View {
             VStack(alignment: .leading, spacing: 20) {
 
                 // Proof photo
-                CachedProofImage(urlString: submission.photoUrl, height: 260)
+                CachedProofImage(urlString: submission.photoUrl, height: 400)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 // Metadata card
