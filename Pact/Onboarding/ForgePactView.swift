@@ -4,17 +4,12 @@
 //
 
 import SwiftUI
-import FirebaseAuth
 
 struct ForgePactView: View {
     var onContinue: () -> Void
 
     @EnvironmentObject var firestoreService: FirestoreService
     @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @State private var isAgreeing = false
-    @State private var agreeError: String?
-    /// Short delay before "I Agree" becomes clickable so the user has time to read the screen.
-    @State private var agreeButtonUnlocked = false
 
     private var teamId: String? { firestoreService.currentTeamId }
     private var teamName: String {
@@ -33,10 +28,6 @@ struct ForgePactView: View {
         (firestoreService.currentTeam?["memberCount"] as? Int) ?? max(1, firestoreService.members.count)
     }
     private var agreedCount: Int { forgeState?.agreedCount ?? 0 }
-    private var hasCurrentUserAgreed: Bool {
-        guard let uid = Auth.auth().currentUser?.uid else { return false }
-        return forgeState?.agreedMemberIds.contains(uid) ?? false
-    }
 
     var body: some View {
         ZStack {
@@ -135,14 +126,6 @@ struct ForgePactView: View {
                     .padding(.horizontal, 28)
                     .padding(.top, 6)
 
-                if let err = agreeError {
-                    Text(err)
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.red.opacity(0.9))
-                        .padding(.horizontal, 24)
-                        .padding(.top, 10)
-                }
-
                 Spacer(minLength: 24)
             }
 
@@ -153,13 +136,6 @@ struct ForgePactView: View {
             }
         }
         .ignoresSafeArea(edges: .bottom)
-        .onAppear {
-            agreeButtonUnlocked = false
-            Task {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                await MainActor.run { agreeButtonUnlocked = true }
-            }
-        }
     }
 
     @ViewBuilder
@@ -208,38 +184,21 @@ struct ForgePactView: View {
 
     @ViewBuilder
     private var bottomButtons: some View {
-        VStack(spacing: 14) {
-            if !hasCurrentUserAgreed {
-                Button {
-                    agree()
-                } label: {
-                    Group {
-                        if isAgreeing {
-                            ProgressView().tint(.white)
-                        } else {
-                            Text("I AGREE")
-                                .font(.system(size: 18, weight: .bold))
-                                .kerning(1.2)
-                        }
-                    }
-                    .foregroundStyle(agreeButtonUnlocked ? .white : .white.opacity(0.6))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .background(Capsule().fill(Color.black.opacity(agreeButtonUnlocked ? 1 : 0.5)))
-                }
-                .disabled(isAgreeing || !agreeButtonUnlocked)
-                .buttonStyle(.plain)
+        Button {
+            if let teamId = teamId, let goalId = goalId {
+                Task { try? await firestoreService.forgePact(teamId: teamId, goalId: goalId) }
             }
-            Button(action: onContinue) {
-                Text("Enter Pact")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(hasCurrentUserAgreed ? .white : Color(white: 0.5))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, hasCurrentUserAgreed ? 20 : 0)
-                    .background(hasCurrentUserAgreed ? Capsule().fill(Color.black) : Capsule().fill(Color.clear))
-            }
-            .buttonStyle(.plain)
+            onContinue()
+        } label: {
+            Text("Enter Pact")
+                .font(.system(size: 18, weight: .bold))
+                .kerning(1.2)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(Capsule().fill(Color.black))
         }
+        .buttonStyle(.plain)
         .padding(.horizontal, 24)
         .padding(.top, 24)
         .padding(.bottom, 40)
@@ -247,23 +206,6 @@ struct ForgePactView: View {
             Color.white
                 .shadow(color: Color.black.opacity(0.06), radius: 12, y: -4)
         )
-    }
-
-    private func agree() {
-        guard let teamId = teamId, let goalId = goalId else { return }
-        agreeError = nil
-        isAgreeing = true
-        Task {
-            do {
-                try await firestoreService.forgePact(teamId: teamId, goalId: goalId)
-                await MainActor.run { isAgreeing = false }
-            } catch {
-                await MainActor.run {
-                    agreeError = error.localizedDescription
-                    isAgreeing = false
-                }
-            }
-        }
     }
 }
 

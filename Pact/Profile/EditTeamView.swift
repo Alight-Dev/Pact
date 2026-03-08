@@ -17,7 +17,6 @@ struct EditTeamView: View {
     @State private var saveError: String?
     @State private var allowAIFallback: Bool = true
     @State private var approvalMode: String = "majority"
-    @State private var minimumRequiredVoters: Int = 1
     @State private var activityToDelete: TeamActivity? = nil
     @State private var showDeleteWarning = false
     @State private var teamSettingsInitialized = false
@@ -39,7 +38,6 @@ struct EditTeamView: View {
                 ?? 1
             approvalMode = threshold == 0 ? "one_person" : threshold == 2 ? "entire_team" : "majority"
         }
-        minimumRequiredVoters = team["minimumRequiredVoters"] as? Int ?? 1
         allowAIFallback = team["allowAIFallback"] as? Bool ?? true
     }
 
@@ -206,14 +204,13 @@ struct EditTeamView: View {
                             do {
                                 try await firestoreService.updateTeamSettings(
                                     approvalMode: approvalMode,
-                                    minimumRequiredVoters: minimumRequiredVoters,
                                     allowAIFallback: allowAIFallback
                                 )
+                                dismiss()
                             } catch {
                                 saveError = error.localizedDescription
                             }
                             isSaving = false
-                            dismiss()
                         }
                     }
                     .font(.system(size: 16, weight: .semibold))

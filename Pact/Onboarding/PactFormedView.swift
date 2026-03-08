@@ -5,8 +5,8 @@
 
 import SwiftUI
 
-/// Full-screen celebration shown when everyone has agreed and the Pact is activated.
-/// Shown as an interrupt from ForgePactView or HomeScreenView.
+/// Simple full-screen celebration shown right after ForgePactView in the onboarding flow.
+/// No backend listeners; tap Continue to go straight into the app.
 struct PactFormedView: View {
     var onDismiss: () -> Void
 

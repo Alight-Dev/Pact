@@ -31,7 +31,7 @@ The visual identity is built around **gem-forged shield fragments** — faceted,
 
 The shield is always displayed on a **black background**. Shards glow and pulse when active. Fractured or dimmed shards indicate inactive or failing members.
 
-**UI Aesthetic:** Dark mode only. Minimal chrome. Gemstone texture on interactive elements. Subtle inner glow on active states. Black → deep charcoal backgrounds. Typography: clean sans-serif, white and light grey.
+**UI Aesthetic:** Light mode only. Clean, minimal, high-contrast. White primary backgrounds, black for headings and CTAs, light grey for cards and input fields. The shield itself is displayed against a dark/black surface when featured, but all app screens use a white background. Typography: clean sans-serif (SF Pro), black and grey.
 
 ---
 
@@ -120,9 +120,9 @@ Each team has one shared shield composed of individual member shards.
 
 - **Frontend:** Swift, SwiftUI
 - **App Blocking:** FamilyControls, ManagedSettings, DeviceActivity
-- **Backend:** Firebase or Supabase
-- **AI Verification:** Claude Vision API or GPT-4o vision endpoint
-- **Notifications:** APNs for approval requests and streak alerts
+- **Backend:** Firebase (Firestore, Firebase Storage, Cloud Functions, FCM)
+- **AI Verification:** Claude Vision API or GPT-4o vision endpoint (Phase 2 — auto-verify after peer inactivity)
+- **Notifications:** Firebase Cloud Messaging (FCM) for approval requests, vote nudges, and streak alerts
 
 ---
 

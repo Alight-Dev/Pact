@@ -304,11 +304,12 @@ final class FirestoreService: ObservableObject {
         return CreateTeamResult(teamId: teamId, inviteCode: inviteCode)
     }
 
-    func updateTeamSettings(approvalMode: String, minimumRequiredVoters: Int, allowAIFallback: Bool) async throws {
+    func updateTeamSettings(approvalMode: String, allowAIFallback: Bool) async throws {
         guard let teamId = currentTeamId else { throw FirestoreServiceError.notAuthenticated }
-        try await db.collection("teams").document(teamId).updateData([
+        let callable = functions.httpsCallable("updateTeamSettings")
+        try await callable.call([
+            "teamId": teamId,
             "approvalMode": approvalMode,
-            "minimumRequiredVoters": minimumRequiredVoters,
             "allowAIFallback": allowAIFallback,
         ])
     }
@@ -720,16 +721,13 @@ final class FirestoreService: ObservableObject {
             let legacy = teamData["approvalThreshold"] as? Int ?? 1
             approvalMode = legacy == 0 ? "one_person" : legacy == 2 ? "entire_team" : "majority"
         }
-        let minimumRequiredVoters = teamData["minimumRequiredVoters"] as? Int ?? 1
-
         let approvalsRequired: Int
         switch approvalMode {
         case "one_person":  approvalsRequired = 1
         case "entire_team": approvalsRequired = eligibleVoterCount
-        default:            approvalsRequired = teamData["minimumRequiredVoters"] != nil
-                                ? minimumRequiredVoters
-                                : eligibleVoterCount / 2 + 1
+        default:            approvalsRequired = eligibleVoterCount / 2 + 1
         }
+        let allowAIFallback = teamData["allowAIFallback"] as? Bool ?? true
 
         // Composite doc ID: one submission per user per activity per day
         let submissionDocId = "\(uid)_\(activityId)"
@@ -755,6 +753,7 @@ final class FirestoreService: ObservableObject {
             "eligibleVoterCount": eligibleVoterCount,
             "approvalsRequired": approvalsRequired,
             "approvalMode": approvalMode,
+            "allowAIFallback": allowAIFallback,
             "createdAt": FieldValue.serverTimestamp(),
         ]
         try await db

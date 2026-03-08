@@ -14,7 +14,12 @@ service firebase.storage {
                     && filename.matches('^' + request.auth.uid + '_[^/]+\\.jpg$')
                     && request.resource.size  < 10 * 1024 * 1024
                     && request.resource.contentType == 'image/jpeg';
-      allow update, delete: if false;
+      // Allow the owner to overwrite their own proof photo (needed for rejected-submission retakes)
+      allow update: if request.auth != null
+                    && filename.matches('^' + request.auth.uid + '_[^/]+\\.jpg$')
+                    && request.resource.size  < 10 * 1024 * 1024
+                    && request.resource.contentType == 'image/jpeg';
+      allow delete: if false;
     }
 
   }

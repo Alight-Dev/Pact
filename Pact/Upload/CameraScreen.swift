@@ -144,8 +144,10 @@ extension CameraViewModel: AVCapturePhotoCaptureDelegate {
             let activity = selectedActivity
         else { return }
 
+        let usedFrontCamera = isFrontCamera
         DispatchQueue.main.async { [weak self] in
-            self?.onPhotoCaptured?(image, activity)
+            let corrected = image.normalizedForDisplay(mirrorIfFrontCamera: usedFrontCamera)
+            self?.onPhotoCaptured?(corrected, activity)
         }
     }
 }
@@ -174,6 +176,7 @@ struct CameraPreviewRepresentable: UIViewRepresentable {
 
 struct CameraScreen: View {
     let activities: [ActivityOption]
+    var initialActivityId: String? = nil       // pre-selects a specific activity (e.g. for retakes)
     let onCapture: (UIImage, ActivityOption) -> Void
     let onDismiss: () -> Void
 
@@ -206,9 +209,14 @@ struct CameraScreen: View {
             }
             viewModel.configure()
             viewModel.start()
-            if selectedActivityID == nil, let first = activities.first {
-                selectedActivityID = first.id
-                viewModel.selectedActivity = first
+            if selectedActivityID == nil {
+                // Pre-select the requested activity (retake flow), otherwise fall back to first
+                let target = initialActivityId.flatMap { id in activities.first { $0.id == id } }
+                    ?? activities.first
+                if let target {
+                    selectedActivityID = target.id
+                    viewModel.selectedActivity = target
+                }
             }
         }
         .onDisappear {
@@ -373,6 +381,39 @@ struct CameraScreen: View {
             Color.clear.frame(width: 54, height: 54)
         }
         .padding(.horizontal, 44)
+    }
+}
+
+// MARK: - UIImage orientation and mirroring for review
+
+private extension UIImage {
+    /// Returns a new image with orientation normalized to .up and optionally mirrored horizontally
+    /// so the review screen matches what the user saw in the camera preview (e.g. selfie view).
+    func normalizedForDisplay(mirrorIfFrontCamera: Bool) -> UIImage {
+        let normalized = normalizedOrientation()
+        guard mirrorIfFrontCamera else { return normalized }
+        return normalized.mirroredHorizontally() ?? normalized
+    }
+
+    /// Redraws the image so its pixel data has orientation .up (fixes EXIF-based rotation/flip).
+    func normalizedOrientation() -> UIImage {
+        guard imageOrientation != .up else { return self }
+        let rect = CGRect(origin: .zero, size: size)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            draw(in: rect)
+        }
+    }
+
+    /// Returns a new image flipped horizontally (mirror).
+    func mirroredHorizontally() -> UIImage? {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let flipped = renderer.image { ctx in
+            ctx.cgContext.translateBy(x: size.width, y: 0)
+            ctx.cgContext.scaleBy(x: -1, y: 1)
+            draw(at: .zero)
+        }
+        return flipped
     }
 }
 

@@ -19,9 +19,7 @@ struct HomeScreenView: View {
     @EnvironmentObject var firestoreService: FirestoreService
     @State private var selectedTab: AppTab = .home
     @State private var showUpload: Bool = false
-    @State private var showPactFormedOverlay: Bool = false
     @State private var showAllDoneAlert: Bool = false
-    @State private var previousForgeStatus: String?
     #if DEBUG
     @State private var debugNotifIndex: Int = 0
     private let debugNotifTypes = ["vote_needed", "submission_approved", "daily_complete"]
@@ -102,22 +100,10 @@ struct HomeScreenView: View {
         .fullScreenCover(isPresented: $showUpload) {
             UploadProofView()
         }
-        .fullScreenCover(isPresented: $showPactFormedOverlay) {
-            PactFormedView(onDismiss: { showPactFormedOverlay = false })
-        }
         .alert("All Done!", isPresented: $showAllDoneAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("You've completed all your tasks for today. Come back tomorrow!")
-        }
-        .onAppear {
-            previousForgeStatus = firestoreService.currentGoalForgeState?.forgeStatus
-        }
-        .onChange(of: firestoreService.currentGoalForgeState?.forgeStatus) { _, newStatus in
-            if newStatus == "active" && previousForgeStatus != "active" {
-                showPactFormedOverlay = true
-            }
-            previousForgeStatus = newStatus
         }
         .onChange(of: notificationRouter.pendingTabSwitch) { _, tab in
             guard let tab else { return }

@@ -213,8 +213,9 @@ struct ConfirmPhotoView: View {
                 isUploading = false
                 return
             }
+            // Allow retakes for rejected submissions — only block pending/approved
             let alreadySubmitted = firestoreService.mappedSubmissions.contains { sub in
-                sub.submitterUid == uid && sub.activityId == activityId
+                sub.submitterUid == uid && sub.activityId == activityId && sub.status != "rejected"
             }
             if alreadySubmitted {
                 uploadError = "You already submitted proof for \(selectedActivity.name) today."
