@@ -125,9 +125,9 @@
 - [x] Request `FamilyControls` authorization during onboarding (Screen Time access screens exist; authorization call needs wiring)
 - [ ] Admin: present `FamilyActivityPicker` to select apps to restrict; serialize and store `FamilyActivitySelection` in `goals/{goalId}.familyActivitySelection`
 - [ ] Member: restore `FamilyActivitySelection` from Firestore and apply via `ManagedSettings` store
-- [ ] Create `DeviceActivity` app extension target for scheduling the daily morning lock cycle
+- [x] Create `DeviceActivity` app extension target for scheduling the daily morning lock cycle — `PactDeviceActivityMonitor` target exists with `DeviceActivityMonitorExtension.swift`
 - [ ] Apply restrictions (`ManagedSettingsStore`) at team daily cutoff each morning
-- [ ] Create Shield Activation Extension (custom blocking screen shown when a locked app is tapped — displays Pact logo and "Complete today's task to unlock")
+- [x] Create Shield Activation Extension (custom blocking screen shown when a locked app is tapped — displays Pact logo and "Complete today's task to unlock") — `PactShieldConfiguration` target exists with `ShieldConfigurationExtension.swift`
 - [ ] Listen to `members/{uid}.lockShieldActive` via Firestore real-time listener; apply restrictions on app launch/device reboot
 - [ ] Listen to `submissions/{uid}.appUnlocked` via Firestore real-time listener; remove restrictions immediately on approval
 
