@@ -14,6 +14,7 @@ export { createTeam }                    from "./createTeam";
 export { joinTeam }                      from "./joinTeam";
 export { leaveTeam }                     from "./leaveTeam";
 export { addGoal, updateGoal, deleteGoal } from "./manageGoal";
+export { updateTeamSettings }              from "./updateTeamSettings";
 export { updateOptedInActivities }       from "./updateOptedInActivities";
 export { processStreakForDate }          from "./processStreakForDate";
 export { sendNudge }                     from "./sendNudge";
