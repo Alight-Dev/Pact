@@ -8,6 +8,10 @@ struct UploadProofView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var firestoreService: FirestoreService
 
+    /// When set, the camera carousel opens with this activity pre-selected.
+    /// Pass the rejected submission's `activityId` from the "Replace Photo" button.
+    var preselectActivityId: String? = nil
+
     @State private var cameraReady = false
     @State private var showPermissionExplainer = false
     @State private var capturedImage: UIImage?
@@ -37,6 +41,7 @@ struct UploadProofView: View {
                 } else {
                     CameraScreen(
                         activities: activityOptions,
+                        initialActivityId: preselectActivityId,
                         onCapture: { image, activity in
                             capturedImage = image
                             selectedActivity = activity

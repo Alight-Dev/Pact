@@ -21,6 +21,7 @@ export { sendNudge }                     from "./sendNudge";
 // Firestore Triggers
 export { onForgePactAgreement }  from "./onForgePactAgreement";
 export { onSubmissionCreated }   from "./onSubmissionCreated";
+export { onSubmissionRetaken }   from "./onSubmissionRetaken";
 export { onVoteCast }            from "./onVoteCast";
 
 // Scheduled

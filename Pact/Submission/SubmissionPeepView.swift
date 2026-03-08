@@ -83,7 +83,7 @@ struct SubmissionPeepView: View {
             await loadVotes()
         }
         .fullScreenCover(isPresented: $showCamera) {
-            UploadProofView()
+            UploadProofView(preselectActivityId: submission.activityId)
         }
     }
 

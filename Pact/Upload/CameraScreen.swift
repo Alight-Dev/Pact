@@ -174,6 +174,7 @@ struct CameraPreviewRepresentable: UIViewRepresentable {
 
 struct CameraScreen: View {
     let activities: [ActivityOption]
+    var initialActivityId: String? = nil       // pre-selects a specific activity (e.g. for retakes)
     let onCapture: (UIImage, ActivityOption) -> Void
     let onDismiss: () -> Void
 
@@ -206,9 +207,14 @@ struct CameraScreen: View {
             }
             viewModel.configure()
             viewModel.start()
-            if selectedActivityID == nil, let first = activities.first {
-                selectedActivityID = first.id
-                viewModel.selectedActivity = first
+            if selectedActivityID == nil {
+                // Pre-select the requested activity (retake flow), otherwise fall back to first
+                let target = initialActivityId.flatMap { id in activities.first { $0.id == id } }
+                    ?? activities.first
+                if let target {
+                    selectedActivityID = target.id
+                    viewModel.selectedActivity = target
+                }
             }
         }
         .onDisappear {

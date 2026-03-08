@@ -52,7 +52,7 @@ struct SubmissionDetailView: View {
             }
         }
         .fullScreenCover(isPresented: $showCamera) {
-            UploadProofView()
+            UploadProofView(preselectActivityId: submission?.activityId)
         }
     }
 
