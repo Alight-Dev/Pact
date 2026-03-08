@@ -37,6 +37,7 @@ struct PactApp: App {
     @State private var appBlockingGoesToTeamWelcome = false
     @State private var showTeamWelcome = false
     @State private var showForgePact = false
+    @State private var showPactFormed = false
     @State private var welcomeInviteCode = ""
     @State private var pendingTeamName = ""
     /// Set when a pact://join/{code} deep link arrives while the user is on HomeScreenView.
@@ -85,6 +86,7 @@ struct PactApp: App {
     @ViewBuilder
     private var activeScreen: some View {
         if showHomeScreen { homeScreen }
+        else if showPactFormed { pactFormed }
         else if showForgePact { forgePact }
         else if showTeamWelcome { teamWelcome }
         else if showAppBlocking { appBlocking }
@@ -158,6 +160,7 @@ struct PactApp: App {
                 withAnimation {
                     showHomeScreen = false
                     showForgePact = false
+                    showPactFormed = false
                     showJoinShieldActivities = false
                     showActivitiesSetup = false
                     showAppBlocking = false
@@ -270,6 +273,17 @@ struct PactApp: App {
         ForgePactView(onContinue: {
             withAnimation {
                 showForgePact = false
+                showPactFormed = true
+            }
+        })
+        .transition(.opacity)
+    }
+
+    @ViewBuilder
+    private var pactFormed: some View {
+        PactFormedView(onDismiss: {
+            withAnimation {
+                showPactFormed = false
                 showHomeScreen = true
             }
         })
@@ -492,7 +506,7 @@ struct PactApp: App {
                         teamName: session.teamName,
                         adminTimezone: session.adminTimezone
                     )
-                    showForgePact = true
+                    showHomeScreen = true
                 }
             }
         } else {
@@ -531,7 +545,7 @@ struct PactApp: App {
                                 teamName: session.teamName,
                                 adminTimezone: session.adminTimezone
                             )
-                            showForgePact = true
+                            showHomeScreen = true
                         }
                     } else {
                         withAnimation { showShieldSelection = true }
