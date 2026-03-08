@@ -84,12 +84,11 @@ service cloud.firestore {
               submissionId == request.auth.uid
               || submissionId.matches('^' + request.auth.uid + '_.+')
             );
-          // Client can re-submit (update photo/activity) while still pending —
-          // allows retrying after a network error. Blocked once CF sets approved/rejected.
+          // Client can re-submit while pending (network retry) or after rejection (retake).
           allow update: if isSignedIn()
             && resource.data.submitterUid == request.auth.uid
             && isTeamMember(teamId)
-            && resource.data.status == "pending"
+            && (resource.data.status == "pending" || resource.data.status == "rejected")
             && request.resource.data.status == "pending";
           allow delete: if false; // Deletions by Cloud Functions only
 
