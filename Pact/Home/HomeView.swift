@@ -82,13 +82,8 @@ struct HomeView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // Gradient background
-            LinearGradient(
-                colors: [Color(hex: "E0E0E0"), Color.white],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            Color(hex: "F8F8F8")
+                .ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
