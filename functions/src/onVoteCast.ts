@@ -53,9 +53,24 @@ export const onVoteCast = onDocumentCreated(
     const approvalsRequired: number = submission.approvalsRequired
       ?? (Math.floor(eligibleVoterCount / 2) + 1); // fallback for old submissions
 
-    // Approval uses stored threshold; rejection always uses strict majority
-    const approveMajority = approveCount >= approvalsRequired;
-    const rejectMajority = rejectCount > eligibleVoterCount / 2;
+    // Mode-dependent approval and rejection logic
+    const approvalMode: string = submission.approvalMode ?? "majority";
+
+    let approveMajority = false;
+    let rejectMajority = false;
+    switch (approvalMode) {
+      case "one_person":
+        approveMajority = approveCount >= 1;
+        rejectMajority  = rejectCount  >= 1;
+        break;
+      case "entire_team":
+        approveMajority = approveCount >= eligibleVoterCount;
+        rejectMajority  = rejectCount  >= 1; // unanimous impossible once 1 rejects
+        break;
+      default: // "majority"
+        approveMajority = approveCount >= approvalsRequired;
+        rejectMajority  = rejectCount  >= approvalsRequired;
+    }
     if (!approveMajority && !rejectMajority) return;
 
     const instanceRef = db

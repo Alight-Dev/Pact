@@ -26,13 +26,32 @@ export const createTeam = onCall(
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Sign in first.");
 
-    const { teamName, activities, adminTimezone, approvalThreshold, allowAIFallback } = request.data as {
+    const {
+      teamName, activities, adminTimezone,
+      approvalMode: rawApprovalMode, minimumRequiredVoters: rawMinVoters,
+      approvalThreshold, allowAIFallback,
+    } = request.data as {
       teamName: string;
       activities: ActivityPayload[];
       adminTimezone: string;
-      approvalThreshold?: number;
+      approvalMode?: string;
+      minimumRequiredVoters?: number;
+      approvalThreshold?: number;   // legacy — converted below
       allowAIFallback?: boolean;
     };
+
+    // Resolve approvalMode: prefer new named field, fall back to converting legacy int
+    let approvalMode: string;
+    if (rawApprovalMode) {
+      approvalMode = rawApprovalMode;
+    } else if (approvalThreshold === 0) {
+      approvalMode = "one_person";
+    } else if (approvalThreshold === 2) {
+      approvalMode = "entire_team";
+    } else {
+      approvalMode = "majority";
+    }
+    const minimumRequiredVoters: number = rawMinVoters ?? 1;
 
     if (!teamName?.trim()) throw new HttpsError("invalid-argument", "teamName is required.");
     if (!activities?.length) throw new HttpsError("invalid-argument", "At least one activity is required.");
@@ -90,7 +109,8 @@ export const createTeam = onCall(
       todayApprovedCount: 0,
       todayTotalMembers: 1,
       todayDate,
-      approvalThreshold: approvalThreshold ?? 1,
+      approvalMode,
+      minimumRequiredVoters,
       allowAIFallback: allowAIFallback ?? true,
     });
 
