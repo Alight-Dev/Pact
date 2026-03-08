@@ -75,76 +75,50 @@ xcodebuild -scheme Pact -destination 'platform=iOS Simulator,name=iPhone 16' bui
 
 ## Architecture
 
-Current structure:
+See **[`pages.md`](./pages.md)** for the full per-screen reference (file path + purpose for every screen and sheet). Below is the structural overview.
 
-- **`PactApp.swift`** — App entry point. Uses `@State` booleans (`showOnboarding`, `showShieldSelection`, `showHomeScreen`) to gate between `SplashView` → `OnboardingFlowView` → `OnboardingCreateOrJoinShieldView` → `HomeScreenView`. Initializes the SwiftData `ModelContainer` with `Item` and `Activity` models.
-- **`SplashView.swift`** — Animated splash screen with logo spring animation. "Get Started" calls `onFinished` which transitions to `OnboardingFlowView`.
-- **`Onboarding/OnboardingFlowView.swift`** — Step coordinator for the full onboarding sequence. Uses a private `OnboardingStep` enum (8 steps) and slide transitions between screens.
-- **`Onboarding/OnboardingGenderView.swift`** — Step 0 of 7. Gender selection.
-- **`Onboarding/OnboardingAgeView.swift`** — Step 1 of 7. Age selection.
-- **`Onboarding/OnboardingScreenTimeView.swift`** — Step 2 of 7. Daily screen time estimate.
-- **`Onboarding/OnboardingProjectionInputsView.swift`** — Step 3 of 7. Slider for years with smartphone and app category selection.
-- **`Onboarding/OnboardingProjectionView.swift`** — Step 4 of 7. Animated display of projected lifetime screen time and days to reclaim. Uses `ScreenTimeProjectionEngine` for calculations.
-- **`Onboarding/OnboardingRequestNotificationsView.swift`** — Step 5 of 7. Notification permission screen. Shows a social notification preview and requests iOS push notification permission via `UNUserNotificationCenter`.
-- **`Onboarding/OnboardingSignupView.swift`** — Step 6 of 7. Apple / Google sign-in wireframe. Animated logo rises to upper-middle.
-- **`Onboarding/OnboardingProfileSetupView.swift`** — Step 7 of 7. Nickname (Xbox-style gamertag generator + manual entry) and avatar selection (3×3 emoji grid).
-- **`Onboarding/OnboardingCreateOrJoinShieldView.swift`** — Post-onboarding screen. "Create a Shield" or "Join a Shield" selection with animated logo entrance.
-- **`Onboarding/OnboardingComponents.swift`** — Shared components: `SelectablePillButton`, `OnboardingProgressBar`.
-- **`ActivityListView.swift`** — Main app screen. SwiftData `Activity` list with "Add Activity" sheet.
-- **`Activity.swift`** — SwiftData `@Model` for user-created daily activities.
-- **`ContentView.swift`** — Unused placeholder (Xcode default). Can be removed.
-- **`Item.swift`** — Unused placeholder SwiftData `@Model`. Can be removed.
+### Directory map
+
+```
+Pact/
+├── PactApp.swift              # Entry point — session restore, routing, env object injection
+├── AppDelegate.swift          # FCM delegate, notification interception
+├── SplashView.swift
+├── HomeScreenView.swift       # Root tab container + FloatingTabBar
+├── ActivityListView.swift     # Goal definition (create-team flow)
+├── Activity.swift             # SwiftData @Model (local, pre-Firestore)
+├── Onboarding/                # 8-step flow + name confirm + create/join/forge screens
+├── Home/                      # HomeView, ShieldProgressWheel, ShieldProgressViewModel
+├── Team/                      # TeamView (voting card stack, highlights, member list)
+├── Upload/                    # UploadView coordinator, CameraScreen, ConfirmPhotoView
+├── Submission/                # SubmissionDetailView, SubmissionPeepView
+├── Profile/                   # ProfileView, EditTeamView
+├── Auth/                      # AuthManager (Firebase Auth — Apple + Google)
+├── Services/                  # FirestoreService, AppBlockingService, DeepLinkManager
+├── Notifications/             # NotificationRouter, InAppNotificationBanner
+└── Utilities/                 # ImageCache, InputValidator, InputModifiers
+PactDeviceActivityMonitor/     # DeviceActivity extension — daily morning lock scheduling
+PactShieldConfiguration/       # ShieldConfiguration extension — custom block screen
+functions/src/                 # Cloud Functions CF-1 through CF-8 (TypeScript)
+```
+
+### Key architectural patterns
+
+- **Environment injection:** `AuthManager`, `FirestoreService`, and `NotificationRouter` are instantiated in `PactApp` and injected as `@EnvironmentObject` — access them via `@EnvironmentObject var firestoreService: FirestoreService` in any view.
+- **Real-time data:** All live team/submission/vote data flows through `FirestoreService` Firestore listeners (`listenToTeam`, `listenToTodaysSubmissions`, `listenToMembers`). Views observe `@Published` properties; no manual polling.
+- **App blocking:** `AppBlockingService` wraps `ManagedSettingsStore`. It reacts to Firestore `lockShieldActive` / `appUnlocked` flags. The `PactDeviceActivityMonitor` extension handles the daily lock schedule; `PactShieldConfiguration` customises the block screen.
+- **Camera:** Live capture only via AVFoundation (`CameraScreen` → `ConfirmPhotoView`). No photo library access.
+- **Deep links:** `pact://join/{inviteCode}` — parsed by `DeepLinkManager`, coordinated from `PactApp.onOpenURL`.
 
 ## Product Vision
 
-Pact is a social accountability app (see `Pact-PRD.md` for the full spec). Key concepts:
+See **[`Pact-PRD.md`](./Pact-PRD.md)** for the full spec. In brief: apps lock each morning via the Screen Time API; members submit live photo proof; teammates vote to approve; majority approval unlocks apps. Teams share a shield that tiers up (Bronze → Platinum) based on streak consistency.
 
-- **App locking:** Uses Apple Screen Time API (`FamilyControls`, `ManagedSettings`, `DeviceActivity`) to lock distracting apps each morning until a daily goal is verified.
-- **Proof submission:** Live camera only (no gallery uploads). Teammates vote to approve submissions; majority approval unlocks apps.
-- **AI fallback:** Claude Vision API or GPT-4o used to auto-verify after ~2–3 hours of peer inactivity.
-- **Shield progression:** Each team shares a visual "shield" that upgrades through 7 material tiers (Bronze → Platinum) based on streak consistency.
-- **Backend:** Firebase (chosen — see Backend Architecture section below). Not yet integrated.
+## Backend
 
-## Backend Architecture
+**Stack:** Firebase — Firestore (real-time listeners), Firebase Storage (proof photos), Firebase Auth (Apple + Google), FCM (push notifications), Cloud Functions CF-1–CF-8 (vote processing, submission handling, streak/tier computation, team create/join).
 
-**Stack: Firebase**
-- **Firestore** — real-time data (teams, members, activities, votes)
-- **Firebase Storage** — proof photo uploads
-- **Firebase Auth** — anonymous auth at launch, upgradeable to named account
-- **FCM (Firebase Cloud Messaging)** — push notifications for votes and approvals
-- **Cloud Functions** — AI fallback verification pipeline (Claude Vision / GPT-4o)
-
-Firebase was chosen over Supabase because:
-1. FCM is required for vote/approval push notifications regardless of backend
-2. Firestore real-time listeners are best-in-class for live vote counts on iOS
-3. Firebase Storage + Cloud Functions simplify the AI verification pipeline
-4. More mature iOS Swift SDK
-
-### Firestore Data Model
-
-```
-/teams/{teamId}
-  - name: String
-  - creatorId: String
-  - inviteCode: String        ← short unique code, e.g. "X7K2P"
-  - createdAt: Timestamp
-
-/teams/{teamId}/activities/{activityId}
-  - name: String
-  - description: String
-  - iconName: String          ← SF Symbol name
-  - repeatDays: [Int]         ← 0 = Sunday … 6 = Saturday
-  - order: Int
-
-/teams/{teamId}/members/{userId}
-  - displayName: String
-  - joinedAt: Timestamp
-  - optedInActivityIds: [String]   ← IDs of activities they committed to
-```
-
-### Deep Linking
-- Custom URL scheme: `pact://join/{inviteCode}`
-- Handled in `PactApp.swift` via `.onOpenURL` — looks up team by `inviteCode`
+**Schema:** See **[`datamodel-updated.md`](./datamodel-updated.md)** for all collections, fields, Cloud Function descriptions, composite indexes, Storage lifecycle, and security rule strategy.
 
 ## Project Conventions
 

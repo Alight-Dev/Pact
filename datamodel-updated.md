@@ -1,4 +1,3 @@
-```markdown
 # Pact — Firebase Data Model
 
 > **Philosophy:** Build the minimum that makes the core loop work. Every collection below is marked **MVP** (build now) or **Phase 2+** (designed for, build later). Phase 2+ fields are documented so the MVP schema doesn't need breaking changes when they're added.
@@ -438,7 +437,3 @@ function isTeamMember(teamId) {
 4. **`appUnlocked` & `lockShieldActive` flags** — The iOS app observes these via a Firestore real-time listener. `lockShieldActive` governs the morning initialization lock, while `appUnlocked` calls `ManagedSettings` to remove the restriction.
 5. **Timezone Awareness** — All queries fetching "Today's" data must calculate the current date string (`YYYY-MM-DD`) based on the `adminTimezone` stored in the team document, *not* the local device's timezone, to ensure the team acts as a unified front.
 6. **Invite code format** — `JoinShieldView.swift` enforces 6-digit numeric codes. `CF-8` must generate codes in this format and check for collisions in `/invites`.
-
-```
-
-```
