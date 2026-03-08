@@ -16,7 +16,8 @@ struct EditTeamView: View {
     @State private var isSaving = false
     @State private var saveError: String?
     @State private var allowAIFallback: Bool = true
-    @State private var minApprovers: Int = 0
+    @State private var approvalMode: String = "majority"
+    @State private var minimumRequiredVoters: Int = 1
     @State private var activityToDelete: TeamActivity? = nil
     @State private var showDeleteWarning = false
     @State private var teamSettingsInitialized = false
@@ -26,11 +27,19 @@ struct EditTeamView: View {
     private func populateSettingsFromTeam(_ team: [String: Any]) {
         guard !teamSettingsInitialized else { return }
         teamSettingsInitialized = true
-        let raw = team["approvalThreshold"]
-        minApprovers = (raw as? Int)
-            ?? (raw as? Int64).map { Int($0) }
-            ?? (raw as? NSNumber).map { $0.intValue }
-            ?? 1
+
+        // Prefer new named field; fall back from legacy approvalThreshold
+        if let mode = team["approvalMode"] as? String {
+            approvalMode = mode
+        } else {
+            let raw = team["approvalThreshold"]
+            let threshold = (raw as? Int)
+                ?? (raw as? Int64).map { Int($0) }
+                ?? (raw as? NSNumber).map { $0.intValue }
+                ?? 1
+            approvalMode = threshold == 0 ? "one_person" : threshold == 2 ? "entire_team" : "majority"
+        }
+        minimumRequiredVoters = team["minimumRequiredVoters"] as? Int ?? 1
         allowAIFallback = team["allowAIFallback"] as? Bool ?? true
     }
 
@@ -127,7 +136,7 @@ struct EditTeamView: View {
                             Text("Minimum required approvers")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(.black)
-                            ApproverSegmentedPicker(selection: $minApprovers)
+                            ApproverSegmentedPicker(selection: $approvalMode)
                         }
                     }
                     .padding(16)
@@ -196,7 +205,8 @@ struct EditTeamView: View {
                             isSaving = true
                             do {
                                 try await firestoreService.updateTeamSettings(
-                                    approvalThreshold: minApprovers,
+                                    approvalMode: approvalMode,
+                                    minimumRequiredVoters: minimumRequiredVoters,
                                     allowAIFallback: allowAIFallback
                                 )
                             } catch {

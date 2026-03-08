@@ -273,7 +273,7 @@ final class FirestoreService: ObservableObject {
 
     /// Calls the `createTeam` Cloud Function.
     /// Returns the new team ID and the 6-digit invite code.
-    func createTeam(name: String, activities: [ActivityPayload], timezone: String, approvalThreshold: Int, allowAIFallback: Bool) async throws -> CreateTeamResult {
+    func createTeam(name: String, activities: [ActivityPayload], timezone: String, approvalMode: String, minimumRequiredVoters: Int, allowAIFallback: Bool) async throws -> CreateTeamResult {
         let callable = functions.httpsCallable("createTeam")
 
         let activityData: [[String: Any]] = activities.map { a in
@@ -290,7 +290,8 @@ final class FirestoreService: ObservableObject {
             "teamName": name,
             "activities": activityData,
             "adminTimezone": timezone,
-            "approvalThreshold": approvalThreshold,
+            "approvalMode": approvalMode,
+            "minimumRequiredVoters": minimumRequiredVoters,
             "allowAIFallback": allowAIFallback,
         ])
 
@@ -303,10 +304,11 @@ final class FirestoreService: ObservableObject {
         return CreateTeamResult(teamId: teamId, inviteCode: inviteCode)
     }
 
-    func updateTeamSettings(approvalThreshold: Int, allowAIFallback: Bool) async throws {
+    func updateTeamSettings(approvalMode: String, minimumRequiredVoters: Int, allowAIFallback: Bool) async throws {
         guard let teamId = currentTeamId else { throw FirestoreServiceError.notAuthenticated }
         try await db.collection("teams").document(teamId).updateData([
-            "approvalThreshold": approvalThreshold,
+            "approvalMode": approvalMode,
+            "minimumRequiredVoters": minimumRequiredVoters,
             "allowAIFallback": allowAIFallback,
         ])
     }
@@ -566,9 +568,8 @@ final class FirestoreService: ObservableObject {
             "voterIds": FieldValue.arrayUnion([voterId])
         ])
 
-        // ── Client-side approval fallback ──────────────────────────────────────
-        // Check majority by counting votes in the subcollection, then mark the
-        // submission approved if the threshold is met.  This runs in parallel
+        // ── Client-side approval/rejection fallback ────────────────────────────
+        // Check vote counts and resolve based on approvalMode.  This runs in parallel
         // with the Cloud Function; both are idempotent (status=="pending" guard).
         let submissionSnap = try await submissionRef.getDocument()
         let submissionData = submissionSnap.data() ?? [:]
@@ -576,18 +577,39 @@ final class FirestoreService: ObservableObject {
 
         let submitterUid = submissionData["submitterUid"] as? String ?? ""
 
-        // Count approve votes directly from the subcollection
+        // Count votes directly from the subcollection
         let votesSnap = try await submissionRef.collection("votes").getDocuments()
         let approveCount = votesSnap.documents.filter {
             $0.data()["vote"] as? String == "approve"
+        }.count
+        let rejectCount = votesSnap.documents.filter {
+            $0.data()["vote"] as? String == "reject"
         }.count
 
         let eligibleVoterCount = submissionData["eligibleVoterCount"] as? Int ?? max(1, members.count - 1)
         let approvalsRequired = submissionData["approvalsRequired"] as? Int
             ?? (eligibleVoterCount / 2 + 1)
 
-        guard approveCount >= approvalsRequired else { return }
+        // Resolve approvalMode from submission doc (written at submitProof time)
+        let approvalMode = submissionData["approvalMode"] as? String ?? "majority"
 
+        let approveMajority: Bool
+        let rejectMajority: Bool
+        switch approvalMode {
+        case "one_person":
+            approveMajority = approveCount >= 1
+            rejectMajority  = rejectCount  >= 1
+        case "entire_team":
+            approveMajority = approveCount >= eligibleVoterCount
+            rejectMajority  = rejectCount  >= 1
+        default: // "majority"
+            approveMajority = approveCount >= approvalsRequired
+            rejectMajority  = rejectCount  >= approvalsRequired
+        }
+
+        guard approveMajority || rejectMajority else { return }
+
+        if approveMajority {
         // Mark submission approved
         try? await submissionRef.updateData([
             "status": "approved",
@@ -606,6 +628,14 @@ final class FirestoreService: ObservableObject {
                 "consecutiveMisses": 0,
                 "shardStatus": "active",
             ])
+        } else {
+            // Mark submission rejected
+            try? await submissionRef.updateData([
+                "status": "rejected",
+                "rejectedAt": FieldValue.serverTimestamp(),
+                "rejectCount": rejectCount,
+            ])
+        }
     }
 
     /// Fetches the individual votes for a submission as a one-shot snapshot.
@@ -678,14 +708,27 @@ final class FirestoreService: ObservableObject {
         // making majority impossible for 2-person teams: 1 > 2/2=1 is false.)
         let eligibleVoterCount = max(1, members.count - 1)
 
-        // Read the team's approval threshold and compute approvalsRequired
+        // Read the team's approval mode and compute approvalsRequired
         let teamSnap = try await db.collection("teams").document(teamId).getDocument()
-        let approvalThreshold = teamSnap.data()?["approvalThreshold"] as? Int ?? 1
+        let teamData = teamSnap.data() ?? [:]
+
+        // Resolve approvalMode — prefer new field, fall back from legacy approvalThreshold
+        let approvalMode: String
+        if let mode = teamData["approvalMode"] as? String {
+            approvalMode = mode
+        } else {
+            let legacy = teamData["approvalThreshold"] as? Int ?? 1
+            approvalMode = legacy == 0 ? "one_person" : legacy == 2 ? "entire_team" : "majority"
+        }
+        let minimumRequiredVoters = teamData["minimumRequiredVoters"] as? Int ?? 1
+
         let approvalsRequired: Int
-        switch approvalThreshold {
-        case 0: approvalsRequired = 1
-        case 2: approvalsRequired = eligibleVoterCount
-        default: approvalsRequired = eligibleVoterCount / 2 + 1
+        switch approvalMode {
+        case "one_person":  approvalsRequired = 1
+        case "entire_team": approvalsRequired = eligibleVoterCount
+        default:            approvalsRequired = teamData["minimumRequiredVoters"] != nil
+                                ? minimumRequiredVoters
+                                : eligibleVoterCount / 2 + 1
         }
 
         // Composite doc ID: one submission per user per activity per day
@@ -711,6 +754,7 @@ final class FirestoreService: ObservableObject {
             "voteCount": 0,
             "eligibleVoterCount": eligibleVoterCount,
             "approvalsRequired": approvalsRequired,
+            "approvalMode": approvalMode,
             "createdAt": FieldValue.serverTimestamp(),
         ]
         try await db
