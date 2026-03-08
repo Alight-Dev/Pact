@@ -392,7 +392,7 @@ private struct ShareInviteSheet: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let link = "pact://join/\(inviteCode)"
-        UIActivityViewController(
+        return UIActivityViewController(
             activityItems: [
                 "Join my Pact Shield! 🛡️\nCode: \(inviteCode)\n\(link)",
                 URL(string: link)!

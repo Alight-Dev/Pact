@@ -855,6 +855,7 @@ private struct ProfileSettingsSection: View {
 
 private struct EditBlockedAppsSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var authorizationCenter = AuthorizationCenter.shared
 
     @State private var selection: FamilyActivitySelection
     @State private var showFamilyPicker = false
@@ -875,7 +876,7 @@ private struct EditBlockedAppsSheet: View {
     }
 
     private var authorizationGranted: Bool {
-        AuthorizationCenter.shared.authorizationStatus == .approved
+        authorizationCenter.authorizationStatus == .approved
     }
 
     var body: some View {
