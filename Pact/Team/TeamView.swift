@@ -37,8 +37,7 @@ private struct HighlightCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            CachedProofImage(urlString: highlight.photoUrl)
-            .frame(height: 260)
+            CachedProofImage(urlString: highlight.photoUrl, height: 400)
             .overlay(alignment: .topTrailing) {
                 Text("APPROVED")
                     .font(.system(size: 13, weight: .bold))
@@ -49,29 +48,33 @@ private struct HighlightCard: View {
                     .padding(12)
             }
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 Image(highlight.avatarAssetName.isEmpty ? "avatar_felix" : highlight.avatarAssetName)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 48, height: 48)
+                    .frame(width: 32, height: 32)
                     .clipShape(Circle())
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(highlight.nickname.isEmpty ? highlight.displayName : highlight.nickname)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.black)
-                    Text(highlight.activityName)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(white: 0.55))
-                }
+                Text(highlight.nickname.isEmpty ? highlight.displayName : highlight.nickname)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.black)
+
+                Text("·")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color(white: 0.65))
+
+                Text(highlight.activityName)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color(white: 0.55))
+                    .lineLimit(1)
 
                 Spacer()
 
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.system(size: 18))
                     .foregroundStyle(Color(red: 0.20, green: 0.75, blue: 0.45))
             }
-            .padding(.top, 14)
+            .padding(.top, 10)
         }
         .padding(16)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
@@ -106,7 +109,7 @@ private struct HighlightsSection: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: 370)
+                .frame(height: 490)
 
                 HStack(spacing: 6) {
                     ForEach(highlights.indices, id: \.self) { index in

@@ -67,20 +67,20 @@ struct SubmissionDetailView: View {
                     case .empty:
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(Color(white: 0.94))
-                            .frame(height: 280)
+                            .frame(height: 400)
                             .overlay(ProgressView())
                     case .success(let image):
                         image
                             .resizable()
                             .scaledToFill()
                             .frame(maxWidth: .infinity)
-                            .frame(height: 280)
+                            .frame(height: 400)
                             .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     case .failure:
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(Color(white: 0.94))
-                            .frame(height: 280)
+                            .frame(height: 400)
                             .overlay(
                                 Image(systemName: "photo")
                                     .font(.system(size: 40))
@@ -93,7 +93,7 @@ struct SubmissionDetailView: View {
             } else {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color(white: 0.94))
-                    .frame(height: 280)
+                    .frame(height: 400)
                     .overlay(
                         Image(systemName: "photo")
                             .font(.system(size: 40))
