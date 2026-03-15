@@ -42,10 +42,10 @@ private struct HighlightCard: View {
             .overlay(alignment: .topTrailing) {
                 Text("APPROVED")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.pactBackground)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color(red: 0.20, green: 0.75, blue: 0.45), in: Capsule())
+                    .background(Color.pactAccent, in: Capsule())
                     .padding(12)
             }
 
@@ -59,23 +59,23 @@ private struct HighlightCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(highlight.nickname.isEmpty ? highlight.displayName : highlight.nickname)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                     Text(highlight.activityName)
                         .font(.system(size: 14))
-                        .foregroundStyle(Color(white: 0.55))
+                        .foregroundStyle(Color.pactTextSecond)
                 }
 
                 Spacer()
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 22))
-                    .foregroundStyle(Color(red: 0.20, green: 0.75, blue: 0.45))
+                    .foregroundStyle(Color.pactGreen)
             }
             .padding(.top, 14)
         }
         .padding(16)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
-        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
+        .background(Color.pactSurface, in: RoundedRectangle(cornerRadius: 20))
+        .shadow(color: Color.black.opacity(0.3), radius: 12, x: 0, y: 4)
     }
 }
 
@@ -89,12 +89,12 @@ private struct HighlightsSection: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Highlights")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(Color.pactTextPrimary)
 
             if highlights.isEmpty {
                 Text("No highlights yet — be the first to complete a goal!")
                     .font(.system(size: 15))
-                    .foregroundStyle(Color(white: 0.55))
+                    .foregroundStyle(Color.pactTextSecond)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 40)
@@ -111,7 +111,7 @@ private struct HighlightsSection: View {
                 HStack(spacing: 6) {
                     ForEach(highlights.indices, id: \.self) { index in
                         Circle()
-                            .fill(index == currentPage ? Color.black : Color(white: 0.80))
+                            .fill(index == currentPage ? Color.pactAccent : Color.pactTextMuted)
                             .frame(width: 7, height: 7)
                             .animation(.easeInOut(duration: 0.2), value: currentPage)
                     }
@@ -154,10 +154,10 @@ private struct SubmissionCard: View {
                 // APPROVE label
                 Text("APPROVE")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.pactBackground)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(Color.green, in: Capsule())
+                    .background(Color.pactGreen, in: Capsule())
                     .rotationEffect(.degrees(-15))
                     .padding(.top, 16)
                     .padding(.leading, 16)
@@ -170,7 +170,7 @@ private struct SubmissionCard: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(Color.red, in: Capsule())
+                    .background(Color.pactRed, in: Capsule())
                     .rotationEffect(.degrees(15))
                     .padding(.top, 16)
                     .padding(.trailing, 16)
@@ -188,17 +188,17 @@ private struct SubmissionCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(submission.nickname.isEmpty ? submission.displayName : submission.nickname)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                     Text(submission.activityName)
                         .font(.system(size: 14))
-                        .foregroundStyle(Color(white: 0.55))
+                        .foregroundStyle(Color.pactTextSecond)
                 }
 
                 Spacer()
 
                 Text("\(submission.approvalsReceived)/\(submission.approvalsRequired) approvals")
                     .font(.system(size: 14))
-                    .foregroundStyle(Color(white: 0.55))
+                    .foregroundStyle(Color.pactTextSecond)
             }
             .padding(.top, 14)
 
@@ -212,7 +212,7 @@ private struct SubmissionCard: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.red, in: RoundedRectangle(cornerRadius: 14))
+                        .background(Color.pactRed, in: RoundedRectangle(cornerRadius: 14))
                 }
 
                 Button {
@@ -220,17 +220,17 @@ private struct SubmissionCard: View {
                 } label: {
                     Label("Approve", systemImage: "checkmark")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.pactBackground)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.green, in: RoundedRectangle(cornerRadius: 14))
+                        .background(LinearGradient.pactGold, in: RoundedRectangle(cornerRadius: 14))
                 }
             }
             .padding(.top, 16)
         }
         .padding(16)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
-        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
+        .background(Color.pactSurface, in: RoundedRectangle(cornerRadius: 20))
+        .shadow(color: Color.black.opacity(0.4), radius: 12, x: 0, y: 4)
         .offset(x: offset.width, y: 0)
         .rotationEffect(.degrees(rotation))
         .simultaneousGesture(
@@ -328,12 +328,12 @@ private struct SwipeableCardStack: View {
                     VStack(spacing: 8) {
                         Text("Reject this submission?")
                             .font(.system(size: 17, weight: .bold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(Color.pactTextPrimary)
                             .multilineTextAlignment(.center)
 
                         Text("This action can't be undone.")
                             .font(.system(size: 14))
-                            .foregroundStyle(Color(white: 0.55))
+                            .foregroundStyle(Color.pactTextSecond)
                             .multilineTextAlignment(.center)
                     }
 
@@ -346,10 +346,10 @@ private struct SwipeableCardStack: View {
                         } label: {
                             Text("Go Back")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Color.pactTextPrimary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(Color.black, in: RoundedRectangle(cornerRadius: 14))
+                                .background(Color.pactSurface2, in: RoundedRectangle(cornerRadius: 14))
                         }
 
                         Button {
@@ -365,19 +365,19 @@ private struct SwipeableCardStack: View {
                         } label: {
                             Text("Reject")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(Color(red: 0.75, green: 0.15, blue: 0.10))
+                                .foregroundStyle(Color.pactRed)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(
-                                    Color(red: 0.98, green: 0.89, blue: 0.88),
+                                    Color.pactRed.opacity(0.15),
                                     in: RoundedRectangle(cornerRadius: 14)
                                 )
                         }
                     }
                 }
                 .padding(24)
-                .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
-                .shadow(color: Color.black.opacity(0.12), radius: 24, x: 0, y: 8)
+                .background(Color.pactSurface, in: RoundedRectangle(cornerRadius: 20))
+                .shadow(color: Color.black.opacity(0.5), radius: 24, x: 0, y: 8)
                 .padding(.horizontal, 24)
                 .transition(.scale(scale: 0.92).combined(with: .opacity))
                 .zIndex(101)
@@ -397,7 +397,7 @@ private struct PendingApprovalsSection: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Pending Approvals")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(Color.pactTextPrimary)
 
             SwipeableCardStack(submissions: $submissions, onVote: onVote)
         }
@@ -418,7 +418,7 @@ private struct MemberRow: View {
                 .clipShape(Circle())
                 .overlay(
                     Circle().stroke(
-                        member.hasCompletedAll ? Color(red: 0.20, green: 0.75, blue: 0.45) : Color.clear,
+                        member.hasCompletedAll ? Color.pactGreen : Color.clear,
                         lineWidth: 2.5
                     )
                 )
@@ -427,14 +427,14 @@ private struct MemberRow: View {
                 HStack(spacing: 6) {
                     Text(member.memberName)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                     if member.isCurrentUser {
                         Text("You")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
-                            .background(Color(red: 0.20, green: 0.75, blue: 0.45), in: Capsule())
+                            .background(Color.pactGreen, in: Capsule())
                     }
                 }
                 VStack(alignment: .leading, spacing: 4) {
@@ -442,15 +442,15 @@ private struct MemberRow: View {
                         Spacer()
                         Text("\(member.activitiesCompleted)/\(member.activitiesTotal)")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Color(white: 0.55))
+                            .foregroundStyle(Color.pactTextSecond)
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(Color(white: 0.88))
+                                .fill(Color.pactSurface3)
                                 .frame(height: 6)
                             Capsule()
-                                .fill(Color(red: 0.20, green: 0.75, blue: 0.45))
+                                .fill(Color.pactGreen)
                                 .frame(width: geo.size.width * member.progress, height: 6)
                         }
                     }
@@ -461,12 +461,12 @@ private struct MemberRow: View {
             Spacer()
 
             Circle()
-                .fill(member.hasCompletedAll ? Color(red: 0.20, green: 0.75, blue: 0.45) : Color(white: 0.78))
+                .fill(member.hasCompletedAll ? Color.pactGreen : Color.pactTextMuted)
                 .frame(width: 10, height: 10)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(Color(white: 0.96), in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.pactSurface2, in: RoundedRectangle(cornerRadius: 16))
     }
 }
 
@@ -501,7 +501,7 @@ private struct ShieldMembersSection: View {
             HStack(spacing: 12) {
                 Text("Shield Members")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color.pactTextPrimary)
 
                 Spacer()
 
@@ -510,10 +510,10 @@ private struct ShieldMembersSection: View {
                 } label: {
                     Label("Add Members", systemImage: "square.and.arrow.up")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color(white: 0.94), in: Capsule())
+                        .background(Color.pactSurface2, in: Capsule())
                 }
                 .sheet(isPresented: $showShareSheet) {
                     ShareInviteSheet(inviteCode: inviteCode)
@@ -627,7 +627,7 @@ struct TeamView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("My Submissions Today")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color.pactTextPrimary)
 
                 TabView(selection: $mySubmissionPage) {
                     ForEach(Array(myTodaySubmissions.enumerated()), id: \.element.id) { index, sub in
@@ -642,7 +642,7 @@ struct TeamView: View {
                     HStack(spacing: 6) {
                         ForEach(myTodaySubmissions.indices, id: \.self) { index in
                             Circle()
-                                .fill(index == mySubmissionPage ? Color.black : Color(white: 0.80))
+                                .fill(index == mySubmissionPage ? Color.pactAccent : Color.pactTextMuted)
                                 .frame(width: 6, height: 6)
                         }
                     }
@@ -664,11 +664,11 @@ struct TeamView: View {
                         case .success(let image):
                             image.resizable().scaledToFill()
                         default:
-                            Color(white: 0.88)
+                            Color.pactSurface3
                         }
                     }
                 } else {
-                    Color(white: 0.88)
+                    Color.pactSurface3
                 }
             }
             .frame(width: 56, height: 56)
@@ -677,7 +677,7 @@ struct TeamView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(sub.activityName)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color.pactTextPrimary)
 
                 // Status pill
                 let (pillText, pillColor) = mySubmissionPillInfo(sub)
@@ -695,11 +695,11 @@ struct TeamView: View {
             if isTappable {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color(white: 0.70))
+                    .foregroundStyle(Color.pactTextMuted)
             }
         }
         .padding(12)
-        .background(Color(white: 0.96), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color.pactSurface2, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
         if isTappable {
             Button {
@@ -778,7 +778,7 @@ struct TeamView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(Color.white)
+            .background(Color.pactBackground)
             .ignoresSafeArea(edges: .top)
             .onChange(of: firestoreService.mappedSubmissions) { _, newSubmissions in
                 refreshPending(from: newSubmissions)
@@ -872,13 +872,13 @@ private struct TeamShieldHeader: View {
 
                 Text(teamName)
                     .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color.pactTextPrimary)
             }
 
             // Member count
             Text(memberCount == 1 ? "1 member" : "\(memberCount) members")
                 .font(.system(size: 16))
-                .foregroundStyle(Color(white: 0.50))
+                .foregroundStyle(Color.pactTextSecond)
 
             // Tier + streak (live from Firestore)
             HStack(spacing: 6) {
@@ -889,12 +889,12 @@ private struct TeamShieldHeader: View {
 
                     Text("•")
                         .font(.system(size: 15))
-                        .foregroundStyle(Color(white: 0.65))
+                        .foregroundStyle(Color.pactTextSecond)
                 }
 
                 Text(streakDays == 1 ? "1 day streak" : "\(streakDays) day streak")
                     .font(.system(size: 15))
-                    .foregroundStyle(Color(white: 0.50))
+                    .foregroundStyle(Color.pactTextSecond)
             }
         }
     }
@@ -924,11 +924,11 @@ private struct TeamAdminPickerSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(member.nickname.isEmpty ? member.displayName : member.nickname)
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(Color.pactTextPrimary)
                             if !member.displayName.isEmpty {
                                 Text(member.displayName)
                                     .font(.system(size: 13))
-                                    .foregroundStyle(Color(white: 0.55))
+                                    .foregroundStyle(Color.pactTextSecond)
                             }
                         }
 
@@ -937,7 +937,7 @@ private struct TeamAdminPickerSheet: View {
                         if selectedUid == member.id {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(Color.pactTextPrimary)
                         }
                     }
                     .contentShape(Rectangle())
@@ -949,14 +949,14 @@ private struct TeamAdminPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel", action: onCancel)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Confirm & Leave") {
                         if let uid = selectedUid { onConfirm(uid) }
                     }
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(selectedUid != nil ? Color.red : Color(white: 0.55))
+                    .foregroundStyle(selectedUid != nil ? Color.pactRed : Color.pactTextSecond)
                     .disabled(selectedUid == nil)
                 }
             }

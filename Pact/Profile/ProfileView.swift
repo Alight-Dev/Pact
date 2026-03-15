@@ -238,7 +238,7 @@ struct ProfileView: View {
                 .padding(.bottom, 40)
             }
         }
-        .background(Color.white)
+        .background(Color.pactBackground)
         .presentationDragIndicator(.visible)
         .task {
             activeMembership = try? await firestoreService.loadActiveMembership()
@@ -349,13 +349,13 @@ private struct EditActivitiesView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color.white.ignoresSafeArea()
+                Color.pactBackground.ignoresSafeArea()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         Text("Select the activities you want to commit to. You must stay opted into at least one.")
                             .font(.system(size: 15))
-                            .foregroundStyle(Color(white: 0.55))
+                            .foregroundStyle(Color.pactTextSecond)
                             .lineSpacing(3)
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
@@ -371,7 +371,7 @@ private struct EditActivitiesView: View {
                         } else if activities.isEmpty {
                             Text("No activities set up yet.")
                                 .font(.system(size: 15))
-                                .foregroundStyle(Color(white: 0.55))
+                                .foregroundStyle(Color.pactTextSecond)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 40)
                         } else {
@@ -400,7 +400,7 @@ private struct EditActivitiesView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                 }
             }
         }
@@ -417,23 +417,23 @@ private struct EditActivitiesView: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(isSelected ? Color.white.opacity(0.2) : Color(white: 0.93))
+                        .fill(isSelected ? Color.pactAccent.opacity(0.25) : Color.pactSurface3)
                         .frame(width: 44, height: 44)
 
                     Image(systemName: activity.iconName)
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(isSelected ? .white : .black)
+                        .foregroundStyle(isSelected ? Color.pactAccent : Color.pactTextPrimary)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(activity.name)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(isSelected ? .white : .black)
+                        .foregroundStyle(isSelected ? Color.pactAccent : Color.pactTextPrimary)
 
                     if !activity.activityDescription.isEmpty {
                         Text(activity.activityDescription)
                             .font(.system(size: 13))
-                            .foregroundStyle(isSelected ? Color.white.opacity(0.7) : Color(white: 0.55))
+                            .foregroundStyle(isSelected ? Color.pactAccentSoft.opacity(0.7) : Color.pactTextSecond)
                             .lineLimit(2)
                     }
                 }
@@ -442,18 +442,18 @@ private struct EditActivitiesView: View {
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22))
-                    .foregroundStyle(isSelected ? .white : Color(white: 0.78))
+                    .foregroundStyle(isSelected ? .white : Color.pactTextMuted)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Color.black : Color(white: 0.96))
+                    .fill(isSelected ? Color.pactAccent.opacity(0.15) : Color.pactSurface2)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(
-                        isSelected ? Color.clear : Color.black.opacity(0.04),
+                        isSelected ? Color.pactAccent.opacity(0.5) : Color.pactTextMuted.opacity(0.3),
                         lineWidth: 1
                     )
             )
@@ -482,12 +482,12 @@ private struct ProfileHeaderSection: View {
             HStack {
                 Text(firstName)
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color.pactTextPrimary)
                 Spacer()
                 Button(action: {}) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 20))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                 }
                 .buttonStyle(.plain)
             }
@@ -498,28 +498,28 @@ private struct ProfileHeaderSection: View {
                 .scaledToFill()
                 .frame(width: 80, height: 80)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Color.green, lineWidth: 3))
+                .overlay(Circle().stroke(Color.pactAccent, lineWidth: 3))
 
             // Username
             Text(usernameDisplay)
                 .font(.system(size: 15))
-                .foregroundStyle(Color(white: 0.50))
+                .foregroundStyle(Color.pactTextSecond)
 
             // Tier + streak pills
             HStack(spacing: 8) {
                 Text("\(shieldTier) Tier")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.pactAccent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(Color.green, in: Capsule())
+                    .background(Color.pactAccent.opacity(0.15), in: Capsule())
 
                 Text("🔥 \(streakDays) day streak")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color.pactTextPrimary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(Color(white: 0.92), in: Capsule())
+                    .background(Color.pactSurface3, in: Capsule())
             }
         }
     }
@@ -548,7 +548,7 @@ private struct ScreenTimeCard: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Screen Time")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(Color.pactTextPrimary)
 
             // Period picker
             HStack(spacing: 6) {
@@ -560,12 +560,12 @@ private struct ScreenTimeCard: View {
                     } label: {
                         Text(period.rawValue)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(selectedPeriod == period ? .white : Color.black)
+                            .foregroundStyle(selectedPeriod == period ? Color.pactBackground : Color.pactTextPrimary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(selectedPeriod == period ? Color.black : Color(white: 0.92))
+                                    .fill(selectedPeriod == period ? Color.pactAccent : Color.pactSurface3)
                             )
                     }
                     .buttonStyle(.plain)
@@ -576,10 +576,10 @@ private struct ScreenTimeCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(avgTimeText)
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Color.pactTextPrimary)
                 Text("Avg Daily  ·  \(mockAwakePercent)% of awake time")
                     .font(.system(size: 13))
-                    .foregroundStyle(Color(white: 0.50))
+                    .foregroundStyle(Color.pactTextSecond)
             }
 
             ScreenTimeBarChart(selectedPeriod: selectedPeriod)
@@ -587,8 +587,8 @@ private struct ScreenTimeCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 3)
+                .fill(Color.pactSurface)
+                .shadow(color: Color.black.opacity(0.4), radius: 12, x: 0, y: 4)
         )
     }
 }
@@ -622,7 +622,7 @@ private struct ScreenTimeBarChart: View {
         if selectedPeriod == .lifetime {
             Text("Coming soon")
                 .font(.system(size: 15))
-                .foregroundStyle(Color(white: 0.55))
+                .foregroundStyle(Color.pactTextSecond)
                 .frame(maxWidth: .infinity, minHeight: 120)
                 .multilineTextAlignment(.center)
         } else {
@@ -637,7 +637,7 @@ private struct ScreenTimeBarChart: View {
                     HStack(alignment: .bottom, spacing: gap) {
                         ForEach(Array(bars.enumerated()), id: \.offset) { i, val in
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(i == todayIndex ? Color.black : Color(white: 0.85))
+                                .fill(i == todayIndex ? Color.pactAccent : Color.pactSurface3)
                                 .frame(width: barW,
                                        height: max(4, barAreaHeight * CGFloat(val / maxVal)))
                         }
@@ -650,7 +650,7 @@ private struct ScreenTimeBarChart: View {
                             ForEach(Array(weekLabels.enumerated()), id: \.offset) { _, label in
                                 Text(label)
                                     .font(.system(size: 12))
-                                    .foregroundStyle(Color(white: 0.55))
+                                    .foregroundStyle(Color.pactTextSecond)
                                     .frame(width: barW)
                             }
                         }
@@ -674,21 +674,21 @@ private struct ActivityStatsCard: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Activity Stats")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(Color.pactTextPrimary)
 
             HStack(spacing: 0) {
                 statCell(symbol: "flame.fill",
-                         color: .black,
+                         color: Color.pactAccent,
                          value: "\(streakDays)",
                          label: "Day Streak")
                 Divider()
                 statCell(symbol: "checkmark.circle.fill",
-                         color: .green,
+                         color: Color.pactGreen,
                          value: "\(completionPercent)%",
                          label: "Completion")
                 Divider()
                 statCell(symbol: "lock.shield.fill",
-                         color: .black,
+                         color: Color.pactAccent,
                          value: "\(daysSaved)",
                          label: "Days Saved")
             }
@@ -697,8 +697,8 @@ private struct ActivityStatsCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 3)
+                .fill(Color.pactSurface)
+                .shadow(color: Color.black.opacity(0.4), radius: 12, x: 0, y: 4)
         )
     }
 
@@ -709,10 +709,10 @@ private struct ActivityStatsCard: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(Color.pactTextPrimary)
             Text(label)
                 .font(.system(size: 12))
-                .foregroundStyle(Color(white: 0.55))
+                .foregroundStyle(Color.pactTextSecond)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -733,7 +733,7 @@ private struct TeamCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("My Team")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(Color.pactTextPrimary)
 
             HStack(spacing: 12) {
                 ZStack {
@@ -743,7 +743,7 @@ private struct TeamCard: View {
                             .scaledToFill()
                             .frame(width: 36, height: 36)
                             .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                            .overlay(Circle().stroke(Color.pactSurface2, lineWidth: 2))
                             .offset(x: CGFloat(i) * overlap)
                     }
                 }
@@ -754,20 +754,20 @@ private struct TeamCard: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(teamName)
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                     Text("\(shieldTier) Tier")
                         .font(.system(size: 14))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.pactAccent)
                 }
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color(white: 0.55))
+                    .foregroundStyle(Color.pactTextSecond)
             }
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(white: 0.97))
+                    .fill(Color.pactSurface2)
             )
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .onTapGesture { onTap() }
@@ -829,8 +829,8 @@ private struct ProfileSettingsSection: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.07), radius: 8, x: 0, y: 3)
+                .fill(Color.pactSurface)
+                .shadow(color: Color.black.opacity(0.4), radius: 12, x: 0, y: 4)
         )
     }
 
@@ -838,12 +838,12 @@ private struct ProfileSettingsSection: View {
         HStack {
             Text(title)
                 .font(.system(size: 16))
-                .foregroundStyle(isRed ? Color.red : Color.black)
+                .foregroundStyle(isRed ? Color.pactRed : Color.pactTextPrimary)
             Spacer()
             if showChevron {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color(white: 0.55))
+                    .foregroundStyle(Color.pactTextSecond)
             }
         }
         .padding(16)
@@ -882,19 +882,19 @@ private struct EditBlockedAppsSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.white.ignoresSafeArea()
+                Color.pactBackground.ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     Spacer()
 
                     // Icon
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color(red: 0.94, green: 0.94, blue: 0.96))
+                        .fill(Color.pactSurface2)
                         .frame(width: 64, height: 64)
                         .overlay(
                             Image(systemName: authorizationGranted ? "lock.iphone" : "lock.slash")
                                 .font(.system(size: 28, weight: .semibold))
-                                .foregroundStyle(authorizationGranted ? .black : Color(white: 0.55))
+                                .foregroundStyle(authorizationGranted ? Color.pactAccent : Color.pactTextSecond)
                         )
                         .padding(.bottom, 24)
 
@@ -911,16 +911,16 @@ private struct EditBlockedAppsSheet: View {
 
                             Text(summaryText)
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(Color(red: 0.35, green: 0.35, blue: 0.38))
+                                .foregroundStyle(Color.pactTextSecond)
                                 .padding(.horizontal, 18)
                                 .padding(.vertical, 10)
-                                .background(Capsule().fill(Color(red: 0.94, green: 0.94, blue: 0.96)))
+                                .background(Capsule().fill(Color.pactSurface2))
                                 .padding(.bottom, 16)
                                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
                         } else {
                             Text("Nothing selected yet")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color(white: 0.55))
+                                .foregroundStyle(Color.pactTextSecond)
                                 .padding(.bottom, 16)
                         }
 
@@ -933,7 +933,7 @@ private struct EditBlockedAppsSheet: View {
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
-                                .background(Capsule().fill(Color.black))
+                                .background(Capsule().fill(LinearGradient.pactGold))
                         }
                         .buttonStyle(.plain)
                         .padding(.horizontal, 24)
@@ -941,7 +941,7 @@ private struct EditBlockedAppsSheet: View {
                     } else {
                         Text("Screen Time access is required — you can enable it in Settings.")
                             .font(.system(size: 14))
-                            .foregroundStyle(Color(white: 0.55))
+                            .foregroundStyle(Color.pactTextSecond)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
 
@@ -1027,11 +1027,11 @@ private struct AdminPickerSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(member.nickname.isEmpty ? member.displayName : member.nickname)
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(Color.pactTextPrimary)
                             if !member.displayName.isEmpty {
                                 Text(member.displayName)
                                     .font(.system(size: 13))
-                                    .foregroundStyle(Color(white: 0.55))
+                                    .foregroundStyle(Color.pactTextSecond)
                             }
                         }
 
@@ -1040,7 +1040,7 @@ private struct AdminPickerSheet: View {
                         if selectedUid == member.id {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(.black)
+                                .foregroundStyle(Color.pactTextPrimary)
                         }
                     }
                     .contentShape(Rectangle())
@@ -1052,14 +1052,14 @@ private struct AdminPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel", action: onCancel)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color.pactTextPrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Confirm & Leave") {
                         if let uid = selectedUid { onConfirm(uid) }
                     }
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(selectedUid != nil ? Color.red : Color(white: 0.55))
+                    .foregroundStyle(selectedUid != nil ? Color.pactRed : Color.pactTextSecond)
                     .disabled(selectedUid == nil)
                 }
             }
