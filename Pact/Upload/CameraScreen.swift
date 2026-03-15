@@ -182,6 +182,8 @@ struct CameraScreen: View {
 
     @StateObject private var viewModel = CameraViewModel()
     @State private var selectedActivityID: String? = nil
+    @State private var dragOffset: CGFloat = .zero
+    @State private var transitionFlash: Bool = false
 
     private var selectedActivity: ActivityOption? {
         activities.first { activity in
@@ -196,12 +198,38 @@ struct CameraScreen: View {
             CameraPreviewRepresentable(session: viewModel.session)
                 .ignoresSafeArea()
 
+            // Transition vignette — radial dark pulse from edges on activity switch
+            RadialGradient(
+                colors: [.clear, .black.opacity(0.72)],
+                center: .center,
+                startRadius: 80,
+                endRadius: 480
+            )
+            .ignoresSafeArea()
+            .opacity(transitionFlash ? 1 : 0)
+            .animation(.easeInOut(duration: 0.18), value: transitionFlash)
+            .allowsHitTesting(false)
+
             VStack(spacing: 0) {
                 topBar
                 Spacer()
                 bottomControls
             }
         }
+        .gesture(
+            DragGesture(minimumDistance: 20)
+                .onChanged { value in
+                    dragOffset = value.translation.width
+                }
+                .onEnded { value in
+                    let dx = value.translation.width
+                    if dx < -50 { selectNext() }
+                    else if dx > 50 { selectPrevious() }
+                    withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                        dragOffset = 0
+                    }
+                }
+        )
         .statusBarHidden(true)
         .onAppear {
             viewModel.onPhotoCaptured = { image, activity in
@@ -270,75 +298,148 @@ struct CameraScreen: View {
     // MARK: - Bottom Controls
 
     private var bottomControls: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
             if !activities.isEmpty {
-                activityCarousel
+                // Strip + fixed side previews layered together
+                ZStack {
+                    activityStrip
+                    sideActivityPreviews
+                }
+                .padding(.bottom, 28)
             }
             captureRow
         }
         .padding(.bottom, 48)
         .background(
             LinearGradient(
-                colors: [.clear, .black.opacity(0.6)],
+                colors: [.clear, .black.opacity(0.78)],
                 startPoint: .top,
                 endPoint: .bottom
             )
         )
     }
 
-    // MARK: - Activity Carousel
+    // MARK: - Activity Strip (full-width paged)
 
-    private var activityCarousel: some View {
+    private var activityStrip: some View {
         GeometryReader { geo in
-            let itemWidth: CGFloat = 116
-            let spacing: CGFloat = 10
-            let sidePad = (geo.size.width - itemWidth) / 2
+            let w = geo.size.width
+            let currentIdx = activities.firstIndex(where: { $0.id == selectedActivityID }) ?? 0
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: spacing) {
-                    ForEach(activities) { activity in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedActivityID = activity.id
-                            }
-                        } label: {
-                            carouselPill(activity)
-                                .frame(width: itemWidth)
-                        }
-                        .buttonStyle(.plain)
-                        .id(activity.id)
+            HStack(spacing: 0) {
+                ForEach(Array(activities.enumerated()), id: \.element.id) { idx, activity in
+                    let d = CGFloat(idx - currentIdx) + dragOffset / w
+                    let absD = min(abs(d), 1.5)
+                    // Only render the center card content — neighbors are handled by sideActivityPreviews
+                    let scale: CGFloat = max(0.68, 1.0 - absD * 0.3)
+                    let opacity: CGFloat = absD < 0.15 ? 1.0 : max(0, 1.0 - absD * 3.5)
+
+                    VStack(spacing: 9) {
+                        Image(systemName: activity.iconName)
+                            .font(.system(size: 26, weight: .medium))
+                            .foregroundStyle(.white)
+                        Text(activity.name)
+                            .font(.system(size: 19, weight: .bold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
                     }
+                    .frame(width: w)
+                    .scaleEffect(scale)
+                    .opacity(opacity)
+                    // Scale punch on switch (driven by activitySwitchID change)
+                    .scaleEffect(transitionFlash ? 0.88 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.55), value: transitionFlash)
                 }
-                .scrollTargetLayout()
-                .padding(.horizontal, sidePad)
             }
-            .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $selectedActivityID, anchor: .center)
+            .offset(x: -CGFloat(currentIdx) * w + dragOffset)
         }
-        .frame(height: 46)
+        .frame(height: 88)
+        .clipped()
+        .allowsHitTesting(false)
     }
 
-    private func carouselPill(_ activity: ActivityOption) -> some View {
-        let isSelected = (selectedActivityID == activity.id)
+    // MARK: - Side Activity Previews (always visible, flanking the center)
 
-        return HStack(spacing: 6) {
-            Image(systemName: activity.iconName)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(isSelected ? .black : .white)
-            Text(activity.name)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-                .foregroundStyle(isSelected ? .black : .white)
-                .lineLimit(1)
+    private var sideActivityPreviews: some View {
+        let currentIdx = activities.firstIndex(where: { $0.id == selectedActivityID }) ?? 0
+        let prevActivity = currentIdx > 0 ? activities[currentIdx - 1] : nil
+        let nextActivity = currentIdx < activities.count - 1 ? activities[currentIdx + 1] : nil
+
+        // Boost opacity as the user drags toward each side
+        let halfScreen: CGFloat = 180
+        let leftBoost  = max(0, min(1, dragOffset / halfScreen))   // 0→1 as dragging right (prev)
+        let rightBoost = max(0, min(1, -dragOffset / halfScreen))  // 0→1 as dragging left (next)
+
+        return HStack(alignment: .center) {
+            // Left — previous activity
+            Group {
+                if let prev = prevActivity {
+                    VStack(spacing: 5) {
+                        Image(systemName: prev.iconName)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(.white)
+                        Text(prev.name)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                    }
+                    .opacity(0.42 + leftBoost * 0.42)
+                    .scaleEffect(0.88 + leftBoost * 0.06)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(maxWidth: 80, alignment: .leading)
+            .padding(.leading, 22)
+
+            Spacer()
+
+            // Right — next activity
+            Group {
+                if let next = nextActivity {
+                    VStack(spacing: 5) {
+                        Image(systemName: next.iconName)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(.white)
+                        Text(next.name)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                    }
+                    .opacity(0.42 + rightBoost * 0.42)
+                    .scaleEffect(0.88 + rightBoost * 0.06)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(maxWidth: 80, alignment: .trailing)
+            .padding(.trailing, 22)
         }
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity)
-        .frame(height: 36)
-        .background(
-            Capsule()
-                .fill(isSelected ? Color.white : Color.white.opacity(0.18))
-        )
-        .scaleEffect(isSelected ? 1.06 : 0.94)
-        .animation(.easeInOut(duration: 0.18), value: isSelected)
+        .frame(height: 88)
+        .allowsHitTesting(false)
+    }
+
+    // MARK: - Swipe Helpers
+
+    private func selectNext() {
+        guard let idx = activities.firstIndex(where: { $0.id == selectedActivityID }),
+              idx < activities.count - 1 else { return }
+        selectedActivityID = activities[idx + 1].id
+        triggerTransitionFlash()
+    }
+
+    private func selectPrevious() {
+        guard let idx = activities.firstIndex(where: { $0.id == selectedActivityID }),
+              idx > 0 else { return }
+        selectedActivityID = activities[idx - 1].id
+        triggerTransitionFlash()
+    }
+
+    private func triggerTransitionFlash() {
+        transitionFlash = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            transitionFlash = false
+        }
     }
 
     // MARK: - Capture Row
